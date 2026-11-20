@@ -60,28 +60,6 @@ export async function sendA2U(payment: { id: string; to: string }, amount: numbe
 export const completeA2U = (id: string, txid: string) => pi(`/payments/${encodeURIComponent(id)}/complete`, "POST", { txid });
 export const cancelA2U = (id: string) => pi(`/payments/${encodeURIComponent(id)}/cancel`, "POST").catch(() => null);
 
-/** Records data-only proof on chain (used for certificates): a no-op tx from the app wallet carrying a 32-byte hash memo. */
-export async function anchorHash(hashHex: string) {
-  const net = NET[env.piNetwork as "testnet" | "mainnet"];
-  const kp = Keypair.fromSecret(env.piWalletSeed);
-  const acc = await fetch(`${net.horizon}/accounts/${kp.publicKey()}`, { cache: "no-store" }).then((r) => {
-    if (!r.ok) throw new Error(`horizon_account_${r.status}`);
-    return r.json();
-  });
-  const tx = new TransactionBuilder(new Account(kp.publicKey(), acc.sequence), { fee: "100000", networkPassphrase: net.passphrase })
-    .addOperation(Operation.bumpSequence({ bumpTo: "0" }))
-    .addMemo(Memo.hash(hashHex))
-    .setTimeout(180)
-    .build();
-  tx.sign(kp);
-  const sub = await fetch(`${net.horizon}/transactions`, {
-    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ tx: tx.toXDR() }).toString(),
-  });
-  const out = await sub.json().catch(() => ({}));
-  if (!sub.ok || !out.hash) throw new Error(`horizon_submit_${sub.status}`);
-  return { txid: out.hash as string, network: env.piNetwork };
-}
 
 export const explorerTx = (txid: string, network = env.piNetwork) =>
   `${NET[network as "testnet" | "mainnet"].horizon}/transactions/${txid}`;

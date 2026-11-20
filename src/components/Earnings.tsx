@@ -15,7 +15,7 @@ const pi = (n: number) => `${Number(n).toLocaleString("en-US", { maximumFraction
 const toNum = (v: string) => Number(v.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[٫,]/g, "."));
 
 /** Creator earnings in Pi, with a withdrawal request (sent by the admin as an app-to-user payment). */
-export function Earnings() {
+export function Earnings({ hideIfEmpty = false }: { hideIfEmpty?: boolean }) {
   const { t, lang, toast } = useApp();
   const [e, setE] = useState<E | null>(null);
   const [amt, setAmt] = useState("");
@@ -25,7 +25,8 @@ export function Earnings() {
     if (r.ok) { const d: E = await r.json(); setE(d); setAmt(String(Math.floor(Number(d.balance) * 10000) / 10000)); }
   }, []);
   useEffect(() => { load(); }, [load]);
-  if (!e) return <div className="skeleton" style={{ height: 120 }} />;
+  if (!e) return hideIfEmpty ? null : <div className="skeleton" style={{ height: 120 }} />;
+  if (hideIfEmpty && !(Number(e.earned) > 0) && !e.history.length) return null;
 
   const value = toNum(amt) || 0;
   const pending = e.history.some((h) => h.status === "pending" || h.status === "sending");

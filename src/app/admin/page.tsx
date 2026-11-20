@@ -32,7 +32,7 @@ type BotRow = {
 const L = {
   ar: {
     title: "صفحة الأدمن", forbidden: "الصفحة دي للأدمن بس.",
-    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", tCourses: "الكورسات", crNone: "مفيش كورسات", crPublish: "انشر", crReject: "ارفض", crPause: "وقّف", crView: "معاينة", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (Pi)",
+    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", tCourses: "الكورسات", grantTitle: "إضافة أرباح Pi لمستخدم", grantHint: "بتتضاف لرصيد أرباحه بالـPi، وتقدر تجرّب بيها السحب. أقصى حاجة ١٠٠٠ Pi في المرة.", grantUser: "اسم المستخدم", grantAmount: "المبلغ (Pi)", grantBtn: "أضف", grantDone: "اتضاف ✓ رصيده دلوقتي", grantNotFound: "المستخدم ده مش موجود", crNone: "مفيش كورسات", crPublish: "انشر", crReject: "ارفض", crPause: "وقّف", crView: "معاينة", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (Pi)",
     revenue: "الإيرادات", revenueSub: "اللي المستخدمين دفعوه بالباي ({n} عملية)",
     aiCost: "اتصرف على الـAI (Meta)", aiCostSub: "التكلفة الحقيقية لكل الرسايل لحد دلوقتي",
     gross: "الكاش بعد تكلفة الـAI", grossSub: "الإيرادات ناقص تكلفة الـAI",
@@ -59,7 +59,7 @@ const L = {
   },
   en: {
     title: "Admin", forbidden: "This page is for admins only.",
-    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", tCourses: "Courses", crNone: "No courses", crPublish: "Publish", crReject: "Reject", crPause: "Pause", crView: "Preview", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (Pi)",
+    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", tCourses: "Courses", grantTitle: "Add Pi earnings to a user", grantHint: "Added to their Pi earnings balance so you can test withdrawals. Up to 1000 Pi at a time.", grantUser: "Username", grantAmount: "Amount (Pi)", grantBtn: "Add", grantDone: "Added ✓ Their balance is now", grantNotFound: "User not found", crNone: "No courses", crPublish: "Publish", crReject: "Reject", crPause: "Pause", crView: "Preview", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (Pi)",
     revenue: "Revenue", revenueSub: "What users paid in Pi ({n} payments)",
     aiCost: "Spent on AI (Meta)", aiCostSub: "Real cost of every message so far",
     gross: "Cash after AI cost", grossSub: "Revenue minus AI cost",
@@ -443,6 +443,7 @@ function WithdrawalsTab({ tr }: { tr: Tr }) {
   if (!d) return <div className="skeleton" style={{ height: 120 }} />;
   return (
     <div className="grid">
+      <GrantPi tr={tr} />
       {!d.ready && <div className="notice warn">{tr("wdNoWallet")}</div>}
       {!d.list.length && <div className="card empty">{tr("wdNone")}</div>}
       {d.list.map((w) => (
@@ -464,6 +465,33 @@ function WithdrawalsTab({ tr }: { tr: Tr }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function GrantPi({ tr }: { tr: Tr }) {
+  const { toast } = useApp();
+  const [username, setUsername] = useState("");
+  const [amount, setAmount] = useState("1");
+  const [busy, setBusy] = useState(false);
+  async function grant(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const pi = Number(amount.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[٫,]/g, "."));
+    const r = await post("/api/admin/withdrawals", { action: "grant", username, pi });
+    setBusy(false);
+    if (r.ok) toast(`${tr("grantDone")} @${r.data.username}: ${Number(r.data.balance).toLocaleString("en-US", { maximumFractionDigits: 4 })} π`);
+    else toast(r.data?.error === "user_not_found" ? tr("grantNotFound") : tr("err"));
+  }
+  return (
+    <form className="card" onSubmit={grant} style={{ display: "grid", gap: 8 }}>
+      <b>{tr("grantTitle")}</b>
+      <p className="hint">{tr("grantHint")}</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <input className="input ltr" style={{ flex: "2 1 160px" }} placeholder={`@${tr("grantUser")}`} value={username} onChange={(e) => setUsername(e.target.value)} aria-label={tr("grantUser")} />
+        <input className="input ltr" style={{ flex: "1 1 90px" }} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-label={tr("grantAmount")} />
+        <button className="btn primary" disabled={busy || !username.trim() || !(Number(amount) > 0)}>{tr("grantBtn")}</button>
+      </div>
+    </form>
   );
 }
 

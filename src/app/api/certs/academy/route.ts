@@ -16,5 +16,5 @@ export async function POST(req: Request) {
     Array.isArray(answers[id]) && keys.every((k, i) => answers[id][i] === k));
   if (!allRight) return fail("not_passed");
   const cert = await issueCert(s.uid, "academy", "pi-academy", "أكاديمية Pi: أساسيات الأمان والبناء", "Pi Academy: Safety and Building Basics", 100);
-  return json({ id: cert.id, txid: cert.txid });
+  return json({ id: cert.id });
 }

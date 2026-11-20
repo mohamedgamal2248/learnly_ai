@@ -4,6 +4,7 @@ import Link from "next/link";
 import { IAward, IFlame, IRotate, IconTile } from "@/components/Icons";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { Earnings } from "@/components/Earnings";
 import { post } from "@/lib/pi-client";
 import { UI_LANGS } from "@/lib/i18n";
 
@@ -71,6 +72,8 @@ export default function LearnPage() {
           <span className="hero-sub num">{t("bestStreak", { n: d.best })}</span>
         </div>
       </div>
+
+      <Earnings hideIfEmpty />
 
       <div className="sec-h"><h2>{t("planTitle")}</h2></div>
       {d.plan ? (

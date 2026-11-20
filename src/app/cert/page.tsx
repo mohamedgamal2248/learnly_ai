@@ -4,8 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 
-type Cert = { id: string; kind: string; title: string; title_en: string; username: string; hash: string; txid: string | null; network: string | null; created_at: string };
-type Verify = { hashOk: boolean; chainOk: boolean | null; chainUrl: string | null };
+type Cert = { id: string; kind: string; title: string; title_en: string; username: string; hash: string; created_at: string };
+type Verify = { hashOk: boolean };
 
 function CertView() {
   const { t, lang, toast } = useApp();
@@ -37,18 +37,13 @@ function CertView() {
         <div className="cert-k">{t("certFor")}</div>
         <h1 className="cert-title">{title}</h1>
         <div className="cert-date num">{date}</div>
-        <div className={`cert-seal${v.chainOk ? " ok" : ""}`}>{v.chainOk ? "✓" : "π"}</div>
+        <div className={`cert-seal${v.hashOk ? " ok" : ""}`}>{v.hashOk ? "✓" : "!"}</div>
       </article>
 
       <div className="card" style={{ display: "grid", gap: 8 }}>
         <b>{t("certVerify")}</b>
         <div className="vrow"><span className={`chip ${v.hashOk ? "free" : "bad"}`}>{v.hashOk ? "✓" : "✗"}</span>{t("certHashOk")}</div>
-        <div className="vrow">
-          <span className={`chip ${v.chainOk ? "free" : v.chainOk === false ? "bad" : "warn"}`}>{v.chainOk ? "✓" : v.chainOk === false ? "✗" : "…"}</span>
-          {v.chainOk ? t("certChainOk", { net: c.network === "mainnet" ? "Mainnet" : "Testnet" }) : c.txid ? t("certChainBad") : t("certChainPending")}
-        </div>
         <span className="hint ltr" style={{ overflowWrap: "anywhere" }}>SHA-256: {c.hash}</span>
-        {v.chainUrl && <a className="hint ltr md-link" href={v.chainUrl} target="_blank" rel="noopener noreferrer" style={{ overflowWrap: "anywhere" }}>tx: {c.txid}</a>}
         <div className="row-actions"><button className="btn primary" onClick={share}>{t("certShare")}</button></div>
       </div>
     </div>

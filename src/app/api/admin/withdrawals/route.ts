@@ -22,6 +22,14 @@ export async function POST(req: Request) {
   const a = await requireUser(req, ["admin"]);
   if (a instanceof Response) return a;
   const b = await req.json().catch(() => null);
+  // Add Pi earnings to a user by username (for testing withdrawals or manual rewards).
+  if (b?.action === "grant") {
+    const pi = Math.floor(Number(b.pi) * 1e7) / 1e7;
+    const username = typeof b.username === "string" ? b.username.trim().slice(0, 60) : "";
+    if (!username || !(pi > 0 && pi <= 1000)) return fail("bad_request");
+    const r = await rpc<{ ok: boolean; reason?: string; username?: string; balance?: number }>("ln_admin_grant_pi", { p_admin: a.u.id, p_username: username, p_pi: pi });
+    return r.ok ? json(r) : fail(r.reason || "bad_request", 400);
+  }
   if (typeof b?.id !== "string" || !/^[0-9a-f-]{36}$/i.test(b.id)) return fail("bad_request");
   const set = (status: string, extra: { payment?: string | null; txid?: string | null; note?: string | null } = {}) =>
     rpc<SetResult>("ln_payout_set", { p_id: b.id, p_status: status, p_payment: extra.payment ?? null, p_txid: extra.txid ?? null, p_note: extra.note ?? null });
