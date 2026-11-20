@@ -1,6 +1,7 @@
 export type Lang = "ar" | "en";
 
 const ar = {
+  copy: "نسخ", copied: "اتنسخ ✓", regen: "رد تاني", edit: "تعديل", scrollDown: "انزل لآخر الرسايل", qQuiz: "اختبرني على ده", qSimpler: "اشرحها أبسط", qSummary: "لخّصها في نقاط", qPdf: "اعملها ملف PDF",
   replyLang: "لغة الشرح", rlAuto: "تلقائي", rlAr: "عربي", rlEn: "English", rlHint: "البوت هيشرح باللغة دي، والكلمات اللي بتتعلمها هتفضل بلغتها.",
   bReplyLang: "لغة الشرح الافتراضية للمتعلّمين", preparing: "بيجهّز التنزيل…", dlError: "التنزيل ما اشتغلش. جرّب تاني.",
   gAll: "الكل", sortNew: "الأحدث", sortTop: "الأكثر تفاعلًا", useful: "مفيد", askAi: "اسأل المساعد الـAI", del: "احذف", deleted: "اتحذف",
@@ -88,6 +89,7 @@ const ar = {
 };
 
 const en: typeof ar = {
+  copy: "Copy", copied: "Copied ✓", regen: "Regenerate", edit: "Edit", scrollDown: "Jump to latest", qQuiz: "Quiz me on this", qSimpler: "Explain it simpler", qSummary: "Summarize in bullets", qPdf: "Make it a PDF",
   replyLang: "Explanation language", rlAuto: "Auto", rlAr: "عربي", rlEn: "English", rlHint: "The bot explains in this language; the words you're learning stay in their own language.",
   bReplyLang: "Default explanation language for learners", preparing: "Preparing download…", dlError: "The download didn't start. Try again.",
   gAll: "All", sortNew: "Newest", sortTop: "Most active", useful: "Helpful", askAi: "Ask the AI assistant", del: "Delete", deleted: "Deleted",

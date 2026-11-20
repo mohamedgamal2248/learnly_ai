@@ -19,6 +19,7 @@ const ERR: Record<string, Key> = {
   banned: "errBanned", ai_error: "errAi", login_required: "needLogin",
 };
 const activeKey = (botId: string) => `ln-active-${botId}`;
+const QUICK: Key[] = ["qQuiz", "qSimpler", "qSummary", "qPdf"];
 
 function ChatInner() {
   const { t, lang, user, ready, login, openBuy, setCredits, toast } = useApp();
@@ -33,9 +34,43 @@ function ChatInner() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [replyLang, setReplyLang] = useState<"auto" | "ar" | "en">("auto");
   const [dlBusy, setDlBusy] = useState<string | null>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const [copied, setCopied] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const atBottomRef = useRef(true);
+
+  // ---- smooth streaming: incoming text is queued and revealed a little every frame ----
+  const queueRef = useRef("");
+  const rafRef = useRef<number | null>(null);
+  const patchLast = useCallback((fn: (m: Msg) => Msg) => setMsgs((cur) => {
+    if (!cur.length) return cur;
+    const copy = cur.slice();
+    copy[copy.length - 1] = fn(copy[copy.length - 1]);
+    return copy;
+  }), []);
+  const pump = useCallback(() => {
+    const q = queueRef.current;
+    if (!q) { rafRef.current = null; return; }
+    // Reveal faster when a lot is waiting so the text never lags far behind.
+    const n = Math.max(2, Math.ceil(q.length / 12));
+    const chunk = q.slice(0, n);
+    queueRef.current = q.slice(n);
+    patchLast((m) => ({ ...m, content: m.content + chunk }));
+    rafRef.current = requestAnimationFrame(pump);
+  }, [patchLast]);
+  const enqueue = useCallback((s: string) => {
+    queueRef.current += s;
+    if (rafRef.current === null) rafRef.current = requestAnimationFrame(pump);
+  }, [pump]);
+  const flush = useCallback(() => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    const rest = queueRef.current;
+    queueRef.current = "";
+    if (rest) patchLast((m) => ({ ...m, content: m.content + rest }));
+  }, [patchLast]);
 
   // ---- which bot ----
   useEffect(() => {
@@ -64,6 +99,13 @@ function ChatInner() {
     try { saved = localStorage.getItem(`ln-rl-${bot.id}`); } catch {}
     setReplyLang(saved === "ar" || saved === "en" || saved === "auto" ? saved : bot.reply_lang || "auto");
   }, [bot]);
+
+  const autosize = () => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  };
 
   // Question handed over from another page (community post, academy lesson).
   useEffect(() => {
@@ -97,37 +139,42 @@ function ChatInner() {
       setChats(list);
       let saved: string | null = null;
       try { saved = localStorage.getItem(activeKey(bot.id)); } catch {}
-      const pick = list.find((c) => c.id === saved)?.id ?? list[0]?.id ?? null;
-      openChat(pick);
+      openChat(list.find((c) => c.id === saved)?.id ?? list[0]?.id ?? null);
     })();
   }, [bot, user, openChat]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, phase]);
+  // ---- scrolling: follow the reply only while the reader is at the bottom ----
+  useEffect(() => {
+    const onScroll = () => {
+      const near = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
+      atBottomRef.current = near;
+      setAtBottom(near);
+    };
+    onScroll();
+    addEventListener("scroll", onScroll, { passive: true });
+    return () => removeEventListener("scroll", onScroll);
+  }, []);
+  useEffect(() => {
+    if (atBottomRef.current) endRef.current?.scrollIntoView({ block: "end" });
+  }, [msgs, phase]);
+  const scrollDown = () => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
 
-  const autosize = () => {
-    const el = taRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
-  };
-
-  const send = useCallback(async (text: string) => {
+  const send = useCallback(async (text: string, opts: { replaceLast?: boolean } = {}) => {
     const content = text.trim();
     if (!content || !bot || phase !== "idle") return;
     if (!user) { await login(); return; }
-    setMsgs((cur) => [...cur, { role: "user", content }, { role: "assistant", content: "" }]);
+    setMsgs((cur) => {
+      const base = opts.replaceLast ? cur.slice(0, -2) : cur;
+      return [...base, { role: "user", content }, { role: "assistant", content: "" }];
+    });
     setInput("");
     requestAnimationFrame(autosize);
     setPhase("thinking");
+    atBottomRef.current = true;
+    requestAnimationFrame(scrollDown);
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    const patch = (fn: (m: Msg) => Msg) => setMsgs((cur) => {
-      const copy = cur.slice();
-      copy[copy.length - 1] = fn(copy[copy.length - 1]);
-      return copy;
-    });
-
     try {
       const res = await fetch("/api/chat", {
         method: "POST", credentials: "include", signal: ctrl.signal,
@@ -136,7 +183,7 @@ function ChatInner() {
       });
       if (!res.ok || !res.body) {
         const d = await res.json().catch(() => ({}));
-        patch((m) => ({ ...m, code: d.error, error: t(ERR[d.error] || "errGeneric", { have: d.credits ?? 0, need: d.need ?? "?" }) }));
+        patchLast((m) => ({ ...m, code: d.error, error: t(ERR[d.error] || "errGeneric", { have: d.credits ?? 0, need: d.need ?? "?" }) }));
         if (d.error === "login_required") login();
         return;
       }
@@ -154,17 +201,17 @@ function ChatInner() {
           if (!line.startsWith("data:")) continue;
           let ev: any;
           try { ev = JSON.parse(line.slice(5)); } catch { continue; }
-          if (ev.t === "d") { setPhase("writing"); patch((m) => ({ ...m, content: m.content + ev.v })); }
+          if (ev.t === "d") { setPhase("writing"); enqueue(ev.v); }
           else if (ev.t === "think") setPhase("thinking");
           else if (ev.t === "making") setPhase("making");
           else if (ev.t === "file") {
             rememberSpec(ev.id, ev.spec);
             saveFileSpec(ev.id, ev.spec);
-            patch((m) => ({ ...m, files: [...(m.files || []), { id: ev.id, format: ev.format, title: ev.title }] }));
-            setPhase("writing");
+            patchLast((m) => ({ ...m, files: [...(m.files || []), { id: ev.id, format: ev.format, title: ev.title }] }));
           }
           else if (ev.t === "done") {
-            patch((m) => ({ ...m, credits: ev.charged }));
+            flush();
+            patchLast((m) => ({ ...m, credits: ev.charged }));
             setCredits(ev.credits);
             if (ev.chatId && ev.chatId !== chatId) {
               setChatId(ev.chatId);
@@ -172,16 +219,17 @@ function ChatInner() {
               setChats((cur) => [{ id: ev.chatId, title: content.slice(0, 60), msgs: 2, updated_at: new Date().toISOString() }, ...cur.filter((c) => c.id !== ev.chatId)]);
             }
           }
-          else if (ev.t === "err") patch((m) => ({ ...m, error: t(ERR[ev.v] || "errGeneric") }));
+          else if (ev.t === "err") { flush(); patchLast((m) => ({ ...m, error: t(ERR[ev.v] || "errGeneric") })); }
         }
       }
     } catch (e: any) {
-      if (e?.name !== "AbortError") patch((m) => ({ ...m, error: t("errGeneric") }));
+      if (e?.name !== "AbortError") patchLast((m) => ({ ...m, error: t("errGeneric") }));
     } finally {
+      flush();
       abortRef.current = null;
       setPhase("idle");
     }
-  }, [bot, phase, user, login, chatId, t, setCredits, replyLang]);
+  }, [bot, phase, user, login, chatId, t, setCredits, replyLang, enqueue, flush, patchLast]);
 
   async function download(id: string) {
     setDlBusy(id);
@@ -191,12 +239,19 @@ function ChatInner() {
     else if (r === "error") toast(t("dlError"));
   }
 
+  async function copyText(i: number, text: string) {
+    try { await navigator.clipboard.writeText(text); setCopied(i); setTimeout(() => setCopied(null), 1500); }
+    catch { toast(t("errGeneric")); }
+  }
+
   if (bot === undefined || !ready) return <div className="skeleton" style={{ height: 120 }} />;
   if (bot === null || !bt) return <div className="card empty">{t("botMissing")}</div>;
 
   const last = msgs[msgs.length - 1];
+  const lastUserIdx = msgs.map((m) => m.role).lastIndexOf("user");
   const fmt = (n: number) => n.toLocaleString(lang === "ar" ? "ar-EG" : "en-US");
   const suggestions: Key[] = ["s1", "s2", "s3", "s4", "s5"];
+  const idle = phase === "idle";
 
   return (
     <div className="chat-wrap">
@@ -210,7 +265,7 @@ function ChatInner() {
         {user && chats.length > 0 && (
           <button className="btn sm" onClick={() => setShowHistory((v) => !v)} aria-expanded={showHistory}>{t("history")} <span className="num">{fmt(chats.length)}</span></button>
         )}
-        <button className="icon-btn" onClick={() => openChat(null)} aria-label={t("newChat")} title={t("newChat")} disabled={phase !== "idle"}><IPlus width={18} height={18} /></button>
+        <button className="icon-btn" onClick={() => openChat(null)} aria-label={t("newChat")} title={t("newChat")} disabled={!idle}><IPlus width={18} height={18} /></button>
       </div>
 
       <div className="chips" style={{ marginTop: 8, alignItems: "center" }} role="radiogroup" aria-label={t("replyLang")}>
@@ -226,7 +281,7 @@ function ChatInner() {
       {showHistory && (
         <div className="card" style={{ marginTop: 8, display: "grid", gap: 4, animation: "rise .25s both" }}>
           {chats.map((c) => (
-            <button key={c.id} className={`nav-item${c.id === chatId ? " on" : ""}`} onClick={() => openChat(c.id)} disabled={phase !== "idle"}>
+            <button key={c.id} className={`nav-item${c.id === chatId ? " on" : ""}`} onClick={() => openChat(c.id)} disabled={!idle}>
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{c.title || "…"}</span>
               <span className="hint num">{new Date(c.updated_at).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}</span>
             </button>
@@ -246,40 +301,69 @@ function ChatInner() {
           </div>
         )}
         {msgs.map((m, i) => {
-          if (m.role === "user") return <div key={i} className="msg me">{m.content}</div>;
-          const streaming = i === msgs.length - 1 && phase !== "idle";
-          return (
-            <div key={i} className="msg bot">
-              {m.content ? <div className={streaming && phase === "writing" ? "caret" : ""}><Markdown text={m.content} /></div> : null}
-              {streaming && phase !== "writing" && (
-                <span className="thinking"><span className="dots"><i /><i /><i /></span>{phase === "making" ? t("making") : t("thinking")}…</span>
-              )}
-              {m.files?.map((f) => {
-                const here = hasFileSpec(f.id);
-                return (
-                  <div key={f.id} className="file-card">
-                    <span className={`file-ico ${f.format}`}>{f.format.toUpperCase()}</span>
-                    <span className="ft"><b>{f.title}</b><span className="hint">{here ? t("savedLocal") : t("fileElsewhere")}</span></span>
-                    <button className="btn primary sm" disabled={!here || dlBusy === f.id} onClick={() => download(f.id)}>
-                      <IDownload width={16} height={16} />{dlBusy === f.id ? t("preparing") : t("download")}
-                    </button>
+          if (m.role === "user") {
+            return (
+              <div key={i} className="msg-wrap me">
+                <div className="msg me">{m.content}</div>
+                {i === lastUserIdx && idle && (
+                  <div className="msg-actions">
+                    <button onClick={() => { setInput(m.content); requestAnimationFrame(() => { autosize(); taRef.current?.focus(); }); }}>{t("edit")}</button>
                   </div>
-                );
-              })}
-              {m.error && (
-                <div className="notice warn" style={{ marginTop: m.content ? 8 : 0 }}>
-                  {m.error}
-                  {["no_credits", "daily_limit", "paused"].includes(m.code || "") && <button className="btn primary sm" style={{ marginInlineStart: 8 }} onClick={openBuy}>{t("buyTitle")}</button>}
+                )}
+              </div>
+            );
+          }
+          const streaming = i === msgs.length - 1 && !idle;
+          const isLast = i === msgs.length - 1;
+          return (
+            <div key={i} className="msg-wrap bot">
+              <div className="msg bot">
+                {m.content ? <div className={`md${streaming && phase === "writing" ? " caret" : ""}`}><Markdown text={m.content} /></div> : null}
+                {streaming && phase !== "writing" && (
+                  <span className="thinking"><span className="dots"><i /><i /><i /></span>{phase === "making" ? t("making") : t("thinking")}…</span>
+                )}
+                {m.files?.map((f) => {
+                  const here = hasFileSpec(f.id);
+                  return (
+                    <div key={f.id} className="file-card">
+                      <span className={`file-ico ${f.format}`}>{f.format.toUpperCase()}</span>
+                      <span className="ft"><b>{f.title}</b><span className="hint">{here ? t("savedLocal") : t("fileElsewhere")}</span></span>
+                      <button className="btn primary sm" disabled={!here || dlBusy === f.id} onClick={() => download(f.id)}>
+                        <IDownload width={16} height={16} />{dlBusy === f.id ? t("preparing") : t("download")}
+                      </button>
+                    </div>
+                  );
+                })}
+                {m.error && (
+                  <div className="notice warn" style={{ marginTop: m.content ? 8 : 0 }}>
+                    {m.error}
+                    {["no_credits", "daily_limit", "paused"].includes(m.code || "") && <button className="btn primary sm" style={{ marginInlineStart: 8 }} onClick={openBuy}>{t("buyTitle")}</button>}
+                  </div>
+                )}
+              </div>
+              {!streaming && (m.content || m.error) && (
+                <div className="msg-actions">
+                  {m.content && <button onClick={() => copyText(i, m.content)}>{copied === i ? t("copied") : t("copy")}</button>}
+                  {isLast && idle && lastUserIdx >= 0 && <button onClick={() => send(msgs[lastUserIdx].content, { replaceLast: true })}>{t("regen")}</button>}
+                  {typeof m.credits === "number" && <span className="num">{t("charged", { n: fmt(m.credits) })}</span>}
                 </div>
               )}
-              {typeof m.credits === "number" && !streaming && (
-                <div className="msg-foot"><span className="num">{t("charged", { n: fmt(m.credits) })}</span></div>
+              {isLast && idle && m.content && !m.error && (
+                <div className="suggest" style={{ marginTop: 6 }}>
+                  {QUICK.map((k) => <button key={k} onClick={() => send(t(k))}>{t(k)}</button>)}
+                </div>
               )}
             </div>
           );
         })}
         <div ref={endRef} />
       </div>
+
+      {!atBottom && msgs.length > 0 && (
+        <button className="scroll-down" onClick={scrollDown} aria-label={t("scrollDown")}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+        </button>
+      )}
 
       <div className="composer">
         <form className="composer-in" onSubmit={(e) => { e.preventDefault(); send(input); }}>
@@ -289,7 +373,7 @@ function ChatInner() {
             onChange={(e) => { setInput(e.target.value); autosize(); }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); send(input); } }}
           />
-          {phase !== "idle" ? (
+          {!idle ? (
             <button type="button" className="send" onClick={() => abortRef.current?.abort()} aria-label={t("stop")}><IStop width={16} height={16} /></button>
           ) : (
             <button type="submit" className="send" disabled={!input.trim() || last?.role === "user"} aria-label="Send">
