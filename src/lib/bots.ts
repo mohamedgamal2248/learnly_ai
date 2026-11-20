@@ -4,6 +4,7 @@ export type BotInfo = {
   id: string; name: string; name_en?: string; subject: string; subject_en?: string; track: string;
   description: string; description_en?: string; fee: number;
   official: boolean; teacher_name: string | null; has_knowledge: boolean; status?: string; teacher_id?: string | null;
+  reply_lang?: "auto" | "ar" | "en";
 };
 
 let cache: { at: number; bots: BotInfo[] } | null = null;
@@ -21,8 +22,9 @@ export const TRACK_KEYS = {
   school: "tSchool", uni: "tUni", job: "tJob", code: "tCode", lang: "tLang", academy: "tAcademy",
 } as const;
 
-export function lastBot(): { id: string; name: string } | null {
-  try { return JSON.parse(localStorage.getItem("ln-last-bot") || "null"); } catch { return null; }
+/** Only the id is remembered; the name is looked up in the current language when shown. */
+export function lastBotId(): string | null {
+  try { return JSON.parse(localStorage.getItem("ln-last-bot") || "null")?.id ?? null; } catch { return null; }
 }
 
 /** Shows a bot in the visitor's language, falling back to the other one. */

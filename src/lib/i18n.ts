@@ -1,6 +1,12 @@
 export type Lang = "ar" | "en";
 
 const ar = {
+  replyLang: "لغة الشرح", rlAuto: "تلقائي", rlAr: "عربي", rlEn: "English", rlHint: "البوت هيشرح باللغة دي، والكلمات اللي بتتعلمها هتفضل بلغتها.",
+  bReplyLang: "لغة الشرح الافتراضية للطلاب", preparing: "بيجهّز التنزيل…", dlError: "التنزيل ما اشتغلش. جرّب تاني.",
+  gAll: "الكل", sortNew: "الأحدث", sortTop: "الأكثر تفاعلًا", useful: "مفيد", askAi: "اسأل المدرّس الـAI", del: "احذف", deleted: "اتحذف",
+  teacherBadge: "مدرّس", adminBadge: "فريق Learnly", commRules: "اتكلم باحترام، وما تنشرش أي بيانات شخصية أو كلمات محفظتك.",
+  acDone: "{n} من {t} دروس خلصتها", markDone: "خلّصت الدرس", completed: "خلصته ✓", quiz: "اختبر نفسك", correct: "إجابة صحيحة",
+  wrongAns: "مش دي. جرّب تاني.", askLesson: "اسأل المدرّس عن الدرس ده", allDone: "عاش! خلّصت كل دروس الأكاديمية.", readMore: "المصدر الرسمي",
   guideTitle: "إزاي تبني بوت لمادتك", guideSub: "5 خطوات بسيطة، ومش محتاج أي خبرة برمجة.",
   gStep1: "اختار طريقة: اوصف البوت للـAI ويجهّزه لك، أو املأ البيانات بإيدك.",
   gStep2: "اكتب اسم البوت والمادة بأي لغة. اللي تسيبه فاضي هيتترجم تلقائيًا للعربي أو الإنجليزي.",
@@ -82,6 +88,12 @@ const ar = {
 };
 
 const en: typeof ar = {
+  replyLang: "Explanation language", rlAuto: "Auto", rlAr: "عربي", rlEn: "English", rlHint: "The bot explains in this language; the words you're learning stay in their own language.",
+  bReplyLang: "Default explanation language for students", preparing: "Preparing download…", dlError: "The download didn't start. Try again.",
+  gAll: "All", sortNew: "Newest", sortTop: "Most active", useful: "Helpful", askAi: "Ask the AI tutor", del: "Delete", deleted: "Deleted",
+  teacherBadge: "Teacher", adminBadge: "Learnly team", commRules: "Be respectful, and never post personal details or your wallet words.",
+  acDone: "{n} of {t} lessons done", markDone: "I finished this lesson", completed: "Done ✓", quiz: "Quick check", correct: "Correct",
+  wrongAns: "Not quite. Try again.", askLesson: "Ask the tutor about this lesson", allDone: "Well done! You finished every Academy lesson.", readMore: "Official source",
   guideTitle: "How to build a bot for your subject", guideSub: "5 simple steps. No coding needed.",
   gStep1: "Pick a way: describe the bot to the AI and it drafts it for you, or fill it in yourself.",
   gStep2: "Write the bot's name and subject in either language. Anything you leave empty is translated to Arabic or English automatically.",

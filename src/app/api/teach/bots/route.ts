@@ -70,6 +70,7 @@ export async function POST(req: Request) {
     ...(typeof b.id === "string" && UUID.test(b.id) ? { id: b.id } : {}),
     track: TRACKS.includes(b.track) ? b.track : "school",
     instructions: str(b.instructions, 4000), notes: str(b.notes, 100_000),
+    reply_lang: ["ar", "en"].includes(b.reply_lang) ? b.reply_lang : "auto",
     fee: Math.max(0, Math.min(20, parseInt(b.fee, 10) || 0)),
   });
   const files = (Array.isArray(b.files) ? b.files : []).slice(0, 30).flatMap((f: any) =>

@@ -16,11 +16,12 @@ type Material = { id?: string; name: string; chars: number; body?: string };
 type Draft = {
   id?: string; name: string; name_en: string; subject: string; subject_en: string; track: string;
   description: string; description_en: string; instructions: string; notes: string; fee: number; files: Material[];
+  reply_lang: "auto" | "ar" | "en";
 };
 
 const EMPTY: Draft = {
   name: "", name_en: "", subject: "", subject_en: "", track: "school", description: "", description_en: "",
-  instructions: "", notes: "", fee: 0, files: [],
+  instructions: "", notes: "", fee: 0, files: [], reply_lang: "auto",
 };
 const STATUS_CHIP: Record<string, string> = { live: "free", review: "warn", rejected: "bad", paused: "bad", draft: "" };
 const ERRS: Record<string, Key> = { no_credits: "errNoCredits", daily_limit: "errDaily", paused: "errPaused", slow_down: "errSlow", too_short: "errShort", ai_error: "errAi" };
@@ -46,7 +47,7 @@ export default function TeachPage() {
     setDraft({
       id: b.id, name: b.name, name_en: b.name_en, subject: b.subject, subject_en: b.subject_en, track: b.track,
       description: b.description, description_en: b.description_en, instructions: b.instructions, notes: b.notes || "",
-      fee: b.fee, files: b.files || [],
+      fee: b.fee, files: b.files || [], reply_lang: b.reply_lang || "auto",
     });
   }
 
@@ -149,6 +150,7 @@ function Architect({ onClose, onDraft }: { onClose: () => void; onDraft: (d: Dra
       track: Object.keys(TRACK_KEYS).includes(d.track) ? d.track : "school",
       description: s(d.description_ar, 400), description_en: s(d.description_en, 400),
       instructions: s(d.instructions, 4000), notes: "", fee: Math.max(0, Math.min(20, parseInt(d.fee, 10) || 0)), files: [],
+      reply_lang: d.track === "lang" ? "ar" : "auto",
     });
   }
 
@@ -284,6 +286,12 @@ function BotEditor({ draft, onClose, onSaved }: { draft: Draft; onClose: () => v
         <select className="select" id="b-track" value={d.track} onChange={(e) => set("track", e.target.value)}>
           {Object.entries(TRACK_KEYS).map(([k, key]) => <option key={k} value={k}>{t(key)}</option>)}
         </select>
+      </label>
+      <label className="field"><span>{t("bReplyLang")}</span>
+        <select className="select" id="b-reply-lang" value={d.reply_lang} onChange={(e) => set("reply_lang", e.target.value as Draft["reply_lang"])}>
+          <option value="auto">{t("rlAuto")}</option><option value="ar">{t("rlAr")}</option><option value="en">{t("rlEn")}</option>
+        </select>
+        <span className="hint">{t("rlHint")}</span>
       </label>
       <label className="field"><span>{t("bInstr")}</span><textarea className="textarea" id="b-instr" value={d.instructions} onChange={(e) => set("instructions", e.target.value)} maxLength={4000} style={{ minHeight: 130 }} /></label>
 

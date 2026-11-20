@@ -26,20 +26,24 @@ export function hasFileSpec(id: string) {
 const memory = new Map<string, string>();
 export function rememberSpec(id: string, spec: unknown) { memory.set(id, JSON.stringify(spec)); }
 
-/** Submits a normal form POST so Pi Browser treats the response as a download. */
-export function downloadFile(id: string): boolean {
+/**
+ * Asks the server for a short-lived signed link, then navigates to it. A plain link is what Pi Browser
+ * hands to Android's download manager, which can't send cookies or form data.
+ */
+export async function downloadFile(id: string): Promise<"ok" | "missing" | "error"> {
   let spec: string | null = memory.get(id) ?? null;
   if (!spec) { try { spec = localStorage.getItem(`ln-file-${id}`); } catch {} }
-  if (!spec) return false;
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = "/api/files/render";
-  form.style.display = "none";
-  const input = document.createElement("input");
-  input.type = "hidden"; input.name = "spec"; input.value = spec;
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-  setTimeout(() => form.remove(), 1000);
-  return true;
+  if (!spec) return "missing";
+  try {
+    const r = await fetch("/api/files/prepare", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, spec: JSON.parse(spec) }),
+    });
+    if (!r.ok) return "error";
+    const { url } = await r.json();
+    window.location.href = url;
+    return "ok";
+  } catch {
+    return "error";
+  }
 }

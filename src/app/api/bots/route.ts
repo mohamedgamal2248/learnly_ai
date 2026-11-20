@@ -13,10 +13,10 @@ export async function GET(req: Request) {
       id: b.id, name: b.name, name_en: b.name_en, subject: b.subject, subject_en: b.subject_en, track: b.track,
       description: b.description, description_en: b.description_en, fee: b.fee,
       official: b.official, teacher_name: b.teacher_name, status: b.status, teacher_id: b.teacher_id,
-      has_knowledge: !!b.knowledge,
+      has_knowledge: !!b.knowledge, reply_lang: b.reply_lang,
     } : null;
-    return json({ bot }, { cache: "public, s-maxage=60, stale-while-revalidate=600" });
+    return json({ bot }, { cache: "public, s-maxage=60, stale-while-revalidate=120" });
   }
   const bots = await rpc<unknown[]>("ln_list_bots");
-  return json({ bots }, { cache: "public, s-maxage=60, stale-while-revalidate=600" });
+  return json({ bots }, { cache: "public, s-maxage=60, stale-while-revalidate=120" });
 }

@@ -1,5 +1,6 @@
 import { rpc } from "@/lib/server/db";
 import { fail, json, rateLimited, requireSession } from "@/lib/server/http";
+import { getSession } from "@/lib/server/session";
 
 export const runtime = "nodejs";
 
@@ -10,12 +11,17 @@ export async function GET(req: Request) {
   const group = u.searchParams.get("g");
   const parent = u.searchParams.get("parent");
   const before = u.searchParams.get("before");
-  const posts = await rpc("ln_posts_list", {
+  const sort = u.searchParams.get("sort") === "top" ? "top" : "new";
+  const s = getSession(req);
+  const posts = await rpc("ln_posts_list2", {
+    p_user: s?.uid ?? null,
     p_group: group && GROUPS.includes(group) ? group : null,
     p_parent: parent ? parseInt(parent, 10) || null : null,
     p_before: before ? parseInt(before, 10) || null : null,
+    p_sort: sort,
   });
-  return json({ posts }, { cache: "public, s-maxage=10, stale-while-revalidate=60" });
+  // Guests share a CDN-cached copy; signed-in users get their own likes and posts marked.
+  return json({ posts }, { cache: s ? "private, no-store" : "public, s-maxage=15, stale-while-revalidate=60" });
 }
 
 export async function POST(req: Request) {

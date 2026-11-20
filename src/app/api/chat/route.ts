@@ -35,6 +35,24 @@ function buildSystem(bot: Bot) {
   return system;
 }
 
+/**
+ * The file tool's schema is only sent when the conversation is about making a file.
+ * Most messages are plain tutoring, so they go out without it (smaller, faster requests).
+ */
+const FILE_WORDS = /\b(pdf|pdt|pfd|docx?|word|pptx?|power ?point|slides?|presentation|excel|xlsx|sheet|spreadsheet|file|download)\b|ملف|ملخص|عرض|شرائح|سلايد|بوربوينت|باوربوينت|وورد|ورد|اكسل|إكسل|جدول|شيت|تحميل|نزّل|نزل|بي ?دي ?[اإ]ف/i;
+function wantsFile(message: string, lastAssistant?: string) {
+  if (FILE_WORDS.test(message)) return true;
+  // "yes, do it" right after the tutor offered a file
+  return !!lastAssistant && FILE_WORDS.test(lastAssistant.slice(-400)) && message.length < 60;
+}
+
+/** Explanation language: the student's choice in the chat, else the teacher's default for the bot. */
+function langDirective(choice: string) {
+  if (choice === "ar") return "\n\n[App setting: explain in simple Egyptian Arabic. Keep English only for the words, sentences or code being taught, and give their Arabic meaning.]";
+  if (choice === "en") return "\n\n[App setting: reply in English only.]";
+  return "";
+}
+
 const asModelText = (m: Stored) =>
   m.files?.length ? `${m.content}\n${m.files.map((f) => `[file created: ${f.title}.${f.format}]`).join("\n")}` : m.content;
 
@@ -47,6 +65,7 @@ export async function POST(req: Request) {
   try { body = await req.json(); } catch { return fail("bad_request"); }
   const message = typeof body?.message === "string" ? body.message.trim().slice(0, 4000) : "";
   const chatId = typeof body?.chatId === "string" && /^[0-9a-f-]{36}$/i.test(body.chatId) ? body.chatId : null;
+  const replyChoice = ["ar", "en"].includes(body?.replyLang) ? body.replyLang : null;
   if (!message || typeof body?.botId !== "string" || !/^[0-9a-f-]{36}$/i.test(body.botId)) return fail("bad_request");
 
   const [bot, cfg, stored] = await Promise.all([
@@ -72,9 +91,13 @@ export async function POST(req: Request) {
   // The model expects user/assistant turns to start with the user.
   while (kept.length && kept[0].role !== "user") kept.shift();
 
+  const lastAssistant = [...history].reverse().find((m) => m.role === "assistant")?.content;
+  const tools = wantsFile(message, lastAssistant) ? [CREATE_FILE_TOOL] : [];
+  const modelMessage = message + langDirective(replyChoice || bot.reply_lang || "auto");
+
   // ---- reserve credits before calling the model ----
   const perRound = (used * 0.10 + MAX_OUTPUT_TOKENS * 0.50) / 1_000_000;
-  const reserve = Math.min(cfg.max_reserve, creditsForCost(perRound * 2, cfg) + bot.fee + cfg.file_fee);
+  const reserve = Math.min(cfg.max_reserve, creditsForCost(perRound * (tools.length ? 2 : 1), cfg) + bot.fee + (tools.length ? cfg.file_fee : 0));
   const r = await rpc<{ ok: boolean; reason?: string; credits?: number; need?: number }>("ln_reserve", {
     p_user: s.uid, p_amount: reserve,
   });
@@ -95,7 +118,7 @@ export async function POST(req: Request) {
       const send = (evt: object) => {
         try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`)); } catch {}
       };
-      const messages: ChatMessage[] = [{ role: "system", content: system }, ...kept, { role: "user", content: message }];
+      const messages: ChatMessage[] = [{ role: "system", content: system }, ...kept, { role: "user", content: modelMessage }];
       let errored = false;
       try {
         for (let round = 0; round < MAX_ROUNDS; round++) {
@@ -104,7 +127,7 @@ export async function POST(req: Request) {
           let gotUsage = false;
           let calls: { id: string; name: string; arguments: string }[] = [];
           for await (const ev of streamChat({
-            messages, tools: [CREATE_FILE_TOOL], maxTokens: MAX_OUTPUT_TOKENS, cacheKey: `ln-bot-${bot.id}`, signal: req.signal,
+            messages, tools, maxTokens: MAX_OUTPUT_TOKENS, cacheKey: `ln-bot-${bot.id}`, signal: req.signal,
           })) {
             if (ev.type === "text") { text += ev.text; reply += ev.text; send({ t: "d", v: ev.text }); }
             else if (ev.type === "tool_start") { if (ev.name === "create_file") send({ t: "making" }); }

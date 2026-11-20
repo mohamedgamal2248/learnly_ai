@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { IBook, IBriefcase, ICap, ICode, ILang, ISearch, IShield, IUsers, IBot } from "@/components/Icons";
-import { botText, lastBot, loadBots, TRACK_KEYS, type BotInfo } from "@/lib/bots";
+import { botText, lastBotId, loadBots, TRACK_KEYS, type BotInfo } from "@/lib/bots";
 
 const TRACK_ICON: Record<string, React.ReactNode> = {
   school: <IBook width={18} height={18} />, uni: <ICap width={18} height={18} />, job: <IBriefcase width={18} height={18} />,
@@ -16,12 +16,15 @@ export default function Home() {
   const [bots, setBots] = useState<BotInfo[] | null>(null);
   const [track, setTrack] = useState<string>("all");
   const [q, setQ] = useState("");
-  const [resume, setResume] = useState<{ id: string; name: string } | null>(null);
+  const [resumeId, setResumeId] = useState<string | null>(null);
 
   useEffect(() => {
     loadBots().then(setBots).catch(() => setBots([]));
-    setResume(lastBot());
+    setResumeId(lastBotId());
   }, []);
+
+  const resumeBot = bots?.find((b) => b.id === resumeId);
+  const resume = resumeBot ? { id: resumeBot.id, name: botText(resumeBot, lang).name } : null;
 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase();

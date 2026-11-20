@@ -31,6 +31,8 @@ function ChatInner() {
   const [showHistory, setShowHistory] = useState(false);
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
+  const [replyLang, setReplyLang] = useState<"auto" | "ar" | "en">("auto");
+  const [dlBusy, setDlBusy] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -57,8 +59,22 @@ function ChatInner() {
 
   useEffect(() => {
     if (!bot) return;
-    try { localStorage.setItem("ln-last-bot", JSON.stringify({ id: bot.id, name: botText(bot, lang).name })); } catch {}
-  }, [bot, lang]);
+    try { localStorage.setItem("ln-last-bot", JSON.stringify({ id: bot.id })); } catch {}
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(`ln-rl-${bot.id}`); } catch {}
+    setReplyLang(saved === "ar" || saved === "en" || saved === "auto" ? saved : bot.reply_lang || "auto");
+  }, [bot]);
+
+  // Question handed over from another page (community post, academy lesson).
+  useEffect(() => {
+    const q = params.get("q");
+    if (q) { setInput(q.slice(0, 4000)); requestAnimationFrame(() => { autosize(); taRef.current?.focus(); }); }
+  }, [params]);
+
+  const chooseLang = (v: "auto" | "ar" | "en") => {
+    setReplyLang(v);
+    if (bot) { try { localStorage.setItem(`ln-rl-${bot.id}`, v); } catch {} }
+  };
 
   const openChat = useCallback(async (id: string | null) => {
     setChatId(id);
@@ -116,7 +132,7 @@ function ChatInner() {
       const res = await fetch("/api/chat", {
         method: "POST", credentials: "include", signal: ctrl.signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ botId: bot.id, chatId, message: content }),
+        body: JSON.stringify({ botId: bot.id, chatId, message: content, replyLang }),
       });
       if (!res.ok || !res.body) {
         const d = await res.json().catch(() => ({}));
@@ -165,7 +181,15 @@ function ChatInner() {
       abortRef.current = null;
       setPhase("idle");
     }
-  }, [bot, phase, user, login, chatId, t, setCredits]);
+  }, [bot, phase, user, login, chatId, t, setCredits, replyLang]);
+
+  async function download(id: string) {
+    setDlBusy(id);
+    const r = await downloadFile(id);
+    setDlBusy(null);
+    if (r === "missing") toast(t("fileElsewhere"));
+    else if (r === "error") toast(t("dlError"));
+  }
 
   if (bot === undefined || !ready) return <div className="skeleton" style={{ height: 120 }} />;
   if (bot === null || !bt) return <div className="card empty">{t("botMissing")}</div>;
@@ -187,6 +211,16 @@ function ChatInner() {
           <button className="btn sm" onClick={() => setShowHistory((v) => !v)} aria-expanded={showHistory}>{t("history")} <span className="num">{fmt(chats.length)}</span></button>
         )}
         <button className="icon-btn" onClick={() => openChat(null)} aria-label={t("newChat")} title={t("newChat")} disabled={phase !== "idle"}><IPlus width={18} height={18} /></button>
+      </div>
+
+      <div className="chips" style={{ marginTop: 8, alignItems: "center" }} role="radiogroup" aria-label={t("replyLang")}>
+        <span className="hint" style={{ whiteSpace: "nowrap" }}>{t("replyLang")}:</span>
+        {(["auto", "ar", "en"] as const).map((v) => (
+          <button key={v} role="radio" aria-checked={replyLang === v} className={`pill${replyLang === v ? " on" : ""}`}
+            style={{ padding: "4px 12px", fontSize: 13 }} onClick={() => chooseLang(v)} title={t("rlHint")}>
+            {t(v === "auto" ? "rlAuto" : v === "ar" ? "rlAr" : "rlEn")}
+          </button>
+        ))}
       </div>
 
       {showHistory && (
@@ -226,8 +260,8 @@ function ChatInner() {
                   <div key={f.id} className="file-card">
                     <span className={`file-ico ${f.format}`}>{f.format.toUpperCase()}</span>
                     <span className="ft"><b>{f.title}</b><span className="hint">{here ? t("savedLocal") : t("fileElsewhere")}</span></span>
-                    <button className="btn primary sm" disabled={!here} onClick={() => { if (!downloadFile(f.id)) toast(t("fileElsewhere")); }}>
-                      <IDownload width={16} height={16} />{t("download")}
+                    <button className="btn primary sm" disabled={!here || dlBusy === f.id} onClick={() => download(f.id)}>
+                      <IDownload width={16} height={16} />{dlBusy === f.id ? t("preparing") : t("download")}
                     </button>
                   </div>
                 );
