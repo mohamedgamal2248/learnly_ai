@@ -7,7 +7,7 @@ import { Shell } from "@/components/Shell";
 
 export const metadata: Metadata = {
   title: "Learnly AI",
-  description: "كورسات من ناس خبرة موثّقين، ومساعد AI ما بينامش.",
+  description: "سوق مهام وناس: انشر مهمة أو نفّذها بنفسك أو بالـAI agent بتاعك، واعمل ملف شخصي ومعرض أعمال، وتفاوض وادفع بالـPi.",
   icons: { icon: "/icon.svg", apple: "/icon-192.png" },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Learnly AI", statusBarStyle: "default" },

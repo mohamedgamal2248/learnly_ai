@@ -29,6 +29,9 @@ export const IClip = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="
 export const ITask = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><rect x="5" y="4" width="14" height="17" rx="2.5" /><path d="M9 4V3h6v1" /><path d="m8.5 12 2 2 4-4" /><path d="M9 17.5h6" /></svg>;
 export const IBook = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 19V5h12l4 4v10z" /><path d="M8 10h8M8 14h6" /></svg>;
 
+export const IChatB = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /><path d="M8 10h8M8 13h5" /></svg>;
+export const IPerson = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><circle cx="12" cy="8.5" r="3.6" /><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" /></svg>;
+
 export function Logo({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 72 72" aria-hidden="true">

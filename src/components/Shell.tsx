@@ -6,10 +6,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
 import { UI_LANGS } from "@/lib/i18n";
 import { BuyModal } from "./BuyModal";
-import { ITask, IBot, ICap, IClose, ICourses, IDashboard, IHome, IMenu, IMoon, IPlan, IPlus, IShield, ISun, IUsers } from "./Icons";
+import { ITask, IChatB, IClose, IDashboard, IHome, IMenu, IMoon, IPerson, ISun, IUsers, IWallet } from "./Icons";
+
+import { BRAND } from "@/lib/brand";
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { t, lang, ui, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
+  const { t, ui, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, buyOpen } = useApp();
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const path = usePathname();
@@ -21,18 +23,24 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => removeEventListener("keydown", onKey);
   }, []);
 
+  const [bal, setBal] = useState<number | null>(null);
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    if (!user) { setBal(null); setUnread(0); return; }
+    fetch("/api/earnings", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => d && setBal(Number(d.balance))).catch(() => {});
+    fetch("/api/deals?unread=1", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => d && setUnread(Number(d.unread) || 0)).catch(() => {});
+  }, [user?.id, path]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const nav = [
     { href: "/", label: t("nHome"), icon: <IHome /> },
-    { href: "/chat", label: t("nChat"), icon: <IBot /> },
-    { href: "/courses", label: t("nCourses"), icon: <ICourses /> },
     { href: "/tasks", label: t("nTasks"), icon: <ITask /> },
-    { href: "/learn", label: t("nLearn"), icon: <IPlan /> },
-    { href: "/community", label: t("nCommunity"), icon: <IUsers />, tag: t("free") },
-    { href: "/academy", label: t("nAcademy"), icon: <IShield />, tag: t("free") },
-    { href: "/teach", label: t("nTeach"), icon: <ICap /> },
+    { href: "/people", label: t("nPeople"), icon: <IUsers /> },
+    { href: "/deals", label: t("nDeals"), icon: <IChatB />, badge: unread },
+    { href: "/wallet", label: t("nWallet"), icon: <IWallet /> },
+    { href: user ? `/u?name=${encodeURIComponent(user.username)}` : "/profile", label: t("nProfile"), icon: <IPerson />, match: "/u" },
   ];
-  const isOn = (href: string) => (href === "/" ? path === "/" : href === "/courses" ? path.startsWith("/course") : path.startsWith(href));
-  const credits = user ? user.credits.toLocaleString(lang === "ar" ? "ar-EG" : "en-US") : "0";
+  const isOn = (href: string, match?: string) => (href === "/" ? path === "/" : path.startsWith(match || href.split("?")[0]));
+  const credits = bal === null ? "…" : bal.toLocaleString("en-US", { maximumFractionDigits: 3 });
 
   return (
     <>
@@ -41,13 +49,16 @@ export function Shell({ children }: { children: ReactNode }) {
           <button className="icon-btn" aria-label={t("menu")} aria-expanded={open} aria-controls="drawer" onClick={() => setOpen(true)}>
             <IMenu />
           </button>
-          <Link className="brand" href="/" aria-label="Learnly AI"><span>Learnly <b>AI</b></span></Link>
+          <Link className="brand" href="/" aria-label={BRAND}><span>{BRAND}</span></Link>
           <div className="spacer" />
-          <button className="credit-btn" onClick={() => (user ? openBuy() : login())} aria-label={t("credits")}>
-            <IPlus width={16} height={16} strokeWidth={2.4} />
-            <span className="lbl">{t("credits")}</span>
-            <span className="bal num">{credits}</span>
-          </button>
+          {user ? (
+            <Link className="credit-btn" href="/wallet" aria-label={t("nWallet")}>
+              <IWallet width={16} height={16} strokeWidth={2.2} />
+              <span className="bal num ltr">{credits} π</span>
+            </Link>
+          ) : (
+            <button className="credit-btn" onClick={login} aria-label={t("login")}><span className="lbl">{t("login")}</span></button>
+          )}
           <div className="lang-wrap">
             <button className="lang" onClick={() => setLangOpen((v) => !v)} aria-label="Language" aria-expanded={langOpen} aria-haspopup="listbox">
               {ui.toUpperCase()}
@@ -79,8 +90,8 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
         <nav>
           {nav.map((n) => (
-            <Link key={n.href} href={n.href} className={`nav-item${isOn(n.href) ? " on" : ""}`}>
-              {n.icon}<span>{n.label}</span>{n.tag && <span className="tag">{n.tag}</span>}
+            <Link key={n.href} href={n.href} className={`nav-item${isOn(n.href, n.match) ? " on" : ""}`}>
+              {n.icon}<span>{n.label}</span>{n.badge ? <span className="tag num">{n.badge}</span> : null}
             </Link>
           ))}
           {user?.role === "admin" && (
@@ -102,7 +113,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 <div className="avatar">{user.username.slice(0, 1)}</div>
                 <div style={{ minWidth: 0 }}>
                   <div className="who-name ltr" style={{ textAlign: "start" }}>@{user.username}</div>
-                  <div className="who-sub">{t("piUser")} · <span className="num">{credits}</span> {t("credits")}</div>
+                  <div className="who-sub">{t("piUser")} · <span className="num ltr">{credits} π</span></div>
                 </div>
               </div>
               <button className="btn danger block" onClick={() => { setOpen(false); logout(); }}>{t("logout")}</button>

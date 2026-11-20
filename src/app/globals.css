@@ -479,3 +479,17 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .star.on { color: #F5A623; }
 .star:disabled { cursor: default; }
 input[type="file"] { max-width: 100%; font-size: 13px; }
+
+/* People, profiles, deals */
+.person-card { display: grid; gap: 8px; }
+.pc-top { display: flex; gap: 10px; align-items: center; }
+.work-card { display: grid; gap: 6px; align-content: start; }
+.work-img { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; background: var(--surface-2); }
+.bubble { display: grid; gap: 4px; max-width: 86%; padding: 8px 12px; border-radius: 14px; background: var(--surface-2); justify-self: start; }
+.bubble.mine { justify-self: end; background: var(--primary-soft, #E7F0FF); }
+.bubble p { margin: 0; overflow-wrap: anywhere; }
+.home-hero { align-items: stretch; }
+.home-hero h1 { font-size: 22px; }
+a.person-card, a.person-card:hover { text-decoration: none; color: inherit; }
+a.person-card .chip, a.person-card .hint { text-decoration: none; }
+a.card .chip { text-decoration: none; }

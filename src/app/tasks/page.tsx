@@ -8,7 +8,8 @@ import { Markdown } from "@/components/Markdown";
 import { TaskWork } from "@/components/TaskWork";
 import { FilePicker, TaskFiles, type TaskFile } from "@/components/TaskFiles";
 import { downloadFile, rememberSpec } from "@/lib/local-files";
-import { ensurePiAuth, post, waitForPi } from "@/lib/pi-client";
+import { TopUp } from "@/components/TopUp";
+import { post } from "@/lib/pi-client";
 import type { Key } from "@/lib/i18n";
 
 const DELIVERIES = ["text", "pdf", "ppt", "image", "file"] as const;
@@ -122,49 +123,6 @@ function Mine() {
         <div className="grid stagger">{rows.map((r) => <TaskCard key={r.id} r={r} lang={lang} onChange={load} />)}</div>
       )}
     </>
-  );
-}
-
-function TopUp({ onDone }: { onDone: (balance?: number) => void }) {
-  const { t, toast } = useApp();
-  const [amt, setAmt] = useState("1");
-  const [busy, setBusy] = useState(false);
-  const v = Number(amt.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[٫,]/g, "."));
-  const ok = v >= 0.1 && v <= 100;
-  async function go() {
-    const p = await waitForPi();
-    if (!p) { toast(t("openInPi")); return; }
-    setBusy(true);
-    if (!(await ensurePiAuth(p))) { setBusy(false); toast(t("payErr")); return; }
-    p.createPayment(
-      { amount: Math.round(v * 1e7) / 1e7, memo: "Learnly AI balance", metadata: { deposit: true } },
-      {
-        onReadyForServerApproval: async (paymentId) => {
-          const r = await post("/api/pi/approve", { paymentId });
-          if (!r.ok) { setBusy(false); toast(t("payErr")); }
-        },
-        onReadyForServerCompletion: async (paymentId, txid) => {
-          const r = await post("/api/pi/complete", { paymentId, txid });
-          setBusy(false);
-          if (r.ok && r.data?.ok) { toast(t("tkToppedUp", { n: pi(Number(r.data.added ?? v)) })); onDone(Number(r.data.balance)); } else toast(t("payErr"));
-        },
-        onCancel: () => { setBusy(false); toast(t("payCancelled")); },
-        onError: () => { setBusy(false); toast(t("payErr")); },
-      },
-    );
-  }
-  return (
-    <div className="card" style={{ display: "grid", gap: 8 }}>
-      <b>{t("tkTopUp")}</b>
-      <p className="hint">{t("tkTopUpHint")}</p>
-      <div className="chips">{[0.5, 1, 5, 10].map((n) => <button key={n} className={`chip${v === n ? " v" : ""}`} onClick={() => setAmt(String(n))} disabled={busy}>{n} π</button>)}</div>
-      <div className="earn-form">
-        <input className="input ltr" inputMode="decimal" value={amt} onChange={(x) => setAmt(x.target.value.replace(/[^\d٠-٩.,٫]/g, ""))} aria-label={t("tkReward")} />
-        <span className="num earn-pi">π</span>
-        <button className="btn primary" disabled={busy || !ok} onClick={go}>{busy ? t("paying") : t("tkTopUpBtn", { n: ok ? v : 0 })}</button>
-      </div>
-      {!ok && amt && <p className="hint">{t("tkTopUpRange")}</p>}
-    </div>
   );
 }
 
@@ -503,7 +461,7 @@ function Work() {
         </div>
       )}
       <div className="sec-h"><h2>{t("tkMyWork")}</h2></div>
-      <p className="hint">{t("tkWithdrawHint")} <Link className="md-link" href="/learn">{t("nLearn")}</Link></p>
+      <p className="hint">{t("tkWithdrawHint")} <Link className="md-link" href="/wallet">{t("nWallet")}</Link></p>
       {!rows ? <div className="skeleton" style={{ height: 80 }} /> : !rows.length ? <div className="card empty">{t("tkNoTasks")}</div> : (
         <div className="grid">{rows.map((r) => (
           <div key={r.id} className="card" style={{ display: "grid", gap: 8 }}>
