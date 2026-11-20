@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   // The PDF generator reads the Arabic fonts from disk at runtime.
   outputFileTracingIncludes: { "/api/files/render": ["./assets/fonts/**"] },
-  serverExternalPackages: ["exceljs", "pptxgenjs", "docx", "pdf-lib", "@pdf-lib/fontkit", "unpdf"],
+  serverExternalPackages: ["exceljs", "docx", "pdf-lib", "@pdf-lib/fontkit", "unpdf"],
 };
 
 export default nextConfig;
