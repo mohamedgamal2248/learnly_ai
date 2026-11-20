@@ -11,16 +11,22 @@ const TRACK_ICON: Record<string, React.ReactNode> = {
   code: <ICode width={18} height={18} />, lang: <ILang width={18} height={18} />, academy: <IShield width={18} height={18} />,
 };
 
+function fmtBig(n: number, lang: string) {
+  return new Intl.NumberFormat(lang === "ar" ? "ar-EG" : lang, { notation: "compact", maximumFractionDigits: 1 }).format(n);
+}
+
 export default function Home() {
   const { t, user, lang } = useApp();
   const [bots, setBots] = useState<BotInfo[] | null>(null);
   const [track, setTrack] = useState<string>("all");
   const [q, setQ] = useState("");
   const [resumeId, setResumeId] = useState<string | null>(null);
+  const [stats, setStats] = useState<{ learners: number; bots: number; creators: number; messages: number } | null>(null);
 
   useEffect(() => {
     loadBots().then(setBots).catch(() => setBots([]));
     setResumeId(lastBotId());
+    fetch("/api/stats").then((r) => r.json()).then(setStats).catch(() => {});
   }, []);
 
   const resumeBot = bots?.find((b) => b.id === resumeId);
@@ -43,6 +49,13 @@ export default function Home() {
             <ISearch width={18} height={18} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("searchPh")} aria-label={t("searchPh")} />
           </label>
+          {stats && stats.learners > 0 && (
+            <div className="stats-row">
+              {([["learners", "stLearners"], ["creators", "stCreators"], ["bots", "stBots"], ["messages", "stMsgs"]] as const).map(([k, key]) => (
+                <div key={k} className="stat"><b className="num">{fmtBig(stats[k], lang)}</b><span>{t(key)}</span></div>
+              ))}
+            </div>
+          )}
           {resume && (
             <Link className="resume" href={`/chat?b=${resume.id}`}>
               <IBot />
@@ -50,6 +63,14 @@ export default function Home() {
             </Link>
           )}
         </section>
+
+        {!user && (
+          <section className="how stagger" aria-label={t("howTitle")}>
+            {([["1", "how1", "how1s"], ["2", "how2", "how2s"], ["3", "how3", "how3s"]] as const).map(([n, h, sub]) => (
+              <div key={n} className="card how-step"><span className="how-n num">{n}</span><b>{t(h)}</b><span className="muted small">{t(sub)}</span></div>
+            ))}
+          </section>
+        )}
 
         <div className="sec-h"><h2>{t("tracks")}</h2></div>
         <div className="chips" role="tablist">
@@ -101,6 +122,7 @@ export default function Home() {
           <span className="ico"><IShield width={18} height={18} /></span>
           <div><b>{t("nAcademy")} <span className="chip free">{t("free")}</span></b><span>{t("academyCta")}</span></div>
         </Link>
+        <nav className="legal-links"><Link href="/privacy">{t("privacy")}</Link> · <Link href="/terms">{t("terms")}</Link> · <span>© 2026 Learnly AI</span></nav>
       </aside>
     </div>
   );
