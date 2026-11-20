@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     if (!r.ok) return fail(r.error);
     image = { mime: r.file.mime, data: r.file.data };
   }
-  const r = await addPortfolio(a.u.id, { title: form.get("title"), description: form.get("description"), made_with: form.get("made_with"), tags: form.get("tags") }, image);
+  const r = await addPortfolio(a.u.id, { title: form.get("title"), description: form.get("description"), made_with: form.get("made_with"), tags: form.get("tags"), task_id: form.get("task_id") }, image);
   return r.ok ? json({ ok: true, id: r.id }) : fail(r.error, 400, { why: r.why });
 }
 

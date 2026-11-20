@@ -56,7 +56,7 @@ export async function submitTaskResult(uid: string, taskId: string, rawText: unk
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim().slice(0, max) : "");
 
-export type NewTask = { category?: unknown; delivery?: unknown; title?: unknown; brief?: unknown; input_text?: unknown; reward?: unknown; lang?: unknown; stages?: unknown; repeat_days?: unknown; parent_task_id?: unknown };
+export type NewTask = { category?: unknown; delivery?: unknown; title?: unknown; brief?: unknown; input_text?: unknown; reward?: unknown; lang?: unknown; stages?: unknown; repeat_days?: unknown; parent_task_id?: unknown; invite?: unknown };
 
 /** [{title, percent}] or [{title, pct}] -> the database format, or null when not staged. */
 function cleanStages(v: unknown): { title: string; pct: number }[] | null | "bad" {
@@ -84,6 +84,7 @@ export async function postTask(uid: string, a: NewTask, source: "web" | "mcp", o
   if (stages === "bad") return { ok: false, error: "bad_stages" };
   const repeat = Math.floor(Number(a.repeat_days)) || 0;
   if (repeat && (repeat < 1 || repeat > 30 || source !== "web")) return { ok: false, error: "bad_repeat" };
+  const invite = (Array.isArray(a.invite) ? a.invite : typeof a.invite === "string" ? a.invite.split(/[,،\s]+/) : []).filter((x): x is string => typeof x === "string").map((x) => x.replace(/^@/, "").trim()).filter((x) => x.length >= 2).slice(0, 3);
   const parent = typeof a.parent_task_id === "string" && /^[0-9a-f-]{36}$/i.test(a.parent_task_id.trim()) ? a.parent_task_id.trim() : null;
   if (category.length < 2) return { ok: false, error: "bad_category" };
   if (!delivery) return { ok: false, error: "bad_delivery" };
@@ -91,13 +92,13 @@ export async function postTask(uid: string, a: NewTask, source: "web" | "mcp", o
   if (!(reward >= 0.05 && reward <= (stages ? 200 : 50))) return { ok: false, error: "bad_reward" };
   const m = await moderate(`${category}\n${title}\n${brief}\n${input.slice(0, 1500)}`);
   if (!m.ok) return { ok: false, error: "blocked", extra: { why: m.why } };
-  const r = await rpc<{ ok: boolean; reason?: string; id?: string; draft?: boolean; balance?: number; cap?: number; spent?: number; allowed?: string[] }>("ln_task_create4", {
+  const r = await rpc<{ ok: boolean; reason?: string; id?: string; draft?: boolean; balance?: number; cap?: number; spent?: number; allowed?: string[]; name?: string }>("ln_task_create5", {
     p_user: uid, p_category: category, p_delivery: delivery, p_title: title, p_brief: brief, p_input: input,
     p_lang: a.lang === "en" ? "en" : "ar", p_reward: reward, p_source: source, p_token: opts.tokenId ?? null, p_files: opts.files?.length ? opts.files : null,
-    p_stages: stages, p_parent: parent,
+    p_stages: stages, p_parent: parent, p_invite: invite,
   });
   if (r.ok && repeat) {
     await rpc("ln_recurring_add", { p_user: uid, p_category: category, p_delivery: delivery, p_title: title, p_brief: brief, p_input: input, p_lang: a.lang === "en" ? "en" : "ar", p_reward: reward, p_days: repeat }).catch(() => {});
   }
-  return r.ok ? { ok: true, id: r.id as string, draft: !!r.draft } : { ok: false, error: r.reason || "bad_request", extra: { balance: r.balance, cap: r.cap, spent: r.spent, allowed: r.allowed } };
+  return r.ok ? { ok: true, id: r.id as string, draft: !!r.draft } : { ok: false, error: r.reason || "bad_request", extra: { balance: r.balance, cap: r.cap, spent: r.spent, allowed: r.allowed, name: r.name } };
 }

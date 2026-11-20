@@ -95,7 +95,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </>
           )}
         </nav>
-        <div className="legal-links" style={{ padding: "0 16px 8px" }}><Link href="/privacy">{t("privacy")}</Link> · <Link href="/terms">{t("terms")}</Link></div>
+        <div className="legal-links" style={{ padding: "0 16px 8px" }}><Link href="/docs">{t("docsLink")}</Link> · <Link href="/privacy">{t("privacy")}</Link> · <Link href="/terms">{t("terms")}</Link></div>
         <div className="drawer-foot">
           {user ? (
             <>

@@ -18,6 +18,17 @@ const FEE = 20; // platform share, percent (matches the database default)
 const pi = (n: number | string) => `${Number(n).toLocaleString("en-US", { maximumFractionDigits: 4 })} π`;
 const toNum = (v: string) => Number(v.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[٫,]/g, "."));
 
+type Tpl = { id: string; delivery: (typeof DELIVERIES)[number]; reward: string; ar: { category: string; title: string; brief: string; name: string }; en: { category: string; title: string; brief: string; name: string } };
+/** Ready-made starting points so a first task takes seconds to write. */
+const TEMPLATES: Tpl[] = [
+  { id: "summary", delivery: "text", reward: "0.2", ar: { name: "تلخيص", category: "تلخيص", title: "لخّص النص ده في ١٠ نقاط", brief: "لخّص النص المرفق في ١٠ نقاط واضحة تناسب المبتدئين." }, en: { name: "Summary", category: "Summary", title: "Summarize this text in 10 points", brief: "Summarize the attached text in 10 clear points suitable for beginners." } },
+  { id: "translate", delivery: "text", reward: "0.3", ar: { name: "ترجمة", category: "ترجمة", title: "ترجمة فقرة للإنجليزي", brief: "ترجم النص لإنجليزي سليم وطبيعي، من غير ترجمة حرفية." }, en: { name: "Translation", category: "Translation", title: "Translate a text to Arabic", brief: "Translate the text into natural Arabic, not word for word." } },
+  { id: "code", delivery: "text", reward: "0.5", ar: { name: "مراجعة كود", category: "مراجعة كود", title: "راجع الكود ده وقوللي الأخطاء", brief: "راجع الكود وحدد الأخطاء ونقاط التحسين مع اقتراح التصليح." }, en: { name: "Code review", category: "Code review", title: "Review this code and list the issues", brief: "Review the code, point out bugs and improvements with suggested fixes." } },
+  { id: "logo", delivery: "image", reward: "1", ar: { name: "لوجو", category: "تصميم لوجو", title: "تصميم لوجو بسيط", brief: "محتاج لوجو بسيط ومعاصر. اكتب هنا اسم النشاط والألوان المفضلة." }, en: { name: "Logo", category: "Logo design", title: "A simple logo design", brief: "I need a simple modern logo. Write the business name and preferred colors here." } },
+  { id: "proof", delivery: "text", reward: "0.2", ar: { name: "تدقيق", category: "تدقيق لغوي", title: "تدقيق لغوي لنص", brief: "صحّح الأخطاء الإملائية والنحوية وحسّن الصياغة من غير ما تغيّر المعنى." }, en: { name: "Proofreading", category: "Proofreading", title: "Proofread a text", brief: "Fix spelling and grammar and improve the wording without changing the meaning." } },
+  { id: "slides", delivery: "ppt", reward: "1", ar: { name: "عرض تقديمي", category: "عرض تقديمي", title: "عرض تقديمي من ٦ شرايح", brief: "اعمل عرض من ٦ شرايح عن الموضوع اللي هكتبه هنا، بنقاط مختصرة." }, en: { name: "Slides", category: "Presentation", title: "A 6-slide presentation", brief: "Make a 6-slide presentation about the topic I write here, with short bullet points." } },
+];
+
 type Row = { id: string; category: string; delivery: string; title: string; status: string; reward: number; net_reward: number; has_result: boolean; reject_note: string | null; paid_pi: number | null; created_at: string;
   stages?: number; stage_idx?: number; worker?: string | null; parent_id?: string | null;
   draft?: boolean; source?: string; revision_note?: string | null; revisions?: number; rating?: number | null; can_dispute?: boolean; in_dispute?: boolean };
@@ -47,53 +58,85 @@ export default function TasksPage() {
   );
 }
 
-type BoardTask = { id: string; category: string; delivery: string; title: string; brief: string; reward: number; lang: string };
+type BoardTask = { id: string; category: string; delivery: string; title: string; brief: string; reward: number; lang: string; files?: number; invited?: boolean; stages?: number };
 function Board() {
   const { t } = useApp();
   const [cat, setCat] = useState<string>("");
   const [cats, setCats] = useState<{ key: string; label: string; n: number }[]>([]);
+  const [q, setQ] = useState("");
+  const [term, setTerm] = useState("");
+  const [delivery, setDelivery] = useState("");
+  const [min, setMin] = useState("");
+  const [sort, setSort] = useState<"new" | "reward">("new");
   const [rows, setRows] = useState<BoardTask[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  const qs = (offset: number) => `/api/tasks/board?limit=20&offset=${offset}&sort=${sort}${cat ? `&category=${encodeURIComponent(cat)}` : ""}${term ? `&q=${encodeURIComponent(term)}` : ""}${delivery ? `&delivery=${delivery}` : ""}${toNum(min) > 0 ? `&min=${toNum(min)}` : ""}`;
   const load = useCallback(async () => {
-    const [a, b] = await Promise.all([
-      fetch(`/api/tasks/board${cat ? `?category=${encodeURIComponent(cat)}` : ""}`, { credentials: "include", cache: "no-store" }),
-      fetch("/api/tasks/categories", { cache: "no-store" }),
-    ]);
-    setRows(a.ok ? (await a.json()).tasks : []);
+    const [a, b] = await Promise.all([fetch(qs(0), { credentials: "include", cache: "no-store" }), fetch("/api/tasks/categories", { cache: "no-store" })]);
+    if (a.ok) { const d = await a.json(); setRows(d.tasks); setTotal(d.total); } else { setRows([]); setTotal(0); }
     if (b.ok) {
       const list: { key: string; label: string; n: number }[] = (await b.json()).categories || [];
       setCats(list);
       // A category that no longer has open tasks drops out of the filter, so go back to "all".
       if (cat && !list.some((c) => c.key === cat)) setCat("");
     }
-  }, [cat]);
+  }, [cat, term, delivery, min, sort]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setRows(null); load(); }, [load]);
+  async function more() {
+    setBusy(true);
+    const r = await fetch(qs(rows?.length ?? 0), { credentials: "include", cache: "no-store" });
+    setBusy(false);
+    if (r.ok) { const d = await r.json(); setRows((cur) => [...(cur || []), ...d.tasks]); setTotal(d.total); }
+  }
   return (
     <>
       <p className="hint">{t("tkBoardSub")}</p>
+      <form className="card" style={{ display: "grid", gap: 8 }} onSubmit={(e) => { e.preventDefault(); setTerm(q.trim()); }}>
+        <div className="earn-form">
+          <input className="input" value={q} maxLength={80} onChange={(e) => setQ(e.target.value)} placeholder={t("tkSearchPh")} aria-label={t("tkSearchPh")} />
+          <button className="btn primary">{t("ppSearch")}</button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <select className="select" value={delivery} onChange={(e) => setDelivery(e.target.value)} aria-label={t("tkDelivery")}>
+            <option value="">{t("tkAnyDelivery")}</option>{DELIVERIES.map((d) => <option key={d} value={d}>{t(`delivery_${d}` as Key)}</option>)}
+          </select>
+          <input className="input ltr" inputMode="decimal" value={min} onChange={(e) => setMin(e.target.value)} placeholder={t("tkMinReward")} aria-label={t("tkMinReward")} />
+          <select className="select" value={sort} onChange={(e) => setSort(e.target.value as "new" | "reward")} aria-label={t("tkSort")}>
+            <option value="new">{t("tkSortNew")}</option><option value="reward">{t("tkSortReward")}</option>
+          </select>
+        </div>
+      </form>
       <div className="chips">
         <button className={`pill${cat === "" ? " on" : ""}`} onClick={() => setCat("")}>{t("all")}</button>
         {cats.map((c) => <button key={c.key} className={`pill${cat === c.key ? " on" : ""}`} onClick={() => setCat(c.key)}>{c.label} <span className="num hint">{c.n}</span></button>)}
       </div>
       {!rows ? <div className="skeleton" style={{ height: 100 }} /> : !rows.length ? <div className="card empty">{t("tkNoBoard")}</div> : (
-        <div className="grid stagger">
-          {rows.map((r) => (
-            <div key={r.id} className="card" style={{ display: "grid", gap: 8 }}>
-              <button className="lesson-head" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}>
-                <span className="lesson-tt">
-                  <span style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                    <span className="chip">{r.category}</span>
-                    <span className="chip free num ltr">{pi(r.reward)}</span>
+        <>
+          <div className="grid stagger">
+            {rows.map((r) => (
+              <div key={r.id} className="card" style={{ display: "grid", gap: 8 }}>
+                <button className="lesson-head" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}>
+                  <span className="lesson-tt">
+                    <span style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      <span className="chip">{r.category}</span>
+                      <span className="chip free num ltr">{pi(r.reward)}</span>
+                      {r.invited && <span className="chip v">{t("tkInvitedChip")}</span>}
+                      {!!r.stages && <span className="chip">{t("stProgress", { a: 1, b: r.stages })}</span>}
+                      {!!r.files && <span className="chip num">📎 {r.files}</span>}
+                    </span>
+                    <h2 style={{ fontSize: 15.5 }}>{r.title}</h2>
+                    {open !== r.id && r.brief && <span className="hint" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.brief}</span>}
                   </span>
-                  <h2 style={{ fontSize: 15.5 }}>{r.title}</h2>
-                  {open !== r.id && r.brief && <span className="hint" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.brief}</span>}
-                </span>
-                <span className="lesson-chev" aria-hidden="true">⌄</span>
-              </button>
-              {open === r.id && <TaskWork id={r.id} brief={r.brief} onChange={load} />}
-            </div>
-          ))}
-        </div>
+                  <span className="lesson-chev" aria-hidden="true">⌄</span>
+                </button>
+                {open === r.id && <TaskWork id={r.id} brief={r.brief} onChange={load} />}
+              </div>
+            ))}
+          </div>
+          {rows.length < total && <button className="btn" style={{ justifySelf: "center" }} disabled={busy} onClick={more}>{busy ? t("preparing") : t("loadMore", { n: total - rows.length })}</button>}
+        </>
       )}
     </>
   );
@@ -175,6 +218,13 @@ function NewTask({ balance, onClose, onDone }: { balance: number; onClose: () =>
   const [staged, setStaged] = useState(false);
   const [stages, setStages] = useState<{ title: string; percent: string }[]>([{ title: "", percent: "40" }, { title: "", percent: "60" }]);
   const [repeat, setRepeat] = useState("0");
+  const [invite, setInvite] = useState("");
+  const [hint, setHint] = useState<{ scope: string; n: number; median: number; min: number; max: number } | null>(null);
+  useEffect(() => {
+    const id = setTimeout(() => { fetch(`/api/tasks/price-hint?category=${encodeURIComponent(category.trim())}&delivery=${delivery}`).then((r) => r.json()).then(setHint).catch(() => {}); }, 350);
+    return () => clearTimeout(id);
+  }, [category, delivery]);
+  function useTemplate(x: Tpl) { const c = x[lang === "en" ? "en" : "ar"]; setCategory(c.category); setTitle(c.title); setBrief(c.brief); setDelivery(x.delivery); setReward(x.reward); }
   const r = toNum(reward) || 0;
   const pctSum = stages.reduce((a, x) => a + (toNum(x.percent) || 0), 0);
   const stagesOk = !staged || (stages.every((x) => x.title.trim()) && Math.abs(pctSum - 100) < 0.01);
@@ -183,7 +233,8 @@ function NewTask({ balance, onClose, onDone }: { balance: number; onClose: () =>
     e.preventDefault();
     setBusy(true);
     const stageList = staged ? stages.map((x) => ({ title: x.title.trim(), percent: toNum(x.percent) })) : undefined;
-    const fields: Record<string, string> = { category, delivery, title, brief, input_text: input, reward: String(r), lang: out, repeat_days: repeat };
+    const inviteList = invite.split(/[,،\s]+/).map((x) => x.replace(/^@/, "").trim()).filter(Boolean).slice(0, 3);
+    const fields: Record<string, string> = { category, delivery, title, brief, input_text: input, reward: String(r), lang: out, repeat_days: repeat, invite: inviteList.join(",") };
     if (stageList) fields.stages = JSON.stringify(stageList);
     let payload: FormData | Record<string, unknown> = { ...fields, reward: r, stages: stageList, repeat_days: Number(repeat) };
     if (files.length) { const fd = new FormData(); Object.entries(fields).forEach(([k, v]) => fd.append(k, v)); files.forEach((f) => fd.append("files", f)); payload = fd; }
@@ -191,10 +242,14 @@ function NewTask({ balance, onClose, onDone }: { balance: number; onClose: () =>
     setBusy(false);
     if (x.ok) { onDone(); return; }
     const err = x.data?.error;
-    toast(["file_type", "file_too_big", "too_many_files", "empty_file"].includes(err) ? t("tkFileBad") : err === "not_enough" ? t("tkNotEnough") : err === "bad_stages" ? t("stBad") : err === "bad_reward" ? t("tkBadReward") : err === "bad_category" ? t("tkNeedCategory") : err === "too_many" ? t("tkTooMany") : err === "blocked" ? `${t("tkBlocked")}${x.data?.why ? `: ${x.data.why}` : ""}` : t("errGeneric"));
+    toast(["file_type", "file_too_big", "too_many_files", "empty_file"].includes(err) ? t("tkFileBad") : err === "not_enough" ? t("tkNotEnough") : err === "bad_invite" ? t("tkBadInvite") : err === "bad_stages" ? t("stBad") : err === "bad_reward" ? t("tkBadReward") : err === "bad_category" ? t("tkNeedCategory") : err === "too_many" ? t("tkTooMany") : err === "blocked" ? `${t("tkBlocked")}${x.data?.why ? `: ${x.data.why}` : ""}` : t("errGeneric"));
   }
   return (
     <form className="card" onSubmit={submit} style={{ display: "grid", gap: 10, animation: "rise .25s both" }}>
+      <div className="grid" style={{ gap: 4 }}>
+        <span className="hint">{t("tplTitle")}</span>
+        <div className="chips" style={{ flexWrap: "wrap" }}>{TEMPLATES.map((x) => <button type="button" key={x.id} className="chip" onClick={() => useTemplate(x)}>{x[lang === "en" ? "en" : "ar"].name}</button>)}</div>
+      </div>
       <label className="field"><span>{t("tkKind")}</span>
         <input className="input" list="task-cats" value={category} maxLength={40} placeholder={t("tkCategoryPh")} onChange={(e) => setCategory(e.target.value)} />
         <datalist id="task-cats">{[...new Set([...known, ...SUGGEST.map((k) => t(`kind_${k}` as Key))])].map((c) => <option key={c} value={c} />)}</datalist>
@@ -212,6 +267,8 @@ function NewTask({ balance, onClose, onDone }: { balance: number; onClose: () =>
         <label className="field"><span>{t("tkLang")}</span>
           <select className="select" value={out} onChange={(e) => setOut(e.target.value as "ar" | "en")}><option value="ar">{t("rlAr")}</option><option value="en">{t("rlEn")}</option></select></label>
       </div>
+      {hint && hint.scope !== "none" && <p className="hint num">{t("phLine", { n: hint.n, med: pi(hint.median), lo: pi(hint.min), hi: pi(hint.max) })}</p>}
+      <label className="field"><span>{t("tkInviteLbl")}</span><input className="input ltr" value={invite} maxLength={120} placeholder="@name1, @name2" onChange={(e) => setInvite(e.target.value)} /><span className="hint">{t("tkInviteHint")}</span></label>
       <label className="plan-task"><input type="checkbox" checked={staged} onChange={(e) => setStaged(e.target.checked)} /><span>{t("stToggle")}<br /><span className="hint">{t("stHint")}</span></span></label>
       {staged && (
         <div className="grid" style={{ gap: 6 }}>
@@ -420,6 +477,40 @@ function Rejected({ r, onChange }: { r: Row; onChange: () => void }) {
   );
 }
 
+type LogRow = { id: number; tool: string; ok: boolean; note: string; amount: number | null; at: string; key: string | null };
+/** What the connected AIs did on this account (changes only), plus a stop button for all of them. */
+function AgentLog({ onStopped }: { onStopped: () => void }) {
+  const { t, lang, toast } = useApp();
+  const [log, setLog] = useState<LogRow[] | null>(null);
+  const load = useCallback(async () => { const r = await fetch("/api/mcp/log", { credentials: "include", cache: "no-store" }); setLog(r.ok ? (await r.json()).log : []); }, []);
+  useEffect(() => { load(); }, [load]);
+  async function stopAll() {
+    if (typeof window !== "undefined" && !window.confirm(t("alStopConfirm"))) return;
+    const r = await post("/api/mcp/tokens", { action: "off_all" });
+    if (r.ok) { toast(t("alStopped")); onStopped(); } else toast(t("errGeneric"));
+  }
+  return (
+    <div className="card" style={{ display: "grid", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <b style={{ flex: 1 }}>{t("alTitle")}</b>
+        <button className="btn danger sm" onClick={stopAll}>{t("alStop")}</button>
+      </div>
+      <p className="hint">{t("alHint")}</p>
+      {!log ? <div className="skeleton" style={{ height: 60 }} /> : !log.length ? <span className="hint">{t("alNone")}</span> : (
+        <div className="grid" style={{ gap: 4 }}>
+          {log.slice(0, 15).map((x) => (
+            <div key={x.id} className="grid" style={{ gap: 1, paddingBottom: 4, borderBottom: "1px solid var(--line)" }}>
+              <span className="small"><b className="ltr">{x.tool}</b> {x.ok ? "✓" : "✗"}{x.amount ? <span className="num ltr"> · {pi(x.amount)}</span> : null}{x.key ? <span className="hint"> · {x.key}</span> : null}</span>
+              <span className="hint" style={{ overflowWrap: "anywhere" }}>{x.note}</span>
+              <span className="hint num">{new Date(x.at).toLocaleString(lang === "ar" ? "ar-EG" : "en-US", { dateStyle: "short", timeStyle: "short" })}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Work() {
   const { t, lang, toast } = useApp();
   const [code, setCode] = useState<{ code: string; at: number } | null>(null);
@@ -518,6 +609,8 @@ function Work() {
         )) : <span className="hint">{t("tkNoTokens")}</span>}
       </div>
 
+      <AgentLog onStopped={load} />
+      <Link className="md-link small" href="/docs">{t("docsLink")}</Link>
       {stats && (
         <div className="card" style={{ display: "grid", gap: 4 }}>
           <b>{t("tkYourStats")}</b>

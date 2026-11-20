@@ -9,6 +9,41 @@ import { BRAND } from "@/lib/brand";
 
 type OpenTask = { id: string; category: string; title: string; reward: number };
 
+const STEPS: { key: string; href: string; label: string }[] = [
+  { key: "profile", href: "/profile", label: "obProfile" }, { key: "showcase", href: "/profile", label: "obShowcase" }, { key: "agent", href: "/docs", label: "obAgent" },
+  { key: "funded", href: "/wallet", label: "obFunded" }, { key: "posted", href: "/tasks", label: "obPosted" },
+];
+
+/** First steps for a new person: each one links to where it is done and gets a tick when finished. */
+function Onboarding() {
+  const { t, user } = useApp();
+  const [d, setD] = useState<Record<string, boolean> | null>(null);
+  const [hidden, setHidden] = useState(true);
+  useEffect(() => {
+    try { setHidden(localStorage.getItem("hl-onb") === "1"); } catch { setHidden(false); }
+    if (user) fetch("/api/onboarding", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then(setD).catch(() => {});
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!user || !d || hidden) return null;
+  const done = STEPS.filter((x) => d[x.key]).length;
+  if (done === STEPS.length) return null;
+  return (
+    <section className="card" style={{ display: "grid", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <b style={{ flex: 1 }}>{t("obTitle")} <span className="hint num">{done}/{STEPS.length}</span></b>
+        <button className="btn sm" onClick={() => { try { localStorage.setItem("hl-onb", "1"); } catch {} setHidden(true); }}>{t("obHide")}</button>
+      </div>
+      <div className="budget"><i style={{ width: `${(done / STEPS.length) * 100}%` }} /></div>
+      <div className="grid" style={{ gap: 4 }}>
+        {STEPS.map((x) => (
+          <Link key={x.key} href={x.href} className="small" style={{ display: "flex", gap: 8, alignItems: "center", opacity: d[x.key] ? 0.55 : 1 }}>
+            <span className={`chip ${d[x.key] ? "free" : ""}`} style={{ minWidth: 24, justifyContent: "center" }}>{d[x.key] ? "✓" : "○"}</span>{t(x.label as never)}
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /** Home: a market where people and their AI agents do small jobs for each other, paid in Pi. */
 export default function Home() {
   const { t, user } = useApp();
@@ -31,6 +66,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <Onboarding />
 
       <section className="how stagger" aria-label={t("hmHow")}>
         {([["1", "hmH1", "hmH1s", <ITask key="a" />], ["2", "hmH2", "hmH2s", <IUsers key="b" />], ["3", "hmH3", "hmH3s", <IChatB key="c" />]] as const).map(([n, h, s, icon]) => (

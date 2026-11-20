@@ -10,7 +10,7 @@ export const maxDuration = 30;
  * Auth: Bearer token from the website (personal token) or from the OAuth flow used by ChatGPT / Claude.
  */
 const VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
-const cache = new Map<string, { at: number; uid: string; banned: boolean; hash: string }>();
+const cache = new Map<string, { at: number; uid: string; banned: boolean; hash: string; tid: string | null }>();
 
 async function authUser(req: Request) {
   const m = (req.headers.get("authorization") || "").match(/^Bearer\s+(lnt_[A-Za-z0-9_-]{20,80})$/);
@@ -18,12 +18,21 @@ async function authUser(req: Request) {
   const hash = sha256hex(m[1]);
   const hit = cache.get(hash);
   if (hit && Date.now() - hit.at < 30_000) return hit;
-  const u = await rpc<{ user_id: string; banned: boolean } | null>("ln_mcp_token_verify", { p_hash: hash });
+  const u = await rpc<{ user_id: string; banned: boolean; token_id?: string } | null>("ln_mcp_token_verify", { p_hash: hash });
   if (!u) { cache.delete(hash); return null; }
-  const v = { at: Date.now(), uid: u.user_id, banned: u.banned, hash };
+  const v = { at: Date.now(), uid: u.user_id, banned: u.banned, hash, tid: u.token_id ?? null };
   cache.set(hash, v);
   if (cache.size > 500) cache.clear();
   return v;
+}
+
+/** Everything an AI does that changes something is written to the owner's activity log (reads are not logged). */
+async function logCall(uid: string, tid: string | null, name: string, args: any, result: any) {
+  const tool = TOOLS.find((t) => t.name === name);
+  if (tool?.annotations?.readOnlyHint === true) return;
+  const first = Array.isArray(result?.content) ? String(result.content.find((c: any) => c.type === "text")?.text || "") : "";
+  const amount = Number(args?.reward ?? args?.price);
+  await rpc("ln_mcp_log_add", { p_user: uid, p_token: tid, p_tool: name, p_ok: !result?.isError, p_note: first.replace(/\s+/g, " ").slice(0, 150), p_amount: isFinite(amount) && amount > 0 ? amount : null }).catch(() => {});
 }
 
 const rpcOk = (id: unknown, result: unknown) => ({ jsonrpc: "2.0", id, result });
@@ -62,7 +71,12 @@ export async function POST(req: Request) {
       case "tools/call": {
         const name = String(msg.params?.name || "");
         if (!TOOLS.some((t) => t.name === name)) return rpcErr(id, -32602, `Unknown tool: ${name}`);
-        try { return rpcOk(id, await callTool(name, msg.params?.arguments || {}, { uid: user!.uid, origin, tokenHash: user!.hash })); }
+        try {
+          const args = msg.params?.arguments || {};
+          const result = await callTool(name, args, { uid: user!.uid, origin, tokenHash: user!.hash });
+          await logCall(user!.uid, user!.tid, name, args, result);
+          return rpcOk(id, result);
+        }
         catch (e: any) {
           console.error("mcp tool error", name, e?.message);
           return rpcOk(id, { content: [{ type: "text", text: "Something went wrong on our side. Try again in a moment." }], isError: true });

@@ -25,7 +25,7 @@ export async function saveProfile(uid: string, a: ProfileInput): Promise<{ ok: t
   return r.ok ? { ok: true } : { ok: false, error: r.reason || "bad_request" };
 }
 
-export type PortfolioInput = { title?: unknown; description?: unknown; made_with?: unknown; tags?: unknown };
+export type PortfolioInput = { title?: unknown; description?: unknown; made_with?: unknown; tags?: unknown; task_id?: unknown };
 
 /** Adds one portfolio item (what the person can do, made with AI or by a human). `image` is an already validated small image. */
 export async function addPortfolio(uid: string, a: PortfolioInput, image?: { mime: string; data: string }): Promise<{ ok: true; id: string } | { ok: false; error: string; why?: string }> {
@@ -34,8 +34,9 @@ export async function addPortfolio(uid: string, a: PortfolioInput, image?: { mim
   const made = USES.includes(a.made_with as string) ? (a.made_with as string) : "both";
   const m = await moderate(`${title}\n${description}\n${tags.join(", ")}`);
   if (!m.ok) return { ok: false, error: "blocked", why: m.why };
-  const r = await rpc<{ ok: boolean; reason?: string; id?: string }>("ln_portfolio_add", {
+  const r = await rpc<{ ok: boolean; reason?: string; id?: string }>("ln_portfolio_add2", {
     p_user: uid, p_title: title, p_desc: description, p_made_with: made, p_tags: tags, p_mime: image?.mime ?? null, p_data: image?.data ?? null,
+    p_task: typeof a.task_id === "string" && /^[0-9a-f-]{36}$/i.test(a.task_id) ? a.task_id : null,
   });
   return r.ok ? { ok: true, id: r.id as string } : { ok: false, error: r.reason || "bad_request" };
 }

@@ -83,11 +83,18 @@ export const TOOLS = [
         reward: { type: "number", description: "Reward in Pi, between 0.05 and 50 (up to 200 with stages). The worker receives 80% of it." },
         lang: { type: "string", enum: ["ar", "en"], description: "Language of the result." },
         stages: { type: "array", minItems: 2, maxItems: 4, description: "Optional milestones: [{title, percent}] adding up to 100. Each approved stage pays its share; reward may then go up to 200 Pi.", items: { type: "object", properties: { title: { type: "string" }, percent: { type: "number" } }, required: ["title", "percent"] } },
+        invite_usernames: { type: "array", maxItems: 3, items: { type: "string" }, description: "Optional: make the task private to up to 3 people (they get a notification, nobody else sees it)." },
         parent_task_id: { type: "string", description: "If you hold this claimed task, post this as a sub-task of it (max 5, total within its net reward)." },
       },
       required: ["title", "category", "delivery", "reward"],
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  {
+    name: "price_hint", title: "What similar tasks pay",
+    description: "Median, average and range of the reward of approved tasks in a category (and delivery type). Use it before choosing a reward in create_task or a price in hire/add_service.",
+    inputSchema: { type: "object", properties: { category: { type: "string" }, delivery: { type: "string", enum: ["text", "pdf", "ppt", "image", "file"] } } },
+    annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
     name: "feed", title: "New tasks since last check",
@@ -297,7 +304,7 @@ export async function callTool(name: string, args: any, ctx: Ctx) {
       const v = await rpc<{ can_post: boolean; token_id: string } | null>("ln_mcp_token_verify", { p_hash: ctx.tokenHash });
       if (!v?.can_post) return text(`Posting tasks is switched off for this connection. Your human can turn it on at ${ctx.origin}/tasks → "Work with my AI" → this connection → "Allow posting tasks".`, true);
       if (rateLimited(`mcppost:${ctx.uid}`, 10, 3600_000)) return text("Too many tasks posted this hour. Try again later.", true);
-      const r = await postTask(ctx.uid, { ...(args || {}), repeat_days: undefined }, "mcp", { tokenId: v.token_id });
+      const r = await postTask(ctx.uid, { ...(args || {}), repeat_days: undefined, invite: args?.invite_usernames }, "mcp", { tokenId: v.token_id });
       if (r.ok && r.draft) return text(`Saved as a DRAFT (id ${r.id}). Your human has asked to approve AI-posted tasks first: nothing is spent until they publish it at ${ctx.origin}/tasks → My requests.`);
       if (r.ok) return text(`Posted. Task id ${r.id}. The reward is held from the Pi balance until the work is approved. Check it with my_requests and approve it on ${ctx.origin}/tasks.`);
       const x = r.extra || {};
@@ -305,10 +312,15 @@ export async function callTool(name: string, args: any, ctx: Ctx) {
         bad_category: "`category` must be 2-40 characters.", bad_delivery: "`delivery` must be text, pdf, ppt, image or file.", bad_title: "`title` must be 3-120 characters.",
         bad_reward: "`reward` must be between 0.05 and 50 Pi.", too_many: "There are already 20 active tasks posted from this account.",
         not_enough: `Not enough Pi balance (${pi(Number(x.balance) || 0)}).`, mcp_cap: `Daily AI-posting cap reached (${pi(Number(x.spent) || 0)} of ${pi(Number(x.cap) || 0)} in the last 24h).`,
-        category_not_allowed: `This connection may only post in these categories: ${(x.allowed as string[] | undefined)?.join(", ") || "(none)"}.`, too_many_drafts: "There are already 10 drafts waiting for approval.", bad_key: "This connection is no longer valid.", bad_stages: "stages must be 2-4 items [{title, percent}] adding up to 100.", bad_parent: "parent_task_id must be a task you have claimed.", too_many_sub: "That task already has 5 sub-tasks.", parent_budget: "Sub-tasks together can't cost more than the parent task's net reward.",
+        category_not_allowed: `This connection may only post in these categories: ${(x.allowed as string[] | undefined)?.join(", ") || "(none)"}.`, too_many_drafts: "There are already 10 drafts waiting for approval.", bad_key: "This connection is no longer valid.", bad_invite: `invite_usernames must be up to 3 existing people (not yourself, not blocked)${x.name ? `: "${x.name}" is not valid` : ""}.`, bad_stages: "stages must be 2-4 items [{title, percent}] adding up to 100.", bad_parent: "parent_task_id must be a task you have claimed.", too_many_sub: "That task already has 5 sub-tasks.", parent_budget: "Sub-tasks together can't cost more than the parent task's net reward.",
         blocked: `The task was blocked by the automatic safety check${x.why ? `: ${x.why}` : ""}.`, banned: "This account can't post tasks.",
       };
       return text(msg[r.error] || "Couldn't post the task.", true);
+    }
+    case "price_hint": {
+      const h = await rpc<{ scope: string; n: number; avg: number; min: number; max: number; median: number }>("ln_price_hint", { p_category: typeof args?.category === "string" ? args.category.slice(0, 40) : "", p_delivery: typeof args?.delivery === "string" ? args.delivery : "" });
+      if (h.scope === "none") return text("Not enough approved tasks yet to suggest a price. Start around 0.3-1 Pi for small jobs.");
+      return text(`Based on ${h.n} approved ${h.scope === "category" ? "tasks in this category" : "tasks of this delivery type"}: median ${pi(h.median)}, average ${pi(h.avg)}, range ${pi(h.min)} to ${pi(h.max)}.`);
     }
     case "feed": {
       const since = typeof args?.since === "string" && !isNaN(Date.parse(args.since)) ? new Date(args.since).toISOString() : null;

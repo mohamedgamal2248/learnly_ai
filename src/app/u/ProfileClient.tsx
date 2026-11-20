@@ -13,7 +13,7 @@ type Profile = {
   rate_from: number | null; since: string; badges: string[]; blocked: boolean;
   services: { id: string; title: string; description: string; category: string; delivery: string; price: number; days: number }[]; stats: { done: number; avg: number | null; rated: number; rejected: number }; categories: string[];
   reviews: { stars: number; note: string | null; by: string; category: string; at: string }[];
-  portfolio: { id: string; title: string; description: string; made_with: "ai" | "manual" | "both"; tags: string[]; has_image: boolean }[];
+  portfolio: { id: string; title: string; description: string; made_with: "ai" | "manual" | "both"; tags: string[]; has_image: boolean; verified?: boolean; stars?: number | null }[];
 };
 const toNum = (v: string) => Number(v.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[٫,]/g, "."));
 
@@ -79,7 +79,7 @@ function ProfileView() {
             <div key={w.id} className="card work-card">
               {w.has_image && <img className="work-img" src={`/api/profile/img?id=${w.id}`} alt={w.title} loading="lazy" />}
               <b>{w.title}</b>
-              <span className={`chip ${w.made_with === "ai" ? "v" : ""}`} style={{ justifySelf: "start" }}>{t(`made_${w.made_with}` as never)}</span>
+              <div className="chips"><span className={`chip ${w.made_with === "ai" ? "v" : ""}`}>{t(`made_${w.made_with}` as never)}</span>{w.verified && <span className="chip free">✓ {t("prVerified")}{w.stars ? ` · ${"★".repeat(w.stars)}` : ""}</span>}</div>
               {w.description && <p className="small muted">{w.description}</p>}
               {w.tags.length > 0 && <div className="chips">{w.tags.map((g) => <span key={g} className="chip">{g}</span>)}</div>}
             </div>

@@ -125,10 +125,14 @@ function AddWork({ onDone, full }: { onDone: () => void; full: boolean }) {
   const [tags, setTags] = useState("");
   const [img, setImg] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [taskId, setTaskId] = useState("");
+  const [done, setDone] = useState<{ id: string; title: string }[]>([]);
+  useEffect(() => { if (open) fetch("/api/tasks?role=worker", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : { tasks: [] })).then((d) => setDone((d.tasks || []).filter((x: { status: string }) => x.status === "approved"))).catch(() => {}); }, [open]);
   async function add(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     const fd = new FormData();
+    if (taskId) fd.append("task_id", taskId);
     fd.append("title", title); fd.append("description", desc); fd.append("made_with", made); fd.append("tags", tags);
     if (img) fd.append("image", await shrink(img));
     const r = await post("/api/profile/portfolio", fd);
@@ -147,6 +151,11 @@ function AddWork({ onDone, full }: { onDone: () => void; full: boolean }) {
           <select className="select" value={made} onChange={(e) => setMade(e.target.value as "ai" | "manual" | "both")}>{(["ai", "manual", "both"] as const).map((k) => <option key={k} value={k}>{t(`made_${k}` as never)}</option>)}</select></label>
         <label className="field"><span>{t("epWorkTags")}</span><input className="input" value={tags} maxLength={200} onChange={(e) => setTags(e.target.value)} /></label>
       </div>
+      {done.length > 0 && (
+        <label className="field"><span>{t("epVerifiedLink")}</span>
+          <select className="select" value={taskId} onChange={(e) => setTaskId(e.target.value)}><option value="">{t("epVerifiedNone")}</option>{done.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}</select>
+          <span className="hint">{t("epVerifiedHint")}</span></label>
+      )}
       <label className="field"><span>{t("epWorkImg")}</span><input type="file" accept=".png,.jpg,.jpeg,.webp" onChange={(e) => setImg(e.target.files?.[0] ?? null)} /></label>
       <div className="row-actions">
         <button className="btn primary" disabled={busy || title.trim().length < 3}>{busy ? t("preparing") : t("epWorkAdd")}</button>

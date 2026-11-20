@@ -20,6 +20,10 @@ export async function POST(req: Request) {
     await rpc("ln_mcp_token_off", { p_user: a.u.id, p_id: b.id });
     return json({ ok: true });
   }
+  if (b?.action === "off_all") {
+    await rpc("ln_mcp_tokens_off_all", { p_user: a.u.id });
+    return json({ ok: true });
+  }
   if (b?.action === "post") {
     if (typeof b.id !== "string" || !/^[0-9a-f-]{36}$/i.test(b.id)) return fail("bad_request");
     await rpc("ln_mcp_token_set_post", { p_user: a.u.id, p_id: b.id, p_on: b.on === true });
