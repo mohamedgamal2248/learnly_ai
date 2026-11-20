@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 const NUM: Record<string, [number, number]> = {
   markup: [1.5, 20], welcome_credits: [0, 1000], free_daily_msgs: [0, 500],
   daily_budget_usd: [0, 1000], max_reserve: [20, 2000], file_fee: [0, 200],
-  max_per_minute: [1, 60], daily_credit_cap: [50, 1_000_000], min_withdraw: [100, 1_000_000],
+  max_per_minute: [1, 60], daily_credit_cap: [50, 1_000_000], min_withdraw_pi: [0.1, 1000],
 };
 
 export async function POST(req: Request) {

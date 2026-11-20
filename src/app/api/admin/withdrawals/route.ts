@@ -5,13 +5,13 @@ import { a2uReady, cancelA2U, completeA2U, createA2U, sendA2U } from "@/lib/serv
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-type W = { id: string; username: string; pi_uid: string; credits: number; pi: number; status: string; payment_id: string | null; txid: string | null; note: string | null };
+type W = { id: string; username: string; pi_uid: string; pi: number; status: string; payment_id: string | null; txid: string | null; note: string | null };
 type SetResult = { ok: boolean; reason?: string; payment_id?: string | null };
 
 export async function GET(req: Request) {
   const a = await requireUser(req, ["admin"]);
   if (a instanceof Response) return a;
-  return json({ list: await rpc<W[]>("ln_admin_withdrawals", {}), ready: a2uReady() });
+  return json({ list: await rpc<W[]>("ln_admin_payouts", {}), ready: a2uReady() });
 }
 
 /**
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const b = await req.json().catch(() => null);
   if (typeof b?.id !== "string" || !/^[0-9a-f-]{36}$/i.test(b.id)) return fail("bad_request");
   const set = (status: string, extra: { payment?: string | null; txid?: string | null; note?: string | null } = {}) =>
-    rpc<SetResult>("ln_withdraw_set", { p_id: b.id, p_status: status, p_payment: extra.payment ?? null, p_txid: extra.txid ?? null, p_note: extra.note ?? null });
+    rpc<SetResult>("ln_payout_set", { p_id: b.id, p_status: status, p_payment: extra.payment ?? null, p_txid: extra.txid ?? null, p_note: extra.note ?? null });
 
   if (b.action === "reject") {
     const r = await set("rejected", { note: String(b.note || "").slice(0, 300) || null });
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   if (b.action !== "approve") return fail("bad_request");
   if (!a2uReady()) return fail("wallet_not_configured", 503);
 
-  const w = (await rpc<W[]>("ln_admin_withdrawals", {})).find((x) => x.id === b.id);
+  const w = (await rpc<W[]>("ln_admin_payouts", {})).find((x) => x.id === b.id);
   if (!w) return fail("not_found", 404);
 
   // A stuck one where the Pi already went out only needs the "complete" call again.

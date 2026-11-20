@@ -30,7 +30,7 @@ export type DbUser = {
 export type Limits = {
   markup: number; credit_usd: number; welcome_credits: number; free_daily_msgs: number;
   daily_budget_usd: number; max_reserve: number; file_fee: number; kill_free: boolean;
-  max_per_minute?: number; daily_credit_cap?: number; min_withdraw?: number;
+  max_per_minute?: number; daily_credit_cap?: number; min_withdraw_pi?: number;
 };
 
 let cfgCache: { at: number; value: Limits } | null = null;

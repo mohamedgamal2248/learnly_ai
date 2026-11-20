@@ -2,7 +2,7 @@ import { rpc, getLimits } from "@/lib/server/db";
 import { fail, rateLimited, requireSession } from "@/lib/server/http";
 import { getBot } from "@/lib/server/bots";
 import { streamChat, type ChatMessage, type ContentPart, type WebSource } from "@/lib/server/ai";
-import { creditsForCost, estimateTokens, usageCost, INPUT_TOKEN_BUDGET, MAX_ROUNDS, type Usage } from "@/lib/server/pricing";
+import { creditsForCost, estimateTokens, piUsdRate, usageCost, INPUT_TOKEN_BUDGET, MAX_ROUNDS, type Usage } from "@/lib/server/pricing";
 import {
   attachmentNote, buildSystem, SEARCH_EST_USD, toolsFor, wantsSearch, compactionPlan, fitHistory, langDirective, outputCap, pickEffort, runTool, summarize, wantsFile,
   type Attachment, type ChatContext, type FileRef,
@@ -164,11 +164,18 @@ export async function POST(req: Request) {
           // Web sources ride along with file refs (format "link") so the chat history can show them again.
           p_files: files.length || sources.length ? [...files, ...sources.map((x) => ({ id: "", format: "link", title: x.title, url: x.url }))] : null,
           p_reserved: reserve, p_actual: actual, p_cost_usd: Number(cost.toFixed(8)),
-          p_teacher_share: nothingHappened ? 0 : Math.floor(bot.fee * 0.7),
+          // The creator's 70% is paid in Pi below, not as credits.
+          p_teacher_share: 0,
           p_meta: { in: usage.input, cached: usage.cached, out: usage.output, files: files.length, effort, compact: !!plan, images: images.length, atts: atts.length, searches: searches.n },
         });
         send({ t: "done", charged: done.charged, credits: done.credits, chatId: done.chat_id });
         if (!nothingHappened) await rpc("ln_touch_streak", { p_user: s.uid }).catch(() => null);
+        // Creator earnings: 70% of the message fee, converted to Pi at the current rate.
+        if (!nothingHappened && bot.fee > 0 && bot.teacher_id && bot.teacher_id !== s.uid) {
+          const rate = await piUsdRate().catch(() => 0);
+          const pi = rate > 0 ? Math.floor(((bot.fee * 0.7 * cfg.credit_usd) / rate) * 1e7) / 1e7 : 0;
+          if (pi > 0) await rpc("ln_add_earning", { p_bot: bot.id, p_learner: s.uid, p_pi: pi }).catch((e) => console.error("earning error", e?.message));
+        }
       } catch (e: any) {
         console.error("settle error", e?.message);
       }

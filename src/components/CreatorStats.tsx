@@ -17,13 +17,13 @@ export function CreatorStats() {
   const [s, setS] = useState<S | null>(null);
   useEffect(() => { fetch("/api/teach/stats", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)).then(setS).catch(() => {}); }, []);
   if (!s) return <div className="skeleton" style={{ height: 140 }} />;
-  const fmt = (n: number) => Number(n).toLocaleString(lang === "ar" ? "ar-EG" : "en-US", { maximumFractionDigits: 2 });
+  const fmt = (n: number) => Number(n).toLocaleString(lang === "ar" ? "ar-EG" : "en-US", { maximumFractionDigits: 4 });
   const sum = (xs: number[]) => xs.reduce((a, b) => a + Number(b || 0), 0);
   const tiles = [
     [t("stLearners"), sum(s.bots.map((b) => b.learners)) + sum(s.courses.map((c) => c.students))],
     [t("stMsgs"), sum(s.bots.map((b) => b.messages))],
     [t("csSales"), `${fmt(sum(s.courses.map((c) => c.sales_pi)))} π`],
-    [t("earned"), sum(s.bots.map((b) => b.earned)) + sum(s.courses.map((c) => c.earned))],
+    [t("earned"), `${fmt(sum(s.bots.map((b) => b.earned)) + sum(s.courses.map((c) => c.earned)))} π`],
   ] as const;
 
   // Last 30 days, missing days as zero.
@@ -52,8 +52,8 @@ export function CreatorStats() {
         <div className="md-table"><table>
           <thead><tr><th>{t("csItem")}</th><th>{t("stLearners")}</th><th>{t("csActivityShort")}</th><th>{t("earned")}</th></tr></thead>
           <tbody>
-            {s.bots.map((b) => <tr key={b.id}><td><span className="ico-inline"><IBot width={16} height={16} /></span> {(lang === "en" ? b.name_en : b.name) || b.name}</td><td className="num">{fmt(b.learners)}</td><td className="num">{fmt(b.messages)}</td><td className="num">{fmt(b.earned)}</td></tr>)}
-            {s.courses.map((c) => <tr key={c.id}><td><span className="ico-inline"><ICourses width={16} height={16} /></span> {(lang === "en" ? c.title_en : c.title) || c.title}</td><td className="num">{fmt(c.students)}</td><td className="num">{fmt(c.completed)} ✓</td><td className="num">{fmt(c.earned)}</td></tr>)}
+            {s.bots.map((b) => <tr key={b.id}><td><span className="ico-inline"><IBot width={16} height={16} /></span> {(lang === "en" ? b.name_en : b.name) || b.name}</td><td className="num">{fmt(b.learners)}</td><td className="num">{fmt(b.messages)}</td><td className="num ltr">{fmt(b.earned)} π</td></tr>)}
+            {s.courses.map((c) => <tr key={c.id}><td><span className="ico-inline"><ICourses width={16} height={16} /></span> {(lang === "en" ? c.title_en : c.title) || c.title}</td><td className="num">{fmt(c.students)}</td><td className="num">{fmt(c.completed)} ✓</td><td className="num ltr">{fmt(c.earned)} π</td></tr>)}
           </tbody>
         </table></div>
       )}

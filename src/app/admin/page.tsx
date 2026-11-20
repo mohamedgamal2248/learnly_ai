@@ -32,7 +32,7 @@ type BotRow = {
 const L = {
   ar: {
     title: "صفحة الأدمن", forbidden: "الصفحة دي للأدمن بس.",
-    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", tCourses: "الكورسات", crNone: "مفيش كورسات", crPublish: "انشر", crReject: "ارفض", crPause: "وقّف", crView: "معاينة", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (كريدت)",
+    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", tCourses: "الكورسات", crNone: "مفيش كورسات", crPublish: "انشر", crReject: "ارفض", crPause: "وقّف", crView: "معاينة", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (Pi)",
     revenue: "الإيرادات", revenueSub: "اللي المستخدمين دفعوه بالباي ({n} عملية)",
     aiCost: "اتصرف على الـAI (Meta)", aiCostSub: "التكلفة الحقيقية لكل الرسايل لحد دلوقتي",
     gross: "الكاش بعد تكلفة الـAI", grossSub: "الإيرادات ناقص تكلفة الـAI",
@@ -59,7 +59,7 @@ const L = {
   },
   en: {
     title: "Admin", forbidden: "This page is for admins only.",
-    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", tCourses: "Courses", crNone: "No courses", crPublish: "Publish", crReject: "Reject", crPause: "Pause", crView: "Preview", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (credits)",
+    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", tCourses: "Courses", crNone: "No courses", crPublish: "Publish", crReject: "Reject", crPause: "Pause", crView: "Preview", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (Pi)",
     revenue: "Revenue", revenueSub: "What users paid in Pi ({n} payments)",
     aiCost: "Spent on AI (Meta)", aiCostSub: "Real cost of every message so far",
     gross: "Cash after AI cost", grossSub: "Revenue minus AI cost",
@@ -423,7 +423,7 @@ function CoursesTab({ tr }: { tr: Tr }) {
   );
 }
 
-type Wd = { id: string; username: string; credits: number; pi: number; status: string; payment_id: string | null; txid: string | null; note: string | null; at: string };
+type Wd = { id: string; username: string; pi: number; status: string; payment_id: string | null; txid: string | null; note: string | null; at: string };
 function WithdrawalsTab({ tr }: { tr: Tr }) {
   const { toast } = useApp();
   const [d, setD] = useState<{ list: Wd[]; ready: boolean } | null>(null);
@@ -449,7 +449,7 @@ function WithdrawalsTab({ tr }: { tr: Tr }) {
         <div key={w.id} className="card" style={{ display: "grid", gap: 6 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <b className="ltr">@{w.username}</b>
-            <span className="chip num">{w.credits.toLocaleString()} cr → {Number(w.pi).toFixed(4)} π</span>
+            <span className="chip num ltr">{Number(w.pi).toLocaleString("en-US", { maximumFractionDigits: 4 })} π</span>
             <span className={`chip ${w.status === "sent" ? "free" : w.status === "failed" || w.status === "rejected" ? "bad" : "warn"}`}>{tr(`wdStatus_${w.status}` as LKey)}</span>
             <span className="hint num" style={{ marginInlineStart: "auto" }}>{new Date(w.at).toLocaleString()}</span>
           </div>
@@ -495,7 +495,7 @@ function ReportsTab({ tr }: { tr: Tr }) {
 const LIMIT_FIELDS: [string, LKey, number][] = [
   ["markup", "lMarkup", 0.5], ["welcome_credits", "lWelcome", 10], ["free_daily_msgs", "lFreeMsgs", 1],
   ["daily_budget_usd", "lBudget", 0.5], ["max_reserve", "lReserve", 10], ["file_fee", "lFileFee", 1],
-  ["max_per_minute", "lPerMin", 1], ["daily_credit_cap", "lDayCap", 100], ["min_withdraw", "lMinWd", 100],
+  ["max_per_minute", "lPerMin", 1], ["daily_credit_cap", "lDayCap", 100], ["min_withdraw_pi", "lMinWd", 0.1],
 ];
 
 function SettingsTab({ tr }: { tr: Tr }) {
