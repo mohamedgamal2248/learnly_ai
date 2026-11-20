@@ -168,6 +168,7 @@ export async function POST(req: Request) {
           p_meta: { in: usage.input, cached: usage.cached, out: usage.output, files: files.length, effort, compact: !!plan, images: images.length, atts: atts.length, searches: searches.n },
         });
         send({ t: "done", charged: done.charged, credits: done.credits, chatId: done.chat_id });
+        if (!nothingHappened) await rpc("ln_touch_streak", { p_user: s.uid }).catch(() => null);
       } catch (e: any) {
         console.error("settle error", e?.message);
       }

@@ -418,3 +418,16 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .opt-edit { display: flex; gap: 8px; align-items: center; }
 .opt-edit input[type="radio"] { width: 18px; height: 18px; flex: none; }
 .lesson-head:disabled { cursor: default; opacity: .75; }
+
+/* ---------- my learning ---------- */
+.streak { flex: none; width: 64px; height: 64px; border-radius: 18px; background: rgba(255,255,255,.18); display: grid; place-items: center; align-content: center; filter: grayscale(.8); opacity: .8; }
+.streak.lit { filter: none; opacity: 1; }
+.streak span { font-size: 26px; line-height: 1; } .streak b { font-size: 16px; color: #fff; }
+.plan-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.plan-day { display: grid; gap: 6px; align-content: start; padding: 10px; border-radius: 12px; background: var(--surface-2); }
+.plan-task { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.6; cursor: pointer; }
+.plan-task input { margin-top: 4px; width: 16px; height: 16px; flex: none; }
+.plan-task.done span { text-decoration: line-through; color: var(--muted); }
+.mistake, .my-course { display: flex; gap: 10px; align-items: center; color: var(--fg); text-decoration: none; }
+.my-course { display: grid; }
+.mistake > span:first-child { font-size: 20px; color: var(--primary); }

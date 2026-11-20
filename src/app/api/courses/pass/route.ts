@@ -18,11 +18,19 @@ export async function POST(req: Request) {
   if (!c || !lesson) return fail("not_found", 404);
   const answers: unknown[] = Array.isArray(b.answers) ? b.answers : [];
   const wrong = lesson.quiz.flatMap((q, i) => (answers[i] === q.answer ? [] : [i]));
-  if (wrong.length) return json({ ok: false, wrong });
+  if (wrong.length) {
+    // Remember what went wrong so it shows up in "Review your mistakes".
+    await rpc("ln_mistakes_note", { p_user: s.uid, p_course: c.id, p_lesson: lesson.id, p_questions: wrong.map((i) => lesson.quiz[i].q), p_passed: false }).catch(() => null);
+    return json({ ok: false, wrong });
+  }
   const r = await rpc<{ ok: boolean; reason?: string; completed?: boolean; progress?: Record<string, boolean> }>("ln_course_pass", {
     p_user: s.uid, p_course: c.id, p_lesson: lesson.id,
   });
   if (!r.ok) return fail(r.reason || "not_enrolled", 403);
+  await Promise.all([
+    rpc("ln_mistakes_note", { p_user: s.uid, p_course: c.id, p_lesson: lesson.id, p_questions: [], p_passed: true }).catch(() => null),
+    rpc("ln_touch_streak", { p_user: s.uid }).catch(() => null),
+  ]);
   let certId: string | null = null;
   if (r.completed) {
     const cert = await issueCert(s.uid, "course", c.id, c.title, c.title_en || c.title, 100);

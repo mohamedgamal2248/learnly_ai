@@ -25,6 +25,7 @@ export function Shell({ children }: { children: ReactNode }) {
     { href: "/", label: t("nHome"), icon: <IHome /> },
     { href: "/chat", label: t("nChat"), icon: <IBot /> },
     { href: "/courses", label: t("nCourses"), icon: <IBook /> },
+    { href: "/learn", label: t("nLearn"), icon: <ICap /> },
     { href: "/community", label: t("nCommunity"), icon: <IUsers />, tag: t("free") },
     { href: "/academy", label: t("nAcademy"), icon: <IShield />, tag: t("free") },
     { href: "/teach", label: t("nTeach"), icon: <ICap /> },
