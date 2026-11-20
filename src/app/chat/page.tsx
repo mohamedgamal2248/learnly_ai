@@ -9,6 +9,7 @@ import { botText, loadBots, type BotInfo } from "@/lib/bots";
 import { downloadFile, hasFileSpec, rememberSpec, saveFileSpec } from "@/lib/local-files";
 import type { Key } from "@/lib/i18n";
 import { domainOf, Favicon } from "@/components/Web";
+import { RatingChip, Reviews, useRatings } from "@/components/Reviews";
 
 type FileRef = { id: string; format: "pdf" | "docx" | "pptx" | "xlsx" | "link"; title: string; url?: string };
 type Source = { url: string; title: string };
@@ -90,6 +91,8 @@ function ChatInner() {
   const [copied, setCopied] = useState<number | null>(null);
   const [pending, setPending] = useState<Pending[]>([]);
   const [searchQ, setSearchQ] = useState("");
+  const [showReviews, setShowReviews] = useState(false);
+  const ratings = useRatings();
   const fileRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -370,6 +373,9 @@ function ChatInner() {
           <div className="bot-name">{bt.name}{bot.official ? <span className="chip v">{t("official")}</span> : <span className="chip v">{t("verified")}</span>}</div>
           <div className="bot-sub">{bt.subject}{bot.teacher_name && !bot.official ? ` · ${bot.teacher_name}` : ""}</div>
           {bot.status && bot.status !== "live" && <span className="chip warn" style={{ marginTop: 4 }}>{t("testing")}</span>}
+          <button className="link small" style={{ display: "inline-flex", gap: 6, alignItems: "center", marginTop: 2 }} onClick={() => setShowReviews((v) => !v)}>
+            <RatingChip r={ratings[bot.id]} />{t("reviews")}
+          </button>
         </div>
         {user && chats.length > 0 && (
           <button className="btn sm" onClick={() => setShowHistory((v) => !v)} aria-expanded={showHistory}>{t("history")} <span className="num">{fmt(chats.length)}</span></button>
@@ -386,6 +392,8 @@ function ChatInner() {
           </button>
         ))}
       </div>
+
+      {showReviews && <div style={{ marginTop: 8 }}><Reviews kind="bot" id={bot.id} canRate={msgs.length >= 4 || chats.some((c) => c.msgs >= 4)} /></div>}
 
       {showHistory && (
         <div className="card" style={{ marginTop: 8, display: "grid", gap: 4, animation: "rise .25s both" }}>

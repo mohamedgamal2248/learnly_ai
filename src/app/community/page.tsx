@@ -67,7 +67,7 @@ export default function CommunityPage() {
       setPosts((cur) => [{ id: r.data.id, username: user.username, group_key: postGroup, body: body.trim(), replies: 0, likes: 0,
         created_at: new Date().toISOString(), role: user.role, mine: true }, ...(cur || [])]);
       setBody("");
-    } else setErr(t(ERRS[r.data?.error] || "errGeneric"));
+    } else setErr(r.data?.error === "blocked" ? `${t("modBlocked")}${r.data?.why ? `: ${r.data.why}` : ""}` : t(ERRS[r.data?.error] || "errGeneric"));
   }
 
   return (
@@ -142,7 +142,7 @@ function PostCard({ p, ago, showGroup, onRemoved }: { p: Post; ago: (s: string) 
     if (r.ok) {
       setReplies((cur) => [...(cur || []), { id: r.data.id, username: user.username, body: text.trim(), created_at: new Date().toISOString(), role: user.role, mine: true }]);
       setCount((c) => c + 1); setText("");
-    } else toast(t(ERRS[r.data?.error] || "errGeneric"));
+    } else toast(r.data?.error === "blocked" ? `${t("modBlocked")}${r.data?.why ? `: ${r.data.why}` : ""}` : t(ERRS[r.data?.error] || "errGeneric"));
   }
   async function like() {
     if (!user) return login();

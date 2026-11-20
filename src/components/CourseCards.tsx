@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useApp } from "./AppProvider";
 import { courseText, piFmt, type CourseCard } from "@/lib/courses";
+import { RatingChip, useRatings } from "./Reviews";
 
 export function CourseCards({ courses }: { courses: CourseCard[] }) {
   const { t, lang } = useApp();
+  const ratings = useRatings();
   return (
     <div className="course-grid stagger">
       {courses.map((c) => {
@@ -18,6 +20,7 @@ export function CourseCards({ courses }: { courses: CourseCard[] }) {
             </div>
             <b className="cc-title">{ct.title}</b>
             {ct.description && <p className="cc-desc">{ct.description}</p>}
+            <RatingChip r={ratings[c.id]} />
             <div className="cc-meta hint num">
               <span>{t("lessonsN", { n: c.lessons })}</span><span>·</span><span>{t("studentsN", { n: c.students })}</span><span>·</span><span className="ltr">@{c.creator}</span>
             </div>

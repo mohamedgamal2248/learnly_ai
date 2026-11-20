@@ -439,3 +439,14 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .bars { display: flex; align-items: flex-end; gap: 2px; height: 72px; margin-top: 6px; padding-bottom: 1px; border-bottom: 1px solid var(--line); }
 .bar { flex: 1; min-width: 3px; background: var(--primary); border-radius: 4px 4px 0 0; }
 .bar:hover { filter: brightness(1.15); }
+
+/* ---------- ratings ---------- */
+.chip.rating { color: #B7791F; background: rgba(245,166,35,.14); }
+.chip.rating.top { color: #fff; background: #F5A623; }
+.chip.rating.top .hint { color: rgba(255,255,255,.85); }
+.reviews { display: grid; gap: 10px; }
+.stars { display: flex; gap: 2px; }
+.stars button { border: 0; background: transparent; font-size: 28px; line-height: 1; color: var(--line); padding: 0 2px; }
+.stars button.on { color: #F5A623; }
+.review { display: grid; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
+.review-stars { color: #F5A623; font-size: 13px; letter-spacing: 1px; } .review-stars span { color: var(--line); }

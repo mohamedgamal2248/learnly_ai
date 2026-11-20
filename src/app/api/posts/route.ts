@@ -1,5 +1,6 @@
 import { rpc } from "@/lib/server/db";
 import { fail, json, rateLimited, requireSession } from "@/lib/server/http";
+import { moderate } from "@/lib/server/moderation";
 import { getSession } from "@/lib/server/session";
 
 export const runtime = "nodejs";
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
   if (body.length < 2 || body.length > 2000) return fail("bad_length");
   // Never let a wallet passphrase sit in a public post.
   if (body.split(/\s+/).filter((w: string) => /^[a-z]{3,8}$/.test(w)).length >= 12) return fail("looks_like_passphrase");
+  // AI check before publishing (scams, passphrase requests, abuse, spam).
+  const mod = await moderate(body);
+  if (!mod.ok) return fail("blocked", 400, { why: mod.why });
   const r = await rpc<{ ok: boolean; reason?: string; id?: number }>("ln_post_create", {
     p_user: s.uid, p_group: GROUPS.includes(b?.group) ? b.group : "general", p_body: body,
     p_parent: Number.isInteger(b?.parent) ? b.parent : null,

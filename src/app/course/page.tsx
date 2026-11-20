@@ -5,6 +5,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import { Markdown } from "@/components/Markdown";
+import { Reviews } from "@/components/Reviews";
 import { ensurePiAuth, post, waitForPi } from "@/lib/pi-client";
 import { courseText, piFmt, type CourseDetail, type PublicLesson } from "@/lib/courses";
 
@@ -107,6 +108,7 @@ function CourseView() {
             onPassed={(r) => { if (r.certId) setCertId(r.certId); load(); }} />
         ))}
       </div>
+      <Reviews kind="course" id={c.id} canRate={c.enrolled && !c.owner} />
     </div>
   );
 }

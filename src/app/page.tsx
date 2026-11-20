@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { CourseCards } from "@/components/CourseCards";
+import { RatingChip, useRatings } from "@/components/Reviews";
 import type { CourseCard } from "@/lib/courses";
 import { IBook, IBriefcase, ICap, ICode, ILang, ISearch, IShield, IUsers, IBot } from "@/components/Icons";
 import { botText, lastBotId, loadBots, TRACK_KEYS, type BotInfo } from "@/lib/bots";
@@ -23,6 +24,7 @@ export default function Home() {
   const [track, setTrack] = useState<string>("all");
   const [q, setQ] = useState("");
   const [resumeId, setResumeId] = useState<string | null>(null);
+  const ratings = useRatings();
   const [courses, setCourses] = useState<CourseCard[] | null>(null);
   const [stats, setStats] = useState<{ learners: number; bots: number; creators: number; messages: number } | null>(null);
 
@@ -109,6 +111,7 @@ export default function Home() {
                 </div>
                 {bt.description && <p className="bot-desc">{bt.description}</p>}
                 <div className="meta">
+                  <RatingChip r={ratings[b.id]} />
                   {b.has_knowledge && <span className="chip">{t("fromFiles")}</span>}
                   {b.fee > 0 && <span className="chip num">{t("perMsg", { n: b.fee })}</span>}
                   <span className="chip free" style={{ marginInlineStart: "auto" }}>{t("ask")}</span>
