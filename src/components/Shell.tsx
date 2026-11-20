@@ -9,7 +9,7 @@ import { BuyModal } from "./BuyModal";
 import { IBook, IBot, IClose, IGear, IHome, IMenu, IMoon, IPlus, IShield, ISun, IUsers, ICap } from "./Icons";
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { t, lang, ui, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
+  const { t, lang, ui, setLang, lite, toggleLite, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const path = usePathname();
@@ -91,6 +91,10 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="nav-sep" />
           <button className="nav-item" onClick={toggleTheme}>
             {theme === "dark" ? <ISun /> : <IMoon />}<span>{theme === "dark" ? t("lightMode") : t("darkMode")}</span>
+          </button>
+          <button className="nav-item" onClick={toggleLite} aria-pressed={lite}>
+            <span aria-hidden="true" style={{ width: 22, textAlign: "center" }}>⚡</span><span>{t("liteMode")}</span>
+            <span className={`switch${lite ? " on" : ""}`} aria-hidden="true"><i /></span>
           </button>
         </nav>
         <div className="legal-links" style={{ padding: "0 16px 8px" }}><Link href="/privacy">{t("privacy")}</Link> · <Link href="/terms">{t("terms")}</Link></div>

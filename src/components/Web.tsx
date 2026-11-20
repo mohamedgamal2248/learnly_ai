@@ -9,7 +9,9 @@ export function Favicon({ url, size = 20 }: { url: string; size?: number }) {
   const d = domainOf(url);
   const [bad, setBad] = useState(false);
   const st = { width: size, height: size };
-  return bad
+  // Low-data mode: skip remote icons and show the site's first letter.
+  const lite = typeof document !== "undefined" && document.documentElement.dataset.lite === "1";
+  return bad || lite
     ? <span className="fav fav-txt" style={st}>{d.slice(0, 1).toUpperCase()}</span>
     : <img className="fav" style={st} src={`https://icons.duckduckgo.com/ip3/${d}.ico`} alt="" loading="lazy" onError={() => setBad(true)} />;
 }

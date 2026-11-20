@@ -8,7 +8,9 @@ import { Shell } from "@/components/Shell";
 export const metadata: Metadata = {
   title: "Learnly AI",
   description: "كورسات من ناس خبرة موثّقين، ومساعد AI ما بينامش.",
-  icons: { icon: "/icon.svg" },
+  icons: { icon: "/icon.svg", apple: "/icon-192.png" },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Learnly AI", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -17,7 +19,7 @@ export const viewport: Viewport = {
 };
 
 // Runs before first paint so the saved language and theme never flash.
-const boot = `try{var l=localStorage.getItem('ll-lang')||localStorage.getItem('ll-geo-lang')||'ar',t=localStorage.getItem('ll-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),d=document.documentElement;d.lang=l;d.dir=l==='ar'?'rtl':'ltr';d.dataset.theme=t;}catch(e){}`;
+const boot = `try{var l=localStorage.getItem('ll-lang')||localStorage.getItem('ll-geo-lang')||'ar',t=localStorage.getItem('ll-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),d=document.documentElement;d.lang=l;d.dir=l==='ar'?'rtl':'ltr';d.dataset.theme=t;var s=localStorage.getItem('ll-lite');if(s==='1'||(s===null&&navigator.connection&&navigator.connection.saveData))d.dataset.lite='1';}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

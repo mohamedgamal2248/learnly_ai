@@ -450,3 +450,11 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .stars button.on { color: #F5A623; }
 .review { display: grid; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
 .review-stars { color: #F5A623; font-size: 13px; letter-spacing: 1px; } .review-stars span { color: var(--line); }
+
+/* ---------- low-data mode ---------- */
+:root[data-lite="1"] *, :root[data-lite="1"] *::before, :root[data-lite="1"] *::after { animation: none !important; transition: none !important; }
+:root[data-lite="1"] .hero-card { background: var(--primary); }
+.switch { margin-inline-start: auto; width: 36px; height: 20px; border-radius: 999px; background: var(--line); position: relative; flex: none; transition: background .2s; }
+.switch i { position: absolute; top: 2px; inset-inline-start: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: inset-inline-start .2s; }
+.switch.on { background: var(--primary); }
+.switch.on i { inset-inline-start: 18px; }
