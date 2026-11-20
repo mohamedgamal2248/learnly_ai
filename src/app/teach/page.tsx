@@ -15,7 +15,7 @@ type MyBot = {
 type Material = { id?: string; name: string; chars: number; body?: string };
 type Draft = {
   id?: string; name: string; name_en: string; subject: string; subject_en: string; track: string;
-  description: string; description_en: string; instructions: string; notes: string; fee: number; files: Material[];
+  description: string; description_en: string; instructions: string; notes: string; fee: number | ""; files: Material[];
   reply_lang: "auto" | "ar" | "en";
   web: boolean;
 };
@@ -327,7 +327,12 @@ function BotEditor({ draft, onClose, onSaved }: { draft: Draft; onClose: () => v
       </div>
       <label className="field"><span>{t("notesLbl")}</span><textarea className="textarea" id="b-notes" value={d.notes} onChange={(e) => set("notes", e.target.value)} maxLength={100_000} /></label>
       <span className={total > 300_000 ? "chip bad num" : "hint num"}>{t("chars", { n: fmt(total) })}</span>
-      <label className="field"><span>{t("bFee")}</span><input className="input" id="b-fee" type="number" min={0} max={20} value={d.fee} onChange={(e) => set("fee", Number(e.target.value))} /></label>
+      <label className="field"><span>{t("bFee")}</span><input className="input ltr" id="b-fee" type="text" inputMode="numeric" autoComplete="off" placeholder="0" value={d.fee}
+        onChange={(e) => {
+          // Accept Arabic-Indic and Persian digits too, and allow clearing the field while typing.
+          const v = e.target.value.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x6f0)).replace(/\D/g, "");
+          set("fee", v === "" ? "" : Math.min(20, parseInt(v, 10)));
+        }} /></label>
       {err && <div className="notice bad">{err}</div>}
       <div className="row-actions">
         <button className="btn primary" disabled={busy || reading}>{busy ? t("sending") : t("saveBot")}</button>

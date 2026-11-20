@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import { Markdown } from "@/components/Markdown";
@@ -186,8 +186,10 @@ function ChatInner() {
   }, [bot]);
 
   // ---- the user's conversations with this bot (stored in the database) ----
+  // Keyed on the user id only: a credit-balance update must not reload the open conversation.
+  const uid = user?.id ?? null;
   useEffect(() => {
-    if (!bot || !user) { setChats([]); setMsgs([]); setChatId(null); return; }
+    if (!bot || !uid) { setChats([]); setMsgs([]); setChatId(null); return; }
     (async () => {
       const r = await fetch(`/api/chats?bot=${bot.id}`, { credentials: "include" });
       const list: ChatItem[] = r.ok ? (await r.json()).chats : [];
@@ -196,23 +198,35 @@ function ChatInner() {
       try { saved = localStorage.getItem(activeKey(bot.id)); } catch {}
       openChat(list.find((c) => c.id === saved)?.id ?? list[0]?.id ?? null);
     })();
-  }, [bot, user, openChat]);
+  }, [bot, uid, openChat]);
 
   // ---- scrolling: follow the reply only while the reader is at the bottom ----
+  // The composer is sticky at the end of the page, so "bottom" means the real end of the document.
+  const lastProgRef = useRef(0);
+  const toBottom = useCallback((smooth = false) => {
+    lastProgRef.current = Date.now();
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  }, []);
   useEffect(() => {
     const onScroll = () => {
-      const near = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
+      const near = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 140;
+      // Scroll events caused by our own scrolling (or a smooth scroll still running) don't count as the reader leaving.
+      if (!near && Date.now() - lastProgRef.current < 700) return;
       atBottomRef.current = near;
       setAtBottom(near);
     };
+    // A real touch or wheel means the reader is moving on purpose.
+    const onUser = () => { lastProgRef.current = 0; };
     onScroll();
     addEventListener("scroll", onScroll, { passive: true });
-    return () => removeEventListener("scroll", onScroll);
+    addEventListener("touchstart", onUser, { passive: true });
+    addEventListener("wheel", onUser, { passive: true });
+    return () => { removeEventListener("scroll", onScroll); removeEventListener("touchstart", onUser); removeEventListener("wheel", onUser); };
   }, []);
-  useEffect(() => {
-    if (atBottomRef.current) endRef.current?.scrollIntoView({ block: "end" });
-  }, [msgs, phase]);
-  const scrollDown = () => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  useLayoutEffect(() => {
+    if (atBottomRef.current) toBottom();
+  }, [msgs, phase, toBottom]);
+  const scrollDown = () => { atBottomRef.current = true; setAtBottom(true); toBottom(true); };
 
   const send = useCallback(async (text: string, opts: { replaceLast?: boolean; withAttachments?: boolean } = {}) => {
     const content = text.trim();
@@ -232,7 +246,7 @@ function ChatInner() {
     requestAnimationFrame(autosize);
     setPhase("thinking");
     atBottomRef.current = true;
-    requestAnimationFrame(scrollDown);
+    setAtBottom(true);
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
