@@ -9,10 +9,11 @@ import { botText, loadBots, type BotInfo } from "@/lib/bots";
 import { downloadFile, hasFileSpec, rememberSpec, saveFileSpec } from "@/lib/local-files";
 import type { Key } from "@/lib/i18n";
 
-type FileRef = { id: string; format: "pdf" | "docx" | "pptx" | "xlsx"; title: string };
-type Msg = { role: "user" | "assistant"; content: string; images?: string[]; files?: FileRef[] | null; credits?: number | null; error?: string; code?: string };
+type FileRef = { id: string; format: "pdf" | "docx" | "pptx" | "xlsx" | "link"; title: string; url?: string };
+type Source = { url: string; title: string };
+type Msg = { role: "user" | "assistant"; content: string; images?: string[]; sources?: Source[]; files?: FileRef[] | null; credits?: number | null; error?: string; code?: string };
 type ChatItem = { id: string; title: string; msgs: number; updated_at: string };
-type Phase = "idle" | "thinking" | "writing" | "making" | "reading";
+type Phase = "idle" | "thinking" | "writing" | "making" | "reading" | "searching";
 type Pending = { key: string; kind: "img"; url: string; name: string } | { key: string; kind: "doc"; name: string; id?: string; busy: boolean };
 
 /** Shrinks a photo to at most 1280px JPEG so it is cheap to send and to analyze. */
@@ -28,6 +29,41 @@ async function shrinkImage(file: File): Promise<string> {
     g.drawImage(img, 0, 0, c.width, c.height);
     return c.toDataURL("image/jpeg", 0.8);
   } finally { URL.revokeObjectURL(src); }
+}
+
+const domainOf = (url: string) => url.replace(/^https?:\/\/(www\.)?/, "").split(/[/?#]/)[0];
+
+function Favicon({ url }: { url: string }) {
+  const d = domainOf(url);
+  const [bad, setBad] = useState(false);
+  return bad
+    ? <span className="fav fav-txt">{d.slice(0, 1).toUpperCase()}</span>
+    : <img className="fav" src={`https://icons.duckduckgo.com/ip3/${d}.ico`} alt="" loading="lazy" onError={() => setBad(true)} />;
+}
+
+/** ChatGPT-style sources: overlapping site logos; tap to see the list. */
+function Sources({ items, label }: { items: Source[]; label: string }) {
+  const [open, setOpen] = useState(false);
+  if (!items.length) return null;
+  return (
+    <div className="sources">
+      <button type="button" className="src-pill" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <span className="favs">{items.slice(0, 4).map((x) => <Favicon key={x.url} url={x.url} />)}</span>
+        <span>{label}</span><span className="num">{items.length}</span>
+      </button>
+      {open && (
+        <div className="src-list">
+          {items.map((x, i) => (
+            <a key={x.url} href={x.url} target="_blank" rel="noopener noreferrer nofollow" className="src-card">
+              <span className="src-n num">{i + 1}</span>
+              <Favicon url={x.url} />
+              <span className="src-t"><b>{x.title}</b><span className="ltr">{domainOf(x.url)}</span></span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Stored user messages carry small markers for attachments; show them as chips. */
@@ -62,6 +98,7 @@ function ChatInner() {
   const [atBottom, setAtBottom] = useState(true);
   const [copied, setCopied] = useState<number | null>(null);
   const [pending, setPending] = useState<Pending[]>([]);
+  const [searchQ, setSearchQ] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -238,6 +275,8 @@ function ChatInner() {
           else if (ev.t === "think") setPhase("thinking");
           else if (ev.t === "making") setPhase("making");
           else if (ev.t === "reading") setPhase("reading");
+          else if (ev.t === "searching") { setPhase("searching"); if (ev.v) setSearchQ(ev.v); }
+          else if (ev.t === "sources") patchLast((m) => ({ ...m, sources: [...(m.sources || []), ...ev.v] }));
           else if (ev.t === "file") {
             rememberSpec(ev.id, ev.spec);
             saveFileSpec(ev.id, ev.spec);
@@ -388,9 +427,9 @@ function ChatInner() {
               <div className="msg bot">
                 {m.content ? <div className={`md${streaming && phase === "writing" ? " caret" : ""}`}><Markdown text={m.content} /></div> : null}
                 {streaming && phase !== "writing" && (
-                  <span className="thinking"><span className="dots"><i /><i /><i /></span>{phase === "making" ? t("making") : phase === "reading" ? t("reading") : t("thinking")}…</span>
+                  <span className="thinking"><span className="dots"><i /><i /><i /></span>{phase === "making" ? t("making") : phase === "reading" ? t("reading") : phase === "searching" ? `${t("searching")}${searchQ ? `: ${searchQ}` : ""}` : t("thinking")}…</span>
                 )}
-                {m.files?.map((f) => {
+                {m.files?.filter((f) => f.format !== "link").map((f) => {
                   const here = hasFileSpec(f.id);
                   return (
                     <div key={f.id} className="file-card">
@@ -402,6 +441,9 @@ function ChatInner() {
                     </div>
                   );
                 })}
+                {(!streaming || phase === "writing") && (
+                  <Sources label={t("sources")} items={[...(m.sources || []), ...(m.files || []).flatMap((f) => (f.format === "link" && f.url && !(m.sources || []).some((x) => x.url === f.url) ? [{ url: f.url, title: f.title }] : []))]} />
+                )}
                 {m.error && (
                   <div className="notice warn" style={{ marginTop: m.content ? 8 : 0 }}>
                     {m.error}

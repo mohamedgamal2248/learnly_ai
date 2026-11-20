@@ -4,7 +4,7 @@ import { rpc } from "./db";
 export type Bot = {
   id: string; teacher_id: string | null; name: string; name_en: string; subject: string; subject_en: string;
   description: string; description_en: string; instructions: string; knowledge: string; fee: number;
-  status: string; official: boolean; teacher_name: string | null; track: string; reply_lang: "auto" | "ar" | "en";
+  status: string; official: boolean; teacher_name: string | null; track: string; reply_lang: "auto" | "ar" | "en"; web?: boolean;
 };
 
 const cache = new Map<string, { at: number; bot: Bot | null }>();

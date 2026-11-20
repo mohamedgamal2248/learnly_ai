@@ -78,6 +78,7 @@ export async function POST(req: Request) {
       : typeof f?.body === "string" && f.body.trim() ? [{ name: str(f.name, 160) || "file", body: f.body.slice(0, 300_000) }] : []);
   try {
     const r = await rpc<{ id: string }>("ln_save_bot2", { p_user: a.u.id, p_bot: bot, p_files: files });
+    if (typeof b.web === "boolean") await rpc("ln_bot_set_web", { p_user: a.u.id, p_bot: r.id, p_on: b.web });
     forgetBot(r.id);
     return json(r);
   } catch (e: any) {

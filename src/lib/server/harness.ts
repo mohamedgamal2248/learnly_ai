@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "crypto";
-import { completeChat, CREATE_FILE_TOOL, READ_ATTACHMENT_TOOL, SEARCH_ATTACHMENT_TOOL, type ChatMessage, type Effort } from "./ai";
+import { completeChat, webSearch, CREATE_FILE_TOOL, READ_ATTACHMENT_TOOL, SEARCH_ATTACHMENT_TOOL, WEB_SEARCH_TOOL, type ChatMessage, type Effort, type WebSource } from "./ai";
 import { rpc } from "./db";
 import type { Bot } from "./bots";
 import { estimateTokens, INPUT_TOKEN_BUDGET, usageCost, type Usage } from "./pricing";
@@ -12,7 +12,7 @@ import { normalizeSpec } from "./files/spec";
  * Goal: smart answers at the lowest cost. Big stable parts come first so the provider's prefix cache hits.
  */
 
-export type FileRef = { id: string; format: string; title: string };
+export type FileRef = { id: string; format: string; title: string; url?: string };
 export type StoredMsg = { id?: number; role: "user" | "assistant"; content: string; files: FileRef[] | null };
 export type ChatContext = { summary: string; upto: number; messages: StoredMsg[] };
 
@@ -30,6 +30,7 @@ How to answer:
 Tools (use only when they clearly help; every call costs the learner credits):
 - Attachments: a note like [Attached file: NAME, id: ID ...] or a marker [📎 NAME #ID] means the learner attached a file. You get a preview; when you need more, call search_attachment (to find the relevant part) or read_attachment (to read a range). Read only what the question needs. Cite the page or slide you used.
 - Images the learner sends are for you to look at: describe, explain, solve or correct what is in them. If the image is unclear, say what you can't read.
+- web_search (only on bots that have it): for facts that change or that you may not know well (news, recent versions, prices, laws, statistics, current events), or when the learner asks for sources. One focused query; at most 2 searches per answer. Then answer in your own words. Don't paste URLs or a source list: the app shows the sources under your reply.
 - create_file: only when the learner asks for a PDF, Word, PowerPoint or Excel file (or says yes after you offered one). Call it once with the complete content. Then reply with one short sentence; never paste the contents or a link, the app shows a download button.`;
 
 export function buildSystem(bot: Bot) {
@@ -45,7 +46,19 @@ export function buildSystem(bot: Bot) {
 }
 
 /** Same tool list on every turn of a bot, so the cached prefix (tools + system) stays identical. */
-export const BOT_TOOLS = [CREATE_FILE_TOOL, READ_ATTACHMENT_TOOL, SEARCH_ATTACHMENT_TOOL];
+const BASE_TOOLS = [CREATE_FILE_TOOL, READ_ATTACHMENT_TOOL, SEARCH_ATTACHMENT_TOOL];
+const WEB_TOOLS = [...BASE_TOOLS, WEB_SEARCH_TOOL];
+export const toolsFor = (bot: Bot) => (bot.web ? WEB_TOOLS : BASE_TOOLS);
+
+/** Provider fee per web search (USD 2.50 per 1,000), billed to the learner with the normal markup. */
+export const SEARCH_USD = 0.0025;
+/** Estimated model cost of one search run (≈3k tokens in, ≈600 out), plus up to 2 searches inside it. */
+export const SEARCH_EST_USD = 2 * SEARCH_USD + (3000 * 0.10 + 600 * 0.50) / 1_000_000;
+export const MAX_SEARCHES = 2;
+
+const SEARCH_WORDS = /\b(search|google|latest|newest|news|today|current|recent|price|cost|release|version|202\d|sources?|references?|statistics|stats)\b|ابحث|دور|بحث|أحدث|احدث|آخر|اخر|جديد|النهارده|اليوم|حالي|سعر|أسعار|اسعار|إصدار|اصدار|نسخة|مصادر|مصدر|مراجع|إحصائ|احصائ|خبر|أخبار|اخبار/i;
+/** Whether this message probably needs the web (used to reserve the search cost up front). */
+export const wantsSearch = (message: string) => SEARCH_WORDS.test(message);
 
 const FILE_WORDS = /\b(pdf|pdt|pfd|docx?|word|pptx?|power ?point|slides?|presentation|excel|xlsx|sheet|spreadsheet|file|download)\b|ملف|ملخص|عرض|شرائح|سلايد|بوربوينت|باوربوينت|وورد|ورد|اكسل|إكسل|جدول|شيت|تحميل|نزّل|نزل|بي ?دي ?[اإ]ف/i;
 /** Whether this message probably wants a file (used to reserve the file fee up front). */
@@ -77,8 +90,10 @@ export function langDirective(choice: string) {
   return "";
 }
 
-const asModelText = (m: StoredMsg) =>
-  m.files?.length ? `${m.content}\n${m.files.map((f) => `[file created: ${f.title}.${f.format}]`).join("\n")}` : m.content;
+const asModelText = (m: StoredMsg) => {
+  const made = (m.files || []).filter((f) => f.format !== "link");
+  return made.length ? `${m.content}\n${made.map((f) => `[file created: ${f.title}.${f.format}]`).join("\n")}` : m.content;
+};
 
 /** Summary + as many recent turns as fit the budget (newest first). */
 export function fitHistory(ctx: ChatContext, room: number) {
@@ -168,6 +183,13 @@ export function searchText(text: string, query: string) {
 
 export type ToolCtx = {
   uid: string;
+  web: boolean;
+  sources: WebSource[];
+  searches: { n: number };
+  /** Adds a tool's own spend (search runs) to the turn's cost. */
+  addCost: (usd: number, usage: Usage) => void;
+  canAffordSearch: () => boolean;
+  signal?: AbortSignal;
   attachments: Map<string, Attachment>;
   files: FileRef[];
   send: (evt: object) => void;
@@ -188,6 +210,29 @@ export async function runTool(name: string, args: string, ctx: ToolCtx): Promise
     ctx.files.push(ref);
     ctx.send({ t: "file", ...ref, spec });
     return { ok: true, note: "The learner now sees a download button. Reply with one short sentence." };
+  }
+  if (name === "web_search") {
+    if (!ctx.web) return { ok: false, error: "Web search is not enabled for this bot." };
+    if (ctx.searches.n >= MAX_SEARCHES) return { ok: false, error: "Search limit reached for this answer. Answer now with what you found." };
+    if (!ctx.canAffordSearch()) return { ok: false, error: "Not enough reserved credits for a web search this turn. Answer from your knowledge, say it may be outdated, and tell the learner they can ask you to search." };
+    let a: any = {};
+    try { a = JSON.parse(args || "{}"); } catch {}
+    const query = typeof a.query === "string" ? a.query.trim().slice(0, 200) : "";
+    if (!query) return { ok: false, error: "Empty query." };
+    ctx.searches.n++;
+    ctx.send({ t: "searching", v: query });
+    try {
+      const r = await webSearch(query, ctx.signal);
+      ctx.addCost(usageCost(r.usage) + r.searches * SEARCH_USD, r.usage);
+      const fresh = r.sources.filter((x) => !ctx.sources.some((y) => y.url === x.url));
+      ctx.sources.push(...fresh);
+      if (fresh.length) ctx.send({ t: "sources", v: fresh });
+      return { ok: true, findings: r.text || "No clear findings.", sources: r.sources.map((x, i) => `${i + 1}. ${x.title} — ${x.url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}`) };
+    } catch (e: any) {
+      console.error("web search error", e?.message);
+      // A failed search still counts toward the cap but costs nothing.
+      return { ok: false, error: "Search failed. Answer from your knowledge and say so briefly." };
+    }
   }
   if (name === "read_attachment" || name === "search_attachment") {
     let a: any = {};

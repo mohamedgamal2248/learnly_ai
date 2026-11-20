@@ -1,10 +1,10 @@
 import { rpc, getLimits } from "@/lib/server/db";
 import { fail, rateLimited, requireSession } from "@/lib/server/http";
 import { getBot } from "@/lib/server/bots";
-import { streamChat, type ChatMessage, type ContentPart } from "@/lib/server/ai";
+import { streamChat, type ChatMessage, type ContentPart, type WebSource } from "@/lib/server/ai";
 import { creditsForCost, estimateTokens, usageCost, INPUT_TOKEN_BUDGET, MAX_ROUNDS, type Usage } from "@/lib/server/pricing";
 import {
-  attachmentNote, BOT_TOOLS, buildSystem, compactionPlan, fitHistory, langDirective, outputCap, pickEffort, runTool, summarize, wantsFile,
+  attachmentNote, buildSystem, SEARCH_EST_USD, toolsFor, wantsSearch, compactionPlan, fitHistory, langDirective, outputCap, pickEffort, runTool, summarize, wantsFile,
   type Attachment, type ChatContext, type FileRef,
 } from "@/lib/server/harness";
 
@@ -59,6 +59,8 @@ export async function POST(req: Request) {
   const toolish = fileLikely || atts.length > 0 || ctx.messages.some((m) => m.content.includes("[📎"));
   const outCap = outputCap(effort, fileLikely);
   const plan = chatId ? compactionPlan(ctx) : null;
+  const tools = toolsFor(bot);
+  const searchLikely = !!bot.web && wantsSearch(text);
   const modelText = (notes ? `${notes}\n\n` : "") + text + langDirective(replyChoice || bot.reply_lang || "auto");
   const modelContent: string | ContentPart[] = images.length
     ? [{ type: "text", text: modelText }, ...images.map((url) => ({ type: "image_url" as const, image_url: { url } }))]
@@ -68,7 +70,7 @@ export async function POST(req: Request) {
 
   // ---- reserve credits before calling the model (never more than the admin cap) ----
   const perRound = (used * 0.10 + outCap * 0.50) / 1_000_000;
-  const aiUsd = perRound * (toolish ? 2 : 1) + (atts.length ? (3 * 3500 * 0.10) / 1_000_000 : 0) + (plan?.estCost || 0);
+  const aiUsd = perRound * (toolish || searchLikely ? 2 : 1) + (searchLikely ? SEARCH_EST_USD : 0) + (atts.length ? (3 * 3500 * 0.10) / 1_000_000 : 0) + (plan?.estCost || 0);
   const reserve = Math.min(cfg.max_reserve, creditsForCost(aiUsd, cfg) + bot.fee + (fileLikely ? cfg.file_fee : 0));
   const r = await rpc<{ ok: boolean; reason?: string; credits?: number; need?: number }>("ln_reserve", { p_user: s.uid, p_amount: reserve });
   if (!r.ok) return fail(r.reason || "no_credits", 402, { credits: r.credits, need: r.need });
@@ -78,6 +80,8 @@ export async function POST(req: Request) {
   let cost = 0;
   let reply = "";
   const files: FileRef[] = [];
+  const sources: WebSource[] = [];
+  const searches = { n: 0 };
   const addUsage = (u: Usage) => { cost += usageCost(u); usage.input += u.input; usage.cached += u.cached; usage.output += u.output; };
   const charge = () => creditsForCost(cost, cfg) + bot.fee + files.length * cfg.file_fee;
 
@@ -102,11 +106,11 @@ export async function POST(req: Request) {
           let calls: { id: string; name: string; arguments: string }[] = [];
           for await (const ev of streamChat({
             // Tools stay in the request every round (stable cache prefix); after the cap the model is told to answer.
-            messages, tools: BOT_TOOLS, maxTokens, cacheKey: `ln-bot-${bot.id}`, signal: req.signal,
+            messages, tools, maxTokens, cacheKey: `ln-bot-${bot.id}`, signal: req.signal,
             effort: round === 0 ? effort : "low",
           })) {
             if (ev.type === "text") { text += ev.text; reply += ev.text; send({ t: "d", v: ev.text }); }
-            else if (ev.type === "tool_start") { if (ev.name === "create_file") send({ t: "making" }); }
+            else if (ev.type === "tool_start") { if (ev.name === "create_file") send({ t: "making" }); else if (ev.name === "web_search") send({ t: "searching", v: "" }); }
             else { calls = ev.toolCalls; if (ev.usage.input || ev.usage.output) { gotUsage = true; addUsage(ev.usage); } }
           }
           if (!gotUsage) addUsage({ input: estIn, cached: 0, output: estimateTokens(text) + 200 });
@@ -121,7 +125,10 @@ export async function POST(req: Request) {
             const result = toolCalls > MAX_TOOL_CALLS
               ? { ok: false, error: "Tool limit reached. Answer now with what you have." }
               : await runTool(c.name, c.arguments, {
-                uid: s.uid, attachments: attMap, files, send,
+                uid: s.uid, attachments: attMap, files, send, signal: req.signal,
+                web: !!bot.web, sources, searches,
+                addCost: (usd, u) => { cost += usd; usage.input += u.input; usage.cached += u.cached; usage.output += u.output; },
+                canAffordSearch: () => usdLeft() >= SEARCH_EST_USD,
                 canAffordFile: () => reserve - charge() >= cfg.file_fee,
               });
             messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(result) });
@@ -153,10 +160,12 @@ export async function POST(req: Request) {
       try {
         const done = await rpc<{ credits: number; charged: number; chat_id: string | null }>("ln_chat_finish", {
           p_user: s.uid, p_bot: bot.id, p_chat: chatId, p_user_msg: nothingHappened ? null : storedMsg,
-          p_reply: reply, p_files: files.length ? files : null,
+          p_reply: reply,
+          // Web sources ride along with file refs (format "link") so the chat history can show them again.
+          p_files: files.length || sources.length ? [...files, ...sources.map((x) => ({ id: "", format: "link", title: x.title, url: x.url }))] : null,
           p_reserved: reserve, p_actual: actual, p_cost_usd: Number(cost.toFixed(8)),
           p_teacher_share: nothingHappened ? 0 : Math.floor(bot.fee * 0.7),
-          p_meta: { in: usage.input, cached: usage.cached, out: usage.output, files: files.length, effort, compact: !!plan, images: images.length, atts: atts.length },
+          p_meta: { in: usage.input, cached: usage.cached, out: usage.output, files: files.length, effort, compact: !!plan, images: images.length, atts: atts.length, searches: searches.n },
         });
         send({ t: "done", charged: done.charged, credits: done.credits, chatId: done.chat_id });
       } catch (e: any) {
