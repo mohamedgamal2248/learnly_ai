@@ -369,3 +369,18 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .earn-hist { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
 .earn-row { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 .earn-row .hint { margin-inline-start: auto; }
+
+/* ---------- certificate ---------- */
+.cert { position: relative; display: grid; justify-items: center; gap: 6px; text-align: center; padding: 34px 20px 40px; border-radius: 18px;
+  background: radial-gradient(circle at top, #FFFFFF, #EEF4FF); color: #10213F; border: 2px solid #C9D9F5; box-shadow: var(--shadow); outline: 6px double #1877F2; outline-offset: -14px; }
+.cert-brand { font-size: 18px; font-weight: 800; color: #10213F; } .cert-brand b { color: #1877F2; }
+.cert-k { font-size: 13px; color: #55657F; margin-top: 10px; }
+.cert-name { font-size: 26px; font-weight: 800; color: #0B5AC2; }
+.cert-title { font-size: 20px; margin: 0; max-width: 520px; }
+.cert-date { font-size: 13px; color: #55657F; margin-top: 8px; }
+.cert-seal { position: absolute; inset-inline-end: 22px; bottom: 18px; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 24px; font-weight: 800; color: #fff; background: #F5A623; box-shadow: 0 0 0 4px rgba(245,166,35,.25); }
+.cert-seal.ok { background: #31A24C; box-shadow: 0 0 0 4px rgba(49,162,76,.25); }
+.vrow { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.cert-cta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border: 2px solid var(--primary); }
+.cert-cta-ico { font-size: 32px; }
