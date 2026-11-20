@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
 import { UI_LANGS } from "@/lib/i18n";
 import { BuyModal } from "./BuyModal";
-import { IBot, ICap, IClose, ICourses, IDashboard, IHome, IMenu, IMoon, IPlan, IPlus, IShield, ISun, IUsers } from "./Icons";
+import { ITask, IBot, ICap, IClose, ICourses, IDashboard, IHome, IMenu, IMoon, IPlan, IPlus, IShield, ISun, IUsers } from "./Icons";
 
 export function Shell({ children }: { children: ReactNode }) {
   const { t, lang, ui, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
@@ -25,6 +25,7 @@ export function Shell({ children }: { children: ReactNode }) {
     { href: "/", label: t("nHome"), icon: <IHome /> },
     { href: "/chat", label: t("nChat"), icon: <IBot /> },
     { href: "/courses", label: t("nCourses"), icon: <ICourses /> },
+    { href: "/tasks", label: t("nTasks"), icon: <ITask /> },
     { href: "/learn", label: t("nLearn"), icon: <IPlan /> },
     { href: "/community", label: t("nCommunity"), icon: <IUsers />, tag: t("free") },
     { href: "/academy", label: t("nAcademy"), icon: <IShield />, tag: t("free") },
