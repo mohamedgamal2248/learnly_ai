@@ -47,3 +47,18 @@ export async function downloadFile(id: string): Promise<"ok" | "missing" | "erro
     return "error";
   }
 }
+
+/** Downloads a task file (attachment or delivered result) through a short-lived signed link. */
+export async function downloadTaskFile(id: string): Promise<"ok" | "error"> {
+  try {
+    const r = await fetch("/api/tasks/file", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }),
+    });
+    if (!r.ok) return "error";
+    const { url } = await r.json();
+    window.location.href = url;
+    return "ok";
+  } catch {
+    return "error";
+  }
+}

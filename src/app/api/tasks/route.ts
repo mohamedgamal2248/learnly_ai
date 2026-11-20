@@ -1,8 +1,10 @@
 import { rpc } from "@/lib/server/db";
 import { fail, json, rateLimited, requireUser } from "@/lib/server/http";
 import { postTask } from "@/lib/server/tasks";
+import { filesFromForm, type StoredFile } from "@/lib/server/task-files";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -26,7 +28,16 @@ export async function POST(req: Request) {
   const a = await requireUser(req);
   if (a instanceof Response) return a;
   if (rateLimited(`task:${a.u.id}`, 10, 3600_000)) return fail("slow_down", 429);
-  const b = await req.json().catch(() => null);
-  const r = await postTask(a.u.id, b || {}, "web");
+  let b: Record<string, unknown> | null = null;
+  let files: StoredFile[] = [];
+  if ((req.headers.get("content-type") || "").includes("multipart/form-data")) {
+    const form = await req.formData().catch(() => null);
+    if (!form) return fail("bad_request");
+    const f = await filesFromForm(form);
+    if (!f.ok) return fail(f.error);
+    files = f.files;
+    b = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string"));
+  } else b = await req.json().catch(() => null);
+  const r = await postTask(a.u.id, b || {}, "web", { files });
   return r.ok ? json({ ok: true, id: r.id }) : fail(r.error, 400, r.extra);
 }

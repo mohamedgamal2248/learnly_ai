@@ -10,6 +10,6 @@ export async function POST(req: Request) {
   if (rateLimited(`claim:${a.u.id}`, 30, 3600_000)) return fail("slow_down", 429);
   const b = await req.json().catch(() => null);
   if (typeof b?.id !== "string" || !/^[0-9a-f-]{36}$/i.test(b.id)) return fail("bad_request");
-  const r = await rpc<{ ok: boolean; reason?: string }>("ln_task_claim", { p_user: a.u.id, p_task: b.id });
-  return r.ok ? json(r) : fail(r.reason || "not_available", 400);
+  const r = await rpc<{ ok: boolean; reason?: string; max?: number; need?: number }>("ln_task_claim", { p_user: a.u.id, p_task: b.id });
+  return r.ok ? json(r) : fail(r.reason || "not_available", 400, { max: r.max, need: r.need });
 }

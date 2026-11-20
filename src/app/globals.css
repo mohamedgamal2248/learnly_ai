@@ -471,3 +471,11 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .pair-input { font-size: 22px; letter-spacing: 4px; text-align: center; font-family: ui-monospace, Menlo, Consolas, monospace; }
 .task-input { margin-top: 4px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; }
 .card.grid, .card > .grid { min-width: 0; }
+
+/* Task ratings */
+.stars { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.stars .hint { margin-inline-end: 6px; }
+.star { background: none; border: 0; padding: 2px 3px; font-size: 24px; line-height: 1; color: var(--line, #CED0D4); cursor: pointer; }
+.star.on { color: #F5A623; }
+.star:disabled { cursor: default; }
+input[type="file"] { max-width: 100%; font-size: 13px; }

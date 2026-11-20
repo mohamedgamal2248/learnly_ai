@@ -32,6 +32,7 @@ type BotRow = {
 const L = {
   ar: {
     title: "صفحة الأدمن", forbidden: "الصفحة دي للأدمن بس.",
+    tDisp: "نزاعات المهام", dpNone: "مفيش نزاعات مفتوحة", dpWorker: "ادفع للمنفّذ", dpRequester: "الرفض صح", dpSplit: "قسّم النص بالنص", dpReject: "سبب الرفض", dpWorkerSays: "كلام المنفّذ", dpResult: "الشغل المسلّم", dpDone: "اتحسم ✓",
     tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", tCourses: "الكورسات", grantTitle: "إضافة أرباح Pi لمستخدم", grantHint: "بتتضاف لرصيد أرباحه بالـPi، وتقدر تجرّب بيها السحب. أقصى حاجة ١٠٠٠ Pi في المرة.", grantUser: "اسم المستخدم", grantAmount: "المبلغ (Pi)", grantBtn: "أضف", grantDone: "اتضاف ✓ رصيده دلوقتي", grantNotFound: "المستخدم ده مش موجود", crNone: "مفيش كورسات", crPublish: "انشر", crReject: "ارفض", crPause: "وقّف", crView: "معاينة", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (Pi)",
     revenue: "الإيرادات", revenueSub: "اللي المستخدمين دفعوه بالباي ({n} عملية)",
     aiCost: "اتصرف على الـAI (Meta)", aiCostSub: "التكلفة الحقيقية لكل الرسايل لحد دلوقتي",
@@ -59,6 +60,7 @@ const L = {
   },
   en: {
     title: "Admin", forbidden: "This page is for admins only.",
+    tDisp: "Task disputes", dpNone: "No open disputes", dpWorker: "Pay the worker", dpRequester: "Rejection stands", dpSplit: "Split 50/50", dpReject: "Rejection reason", dpWorkerSays: "Worker says", dpResult: "Delivered work", dpDone: "Decided ✓",
     tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", tCourses: "Courses", grantTitle: "Add Pi earnings to a user", grantHint: "Added to their Pi earnings balance so you can test withdrawals. Up to 1000 Pi at a time.", grantUser: "Username", grantAmount: "Amount (Pi)", grantBtn: "Add", grantDone: "Added ✓ Their balance is now", grantNotFound: "User not found", crNone: "No courses", crPublish: "Publish", crReject: "Reject", crPause: "Pause", crView: "Preview", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (Pi)",
     revenue: "Revenue", revenueSub: "What users paid in Pi ({n} payments)",
     aiCost: "Spent on AI (Meta)", aiCostSub: "Real cost of every message so far",
@@ -86,7 +88,7 @@ const L = {
   },
 };
 type LKey = keyof typeof L.ar;
-type Tab = "fin" | "users" | "bots" | "courses" | "req" | "wd" | "rep" | "set";
+type Tab = "fin" | "users" | "bots" | "courses" | "req" | "wd" | "disp" | "rep" | "set";
 
 export default function AdminPage() {
   const { user, ready, lang } = useApp();
@@ -100,7 +102,7 @@ export default function AdminPage() {
   if (!ready) return <div className="skeleton" style={{ height: 160 }} />;
   if (user?.role !== "admin") return <div className="card empty">{tr("forbidden")}</div>;
 
-  const tabs: [Tab, LKey][] = [["fin", "tFin"], ["users", "tUsers"], ["bots", "tBots"], ["courses", "tCourses"], ["req", "tReq"], ["wd", "tWd"], ["rep", "tRep"], ["set", "tSet"]];
+  const tabs: [Tab, LKey][] = [["fin", "tFin"], ["users", "tUsers"], ["bots", "tBots"], ["courses", "tCourses"], ["req", "tReq"], ["wd", "tWd"], ["disp", "tDisp"], ["rep", "tRep"], ["set", "tSet"]];
   return (
     <div className="grid">
       <div className="card"><h1 style={{ fontSize: 20 }}>{tr("title")}</h1></div>
@@ -115,6 +117,7 @@ export default function AdminPage() {
         {tab === "bots" && <BotsTab tr={tr} only={null} />}
         {tab === "req" && <RequestsTab tr={tr} />}
         {tab === "wd" && <WithdrawalsTab tr={tr} />}
+        {tab === "disp" && <DisputesTab tr={tr} />}
         {tab === "courses" && <CoursesTab tr={tr} />}
         {tab === "rep" && <ReportsTab tr={tr} />}
         {tab === "set" && <SettingsTab tr={tr} />}
@@ -416,6 +419,46 @@ function CoursesTab({ tr }: { tr: Tr }) {
             {c.status !== "live" && <button className="btn primary sm" onClick={() => setStatus(c.id, "live")}>{tr("crPublish")}</button>}
             {c.status === "review" && <button className="btn danger sm" onClick={() => setStatus(c.id, "rejected")}>{tr("crReject")}</button>}
             {c.status === "live" && <button className="btn danger sm" onClick={() => setStatus(c.id, "paused")}>{tr("crPause")}</button>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type Dispute = { id: string; task_id: string; title: string; brief: string; reward: number; requester: string; worker: string; reject_note: string | null; worker_note: string; result: { text?: string } | null; files: { id: string; name: string; size: number }[]; created_at: string };
+function DisputesTab({ tr }: { tr: Tr }) {
+  const { toast } = useApp();
+  const [list, setList] = useState<Dispute[] | null>(null);
+  const load = useCallback(async () => {
+    const r = await fetch("/api/admin/disputes", { credentials: "include", cache: "no-store" });
+    setList(r.ok ? (await r.json()).list : []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  async function decide(id: string, decision: string) {
+    const r = await post("/api/admin/disputes", { id, decision });
+    toast(r.ok ? tr("dpDone") : tr("err"));
+    load();
+  }
+  if (!list) return <div className="skeleton" style={{ height: 120 }} />;
+  if (!list.length) return <div className="card empty">{tr("dpNone")}</div>;
+  return (
+    <div className="grid">
+      {list.map((d) => (
+        <div key={d.id} className="card" style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <b>{d.title}</b><span className="chip num ltr">{Number(d.reward)} π</span>
+            <span className="hint ltr">@{d.requester} → @{d.worker}</span>
+          </div>
+          {d.brief && <p className="small post-body">{d.brief}</p>}
+          <p className="small"><b>{tr("dpReject")}:</b> {d.reject_note || "—"}</p>
+          <p className="small"><b>{tr("dpWorkerSays")}:</b> {d.worker_note}</p>
+          {d.result?.text && <div className="task-input">{d.result.text}</div>}
+          {d.files.length > 0 && <div className="row-actions">{d.files.map((f) => <a key={f.id} className="btn sm" href={`/api/tasks/file?id=${f.id}`}>{f.name}</a>)}</div>}
+          <div className="row-actions">
+            <button className="btn primary sm" onClick={() => decide(d.id, "worker")}>{tr("dpWorker")}</button>
+            <button className="btn sm" onClick={() => decide(d.id, "split")}>{tr("dpSplit")}</button>
+            <button className="btn danger sm" onClick={() => decide(d.id, "requester")}>{tr("dpRequester")}</button>
           </div>
         </div>
       ))}
