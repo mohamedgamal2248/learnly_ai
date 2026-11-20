@@ -431,3 +431,11 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .mistake, .my-course { display: flex; gap: 10px; align-items: center; color: var(--fg); text-decoration: none; }
 .my-course { display: grid; }
 .mistake > span:first-child { font-size: 20px; color: var(--primary); }
+
+/* ---------- creator stats ---------- */
+.cstats { display: grid; gap: 12px; }
+.cs-tiles { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 560px) { .cs-tiles { grid-template-columns: repeat(2, 1fr); } }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 72px; margin-top: 6px; padding-bottom: 1px; border-bottom: 1px solid var(--line); }
+.bar { flex: 1; min-width: 3px; background: var(--primary); border-radius: 4px 4px 0 0; }
+.bar:hover { filter: brightness(1.15); }

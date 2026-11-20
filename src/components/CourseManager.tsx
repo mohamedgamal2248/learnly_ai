@@ -22,6 +22,7 @@ export function CourseManager({ bots, draft, onDraftUsed }: { bots: { id: string
   const { t } = useApp();
   const [list, setList] = useState<C[] | null>(null);
   const [edit, setEdit] = useState<C | null>(null);
+  const [ai, setAi] = useState(false);
   const load = useCallback(async () => {
     const r = await fetch("/api/teach/courses", { credentials: "include", cache: "no-store" });
     setList(r.ok ? (await r.json()).courses : []);
@@ -33,8 +34,10 @@ export function CourseManager({ bots, draft, onDraftUsed }: { bots: { id: string
     <>
       <div className="sec-h" style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <h2 style={{ flex: 1 }}>{t("myCourses")}</h2>
-        {!edit && <button className="btn sm primary" onClick={() => setEdit(structuredClone(EMPTY))}>{t("newCourse")}</button>}
+        {!edit && !ai && <button className="btn sm primary" onClick={() => setAi(true)}>✦ {t("cAi")}</button>}
+        {!edit && !ai && <button className="btn sm" onClick={() => setEdit(structuredClone(EMPTY))}>{t("newCourse")}</button>}
       </div>
+      {ai && !edit && <CourseAi onClose={() => setAi(false)} onDraft={(c) => { setAi(false); setEdit(c); }} />}
       {edit ? (
         <CourseEditor c={edit} bots={bots} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); }} />
       ) : !list ? (
@@ -148,6 +151,59 @@ function CourseEditor({ c: init, bots, onClose, onSaved }: { c: C; bots: { id: s
 
       <div className="row-actions">
         <button className="btn primary" disabled={busy}>{busy ? t("preparing") : t("cSave")}</button>
+        <button type="button" className="btn" onClick={onClose}>{t("cancel")}</button>
+      </div>
+    </form>
+  );
+}
+
+function CourseAi({ onClose, onDraft }: { onClose: () => void; onDraft: (c: C) => void }) {
+  const { t, lang, toast, setCredits } = useApp();
+  const [topic, setTopic] = useState("");
+  const [material, setMaterial] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [n, setN] = useState("5");
+  const [out, setOut] = useState<"ar" | "en">(lang === "en" ? "en" : "ar");
+  const [busy, setBusy] = useState(false);
+
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const fd = new FormData();
+    fd.append("file", f);
+    setBusy(true);
+    const r = await post("/api/teach/extract", fd);
+    setBusy(false);
+    if (r.ok) { setMaterial(String(r.data.text).slice(0, 60000)); setFileName(f.name); } else toast(t("errExtract"));
+  }
+
+  async function go(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const r = await post("/api/teach/course-ai", { topic, material, lessons: n, lang: out });
+    setBusy(false);
+    if (r.ok) { setCredits(r.data.credits); toast(t("charged", { n: r.data.charged })); onDraft(r.data.course); }
+    else toast(t(r.data?.error === "no_credits" ? "errNoCredits" : "errGeneric", { have: r.data?.credits ?? 0, need: r.data?.need ?? "?" }));
+  }
+
+  return (
+    <form className="card" onSubmit={go} style={{ display: "grid", gap: 10, animation: "rise .25s both" }}>
+      <b>✦ {t("cAi")}</b>
+      <p className="hint">{t("cAiHint")}</p>
+      <label className="field"><span>{t("cAiTopic")}</span><input className="input" value={topic} maxLength={400} onChange={(e) => setTopic(e.target.value)} placeholder={t("cAiTopicPh")} /></label>
+      <label className="btn" style={{ justifySelf: "start" }}>
+        <input type="file" hidden accept=".pdf,.docx,.pptx,.xlsx,.txt,.md" onChange={upload} />
+        📎 {fileName || t("cAiFile")}
+      </label>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <label className="field"><span>{t("cLessons")}</span>
+          <select className="select" value={n} onChange={(e) => setN(e.target.value)}>{["3", "4", "5", "6", "8"].map((x) => <option key={x}>{x}</option>)}</select></label>
+        <label className="field"><span>{t("replyLang")}</span>
+          <select className="select" value={out} onChange={(e) => setOut(e.target.value as "ar" | "en")}><option value="ar">{t("rlAr")}</option><option value="en">{t("rlEn")}</option></select></label>
+      </div>
+      <div className="row-actions">
+        <button className="btn primary" disabled={busy || (topic.trim().length < 3 && material.length < 200)}>{busy ? t("cAiBusy") : t("cAiGo")}</button>
         <button type="button" className="btn" onClick={onClose}>{t("cancel")}</button>
       </div>
     </form>

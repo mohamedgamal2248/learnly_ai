@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Earnings } from "@/components/Earnings";
+import { CreatorStats } from "@/components/CreatorStats";
 import { CourseManager } from "@/components/CourseManager";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
@@ -85,6 +86,7 @@ export default function TeachPage() {
             </div>
           </div>
           <Earnings />
+          <CreatorStats />
           <div className="sec-h"><h2>{t("myBots")}</h2></div>
           {data.bots.length === 0 ? (
             <div className="card empty">{t("noMyBots")}</div>
