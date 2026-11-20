@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ISparkle, IconTile } from "@/components/Icons";
 import { Earnings } from "@/components/Earnings";
 import { CreatorStats } from "@/components/CreatorStats";
 import { CourseManager } from "@/components/CourseManager";
@@ -81,7 +82,7 @@ export default function TeachPage() {
               <p className="hint">{t("earnedNote")}</p>
             </div>
             <div className="row-actions">
-              <button className="btn primary" onClick={() => setArchitect(true)}>✦ {t("buildAi")}</button>
+              <button className="btn primary" onClick={() => setArchitect(true)}><ISparkle width={16} height={16} />{t("buildAi")}</button>
               <button className="btn" onClick={() => setDraft({ ...EMPTY, files: [] })}>{t("buildManual")}</button>
             </div>
           </div>
@@ -162,7 +163,7 @@ function Architect({ onClose, onDraft }: { onClose: () => void; onDraft: (d: Dra
 
   return (
     <form className="card" onSubmit={go} style={{ maxWidth: 720, margin: "0 auto", display: "grid", gap: 12 }}>
-      <div><h1 style={{ fontSize: 20 }}>✦ {t("archTitle")}</h1><p className="muted small" style={{ marginTop: 4 }}>{t("archSub")}</p></div>
+      <div><h1 style={{ fontSize: 20, display: "flex", gap: 8, alignItems: "center" }}><IconTile size={32}><ISparkle /></IconTile>{t("archTitle")}</h1><p className="muted small" style={{ marginTop: 4 }}>{t("archSub")}</p></div>
       <div className="grid" style={{ gap: 6 }}>
         <span className="hint">{t("archExTitle")}</span>
         <div className="suggest" style={{ marginTop: 0 }}>

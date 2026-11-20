@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IClip, ISparkle, IconTile } from "./Icons";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "./AppProvider";
 import { post } from "@/lib/pi-client";
@@ -34,7 +35,7 @@ export function CourseManager({ bots, draft, onDraftUsed }: { bots: { id: string
     <>
       <div className="sec-h" style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <h2 style={{ flex: 1 }}>{t("myCourses")}</h2>
-        {!edit && !ai && <button className="btn sm primary" onClick={() => setAi(true)}>✦ {t("cAi")}</button>}
+        {!edit && !ai && <button className="btn sm primary" onClick={() => setAi(true)}><ISparkle width={16} height={16} />{t("cAi")}</button>}
         {!edit && !ai && <button className="btn sm" onClick={() => setEdit(structuredClone(EMPTY))}>{t("newCourse")}</button>}
       </div>
       {ai && !edit && <CourseAi onClose={() => setAi(false)} onDraft={(c) => { setAi(false); setEdit(c); }} />}
@@ -189,12 +190,12 @@ function CourseAi({ onClose, onDraft }: { onClose: () => void; onDraft: (c: C) =
 
   return (
     <form className="card" onSubmit={go} style={{ display: "grid", gap: 10, animation: "rise .25s both" }}>
-      <b>✦ {t("cAi")}</b>
+      <b style={{ display: "flex", gap: 8, alignItems: "center" }}><IconTile size={30}><ISparkle /></IconTile>{t("cAi")}</b>
       <p className="hint">{t("cAiHint")}</p>
       <label className="field"><span>{t("cAiTopic")}</span><input className="input" value={topic} maxLength={400} onChange={(e) => setTopic(e.target.value)} placeholder={t("cAiTopicPh")} /></label>
       <label className="btn" style={{ justifySelf: "start" }}>
         <input type="file" hidden accept=".pdf,.docx,.pptx,.xlsx,.txt,.md" onChange={upload} />
-        📎 {fileName || t("cAiFile")}
+        <IClip width={16} height={16} /> {fileName || t("cAiFile")}
       </label>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <label className="field"><span>{t("cLessons")}</span>

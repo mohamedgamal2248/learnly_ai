@@ -239,7 +239,7 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .att-imgs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
 .att-imgs img { max-width: 160px; max-height: 160px; border-radius: 10px; object-fit: cover; }
 .att-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-.att-chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.22); }
+.att-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.22); }
 
 /* web sources */
 .sources { margin-top: 10px; }
@@ -422,7 +422,7 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 /* ---------- my learning ---------- */
 .streak { flex: none; width: 64px; height: 64px; border-radius: 18px; background: rgba(255,255,255,.18); display: grid; place-items: center; align-content: center; filter: grayscale(.8); opacity: .8; }
 .streak.lit { filter: none; opacity: 1; }
-.streak span { font-size: 26px; line-height: 1; } .streak b { font-size: 16px; color: #fff; }
+.streak { color: #FFB547; } .streak b { font-size: 16px; color: #fff; }
 .plan-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
 .plan-day { display: grid; gap: 6px; align-content: start; padding: 10px; border-radius: 12px; background: var(--surface-2); }
 .plan-task { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.6; cursor: pointer; }
@@ -441,20 +441,23 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .bar:hover { filter: brightness(1.15); }
 
 /* ---------- ratings ---------- */
-.chip.rating { color: #B7791F; background: rgba(245,166,35,.14); }
+.chip.rating { justify-self: start; display: inline-flex; align-items: center; gap: 4px; color: #B7791F; background: rgba(245,166,35,.14); }
 .chip.rating.top { color: #fff; background: #F5A623; }
 .chip.rating.top .hint { color: rgba(255,255,255,.85); }
 .reviews { display: grid; gap: 10px; }
 .stars { display: flex; gap: 2px; }
-.stars button { border: 0; background: transparent; font-size: 28px; line-height: 1; color: var(--line); padding: 0 2px; }
+.stars button { border: 0; background: transparent; line-height: 0; color: var(--line); padding: 0 2px; }
 .stars button.on { color: #F5A623; }
 .review { display: grid; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
-.review-stars { color: #F5A623; font-size: 13px; letter-spacing: 1px; } .review-stars span { color: var(--line); }
+.review-stars { display: inline-flex; gap: 1px; color: var(--line); } .review-stars .on { color: #F5A623; }
 
-/* ---------- low-data mode ---------- */
-:root[data-lite="1"] *, :root[data-lite="1"] *::before, :root[data-lite="1"] *::after { animation: none !important; transition: none !important; }
-:root[data-lite="1"] .hero-card { background: var(--primary); }
-.switch { margin-inline-start: auto; width: 36px; height: 20px; border-radius: 999px; background: var(--line); position: relative; flex: none; transition: background .2s; }
-.switch i { position: absolute; top: 2px; inset-inline-start: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: inset-inline-start .2s; }
-.switch.on { background: var(--primary); }
-.switch.on i { inset-inline-start: 18px; }
+/* ---------- brand icon tiles ---------- */
+.tile { flex: none; display: inline-grid; place-items: center; color: #fff; background: linear-gradient(135deg, #3B8BFF 0%, #1877F2 55%, #0B5AC2 100%);
+  box-shadow: 0 6px 14px -6px rgba(24,119,242,.6), inset 0 1px 0 rgba(255,255,255,.25); }
+.tile svg { width: 52%; height: 52%; }
+.tile-pink { background: linear-gradient(135deg, #FF6B8A, #E4405F 60%, #B8264A); box-shadow: 0 6px 14px -6px rgba(228,64,95,.55), inset 0 1px 0 rgba(255,255,255,.25); }
+.tile-teal { background: linear-gradient(135deg, #4FD8C4, #2ABBA7 60%, #188F7F); box-shadow: 0 6px 14px -6px rgba(42,187,167,.55), inset 0 1px 0 rgba(255,255,255,.25); }
+.tile-amber { background: linear-gradient(135deg, #FFC15A, #F5A623 60%, #D9850B); box-shadow: 0 6px 14px -6px rgba(245,166,35,.55), inset 0 1px 0 rgba(255,255,255,.25); }
+.tile-green { background: linear-gradient(135deg, #5BCB76, #31A24C 60%, #22823A); box-shadow: 0 6px 14px -6px rgba(49,162,76,.55), inset 0 1px 0 rgba(255,255,255,.25); }
+.tile-glass { background: rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.3); }
+.ico-inline { display: inline-flex; vertical-align: -3px; }

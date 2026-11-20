@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IAward, IFlame, IRotate, IconTile } from "@/components/Icons";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { post } from "@/lib/pi-client";
@@ -63,7 +64,7 @@ export default function LearnPage() {
   return (
     <div className="grid" style={{ maxWidth: 820, margin: "0 auto" }}>
       <div className="hero-card">
-        <div className={`streak${d.today ? " lit" : ""}`} aria-label={t("streakN", { n: d.streak })}><span>🔥</span><b className="num">{d.streak}</b></div>
+        <div className={`streak${d.today ? " lit" : ""}`} aria-label={t("streakN", { n: d.streak })}><IFlame width={26} height={26} /><b className="num">{d.streak}</b></div>
         <div style={{ display: "grid", gap: 4 }}>
           <h1>{t("nLearn")}</h1>
           <p>{d.today ? t("streakToday") : d.streak ? t("streakKeep") : t("streakStart")}</p>
@@ -104,7 +105,7 @@ export default function LearnPage() {
           <div className="grid">
             {d.mistakes.map((m, i) => (
               <Link key={i} href={`/course?id=${m.course}`} className="card mistake">
-                <span aria-hidden="true">↺</span>
+                <IconTile size={36} tone="pink"><IRotate /></IconTile>
                 <span style={{ display: "grid", minWidth: 0 }}><b className="small">{m.question}</b><span className="hint">{ttl(m)}</span></span>
               </Link>
             ))}
@@ -132,7 +133,7 @@ export default function LearnPage() {
           <div className="sec-h"><h2>{t("myCerts")}</h2></div>
           <div className="grid">
             {d.certs.map((c) => (
-              <Link key={c.id} href={`/cert?id=${c.id}`} className="card mistake"><span aria-hidden="true">🎓</span><b className="small">{ttl(c)}</b></Link>
+              <Link key={c.id} href={`/cert?id=${c.id}`} className="card mistake"><IconTile size={36} tone="amber"><IAward /></IconTile><b className="small">{ttl(c)}</b></Link>
             ))}
           </div>
         </>

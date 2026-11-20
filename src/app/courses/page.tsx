@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { CourseCards } from "@/components/CourseCards";
-import { ISearch } from "@/components/Icons";
+import { CoursesMark, ISearch } from "@/components/Icons";
 import type { CourseCard } from "@/lib/courses";
 
 export default function CoursesPage() {
@@ -18,7 +18,7 @@ export default function CoursesPage() {
   return (
     <div className="grid" style={{ maxWidth: 960, margin: "0 auto" }}>
       <div className="hero-card">
-        <div className="hero-ico" aria-hidden="true">📚</div>
+        <CoursesMark size={56} />
         <div style={{ flex: 1 }}>
           <h1>{t("coursesTitle")}</h1>
           <p>{t("coursesSub")}</p>

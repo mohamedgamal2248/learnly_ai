@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IAward, ICheck, ILock, IconTile } from "@/components/Icons";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
@@ -95,7 +96,7 @@ function CourseView() {
 
       {c.completed && (
         <div className="card cert-cta">
-          <span className="cert-cta-ico" aria-hidden="true">🎓</span>
+          <IconTile size={48} tone="amber"><IAward /></IconTile>
           <div style={{ flex: 1 }}><b>{t("courseDone")}</b><p className="hint">{t("certCtaSub")}</p></div>
           {certId && <Link className="btn primary" href={`/cert?id=${certId}`}>{t("viewCert")}</Link>}
         </div>
@@ -139,7 +140,7 @@ function LessonCard({ l, i, course, open, onToggle, passed, onPassed }: {
   return (
     <section className={`card lesson lesson-${i % 4}${passed ? " done" : ""}${open ? " open" : ""}`}>
       <button className="lesson-head" onClick={onToggle} aria-expanded={open} disabled={l.locked && !open}>
-        <span className="lesson-ico num" aria-hidden="true">{l.locked ? "🔒" : passed ? "✓" : i + 1}</span>
+        {l.locked ? <IconTile tone="blue" glass={false}><ILock /></IconTile> : passed ? <IconTile tone="green"><ICheck /></IconTile> : <span className="lesson-ico num">{i + 1}</span>}
         <span className="lesson-tt">
           <span className="lesson-n num">{t("lessonN", { n: i + 1 })}{i === 0 && !course.enrolled && !course.owner ? ` · ${t("freePreview")}` : ""}</span>
           <h2>{l.title}</h2>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IChat, IconTile } from "@/components/Icons";
 import { RichText } from "@/components/Web";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
@@ -73,7 +74,7 @@ export default function CommunityPage() {
   return (
     <div className="grid" style={{ maxWidth: 760, margin: "0 auto" }}>
       <div className="hero-card">
-        <div className="hero-ico" aria-hidden="true">💬</div>
+        <IconTile size={52} glass><IChat /></IconTile>
         <div>
           <h1>{t("commTitle")} <span className="chip free">{t("free")}</span></h1>
           <p>{t("commSub")}</p>

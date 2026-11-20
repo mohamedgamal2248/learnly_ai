@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IBot, IChart, ICourses, IconTile } from "./Icons";
 import { useApp } from "./AppProvider";
 
 type S = {
@@ -35,7 +36,7 @@ export function CreatorStats() {
 
   return (
     <div className="card cstats">
-      <b>{t("csTitle")}</b>
+      <b style={{ display: "flex", gap: 8, alignItems: "center" }}><IconTile size={30}><IChart /></IconTile>{t("csTitle")}</b>
       <div className="earn-top cs-tiles">
         {tiles.map(([k, v]) => <div key={k}><span className="hint">{k}</span><b className="num">{typeof v === "number" ? fmt(v) : v}</b></div>)}
       </div>
@@ -51,8 +52,8 @@ export function CreatorStats() {
         <div className="md-table"><table>
           <thead><tr><th>{t("csItem")}</th><th>{t("stLearners")}</th><th>{t("csActivityShort")}</th><th>{t("earned")}</th></tr></thead>
           <tbody>
-            {s.bots.map((b) => <tr key={b.id}><td>🤖 {(lang === "en" ? b.name_en : b.name) || b.name}</td><td className="num">{fmt(b.learners)}</td><td className="num">{fmt(b.messages)}</td><td className="num">{fmt(b.earned)}</td></tr>)}
-            {s.courses.map((c) => <tr key={c.id}><td>📚 {(lang === "en" ? c.title_en : c.title) || c.title}</td><td className="num">{fmt(c.students)}</td><td className="num">{fmt(c.completed)} ✓</td><td className="num">{fmt(c.earned)}</td></tr>)}
+            {s.bots.map((b) => <tr key={b.id}><td><span className="ico-inline"><IBot width={16} height={16} /></span> {(lang === "en" ? b.name_en : b.name) || b.name}</td><td className="num">{fmt(b.learners)}</td><td className="num">{fmt(b.messages)}</td><td className="num">{fmt(b.earned)}</td></tr>)}
+            {s.courses.map((c) => <tr key={c.id}><td><span className="ico-inline"><ICourses width={16} height={16} /></span> {(lang === "en" ? c.title_en : c.title) || c.title}</td><td className="num">{fmt(c.students)}</td><td className="num">{fmt(c.completed)} ✓</td><td className="num">{fmt(c.earned)}</td></tr>)}
           </tbody>
         </table></div>
       )}

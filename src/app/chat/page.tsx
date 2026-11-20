@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } f
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import { Markdown } from "@/components/Markdown";
-import { IClip, IClose, IDownload, IPlus, ISend, IStop } from "@/components/Icons";
+import { IClip, IClose, IDownload, IImage, IPlus, ISend, IStop } from "@/components/Icons";
 import { botText, loadBots, type BotInfo } from "@/lib/bots";
 import { downloadFile, hasFileSpec, rememberSpec, saveFileSpec } from "@/lib/local-files";
 import type { Key } from "@/lib/i18n";
@@ -60,10 +60,12 @@ function Sources({ items, label }: { items: Source[]; label: string }) {
 
 /** Stored user messages carry small markers for attachments; show them as chips. */
 function UserText({ text, imgLbl }: { text: string; imgLbl: string }) {
-  const chips: string[] = [];
-  const body = text.replace(/\[📎 (.+?) #[0-9a-f-]{36}\]/gi, (_, n) => { chips.push(`📎 ${n}`); return ""; })
-    .replace(/\[🖼\]/g, () => { chips.push(`🖼 ${imgLbl}`); return ""; }).trim();
-  return <>{body}{chips.length > 0 && <span className="att-row">{chips.map((c, i) => <span key={i} className="att-chip">{c}</span>)}</span>}</>;
+  const chips: { img: boolean; name: string }[] = [];
+  const body = text.replace(/\[📎 (.+?) #[0-9a-f-]{36}\]/gi, (_, n) => { chips.push({ img: false, name: n }); return ""; })
+    .replace(/\[🖼\]/g, () => { chips.push({ img: true, name: imgLbl }); return ""; }).trim();
+  return <>{body}{chips.length > 0 && <span className="att-row">{chips.map((c, i) => (
+    <span key={i} className="att-chip">{c.img ? <IImage width={13} height={13} /> : <IClip width={13} height={13} />}{c.name}</span>
+  ))}</span>}</>;
 }
 
 const ERR: Record<string, Key> = {
@@ -297,7 +299,7 @@ function ChatInner() {
             if (ev.chatId && ev.chatId !== chatId) {
               setChatId(ev.chatId);
               try { localStorage.setItem(activeKey(bot.id), ev.chatId); } catch {}
-              setChats((cur) => [{ id: ev.chatId, title: (content || docs[0]?.name || "🖼").slice(0, 60), msgs: 2, updated_at: new Date().toISOString() }, ...cur.filter((c) => c.id !== ev.chatId)]);
+              setChats((cur) => [{ id: ev.chatId, title: (content || docs[0]?.name || t("imageLbl")).slice(0, 60), msgs: 2, updated_at: new Date().toISOString() }, ...cur.filter((c) => c.id !== ev.chatId)]);
             }
           }
           else if (ev.t === "err") { flush(); patchLast((m) => ({ ...m, error: t(ERR[ev.v] || "errGeneric") })); }

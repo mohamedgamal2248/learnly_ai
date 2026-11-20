@@ -1,3 +1,4 @@
+import type React from "react";
 import type { SVGProps } from "react";
 
 const base = (p: SVGProps<SVGSVGElement>) => ({
@@ -34,5 +35,56 @@ export function Logo({ size = 30 }: { size?: number }) {
       <path d="M15 37 l9 9 l15 -18" fill="none" stroke="var(--primary-ink)" strokeOpacity=".55" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M30 41 l8 8 l20 -25" fill="none" stroke="var(--primary-ink)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+// ---- brand icon set (line icons, same stroke as the rest) ----
+type P = SVGProps<SVGSVGElement>;
+export const ICourses = (p: P) => <svg {...base(p)}><path d="M2.5 5.5c3.2-1.4 6.4-1.2 9.5.8 3.1-2 6.3-2.2 9.5-.8v13c-3.2-1.4-6.4-1.2-9.5.8-3.1-2-6.3-2.2-9.5-.8z" /><path d="M12 6.3v13" /><path d="m6 10 2 0M6 13.5h2.5M15.5 10h2.5M15.5 13.5h2" /></svg>;
+
+/** Courses mark: an open book with a play button on the brand gradient. */
+export function CoursesMark({ size = 46 }: { size?: number }) {
+  const id = `cm${size}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" style={{ flex: "none" }}>
+      <defs>
+        <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4C9AFF" /><stop offset=".55" stopColor="#1877F2" /><stop offset="1" stopColor="#0B4FAE" /></linearGradient>
+        <linearGradient id={`${id}p`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF" /><stop offset="1" stopColor="#DCE9FF" /></linearGradient>
+      </defs>
+      <rect width="48" height="48" rx="14" fill={`url(#${id}g)`} />
+      <path d="M8 14.5c5-2 10-1.8 16 1.4v20c-6-3.2-11-3.4-16-1.4z" fill={`url(#${id}p)`} />
+      <path d="M40 14.5c-5-2-10-1.8-16 1.4v20c6-3.2 11-3.4 16-1.4z" fill="#FFFFFF" />
+      <path d="M24 15.9v20" stroke="#1877F2" strokeOpacity=".35" strokeWidth="1.2" />
+      <path d="M12 20.5c2.6-.6 5-.4 7.5.6M12 24.5c2.6-.6 5-.4 7.5.6M12 28.5c2.6-.6 5-.4 7.5.6" stroke="#1877F2" strokeOpacity=".35" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+      <circle cx="32" cy="25" r="5.2" fill="#1877F2" />
+      <path d="M30.6 22.6v4.8l4-2.4z" fill="#FFFFFF" />
+      <path d="M36.5 9.5l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9z" fill="#FFC15A" />
+    </svg>
+  );
+}
+export const IChat = (p: P) => <svg {...base(p)}><path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /><path d="M19 9h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v3l-3.5-3H12" /></svg>;
+export const ILock = (p: P) => <svg {...base(p)}><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /><path d="M12 15v2" /></svg>;
+export const IWallet = (p: P) => <svg {...base(p)}><path d="M4 7a2 2 0 0 1 2-2h11v4" /><rect x="3" y="7" width="18" height="13" rx="2.5" /><path d="M16 13.5h2.5" /></svg>;
+export const IAlert = (p: P) => <svg {...base(p)}><path d="M12 3 2.5 20h19z" /><path d="M12 10v4.5M12 17.3v.2" /></svg>;
+export const ICompass = (p: P) => <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2 5-5 2 2-5z" /></svg>;
+export const IAward = (p: P) => <svg {...base(p)}><circle cx="12" cy="9" r="6" /><path d="m9 14.5-1.5 7L12 19l4.5 2.5-1.5-7" /><path d="m10 9 1.5 1.5L14.5 7.5" /></svg>;
+export const IFlame = (p: P) => <svg {...base(p)}><path d="M12 21c-4 0-7-2.8-7-6.6 0-3 2-5 3.5-6.6.2 1.8 1.2 3 2.5 3.3C11 7.5 12.5 5 15 3c-.3 3 1 4.7 2.4 6.5A7.6 7.6 0 0 1 19 14.4C19 18.2 16 21 12 21z" /><path d="M12 21c-1.7 0-3-1.2-3-2.8 0-1.8 1.5-2.8 3-4.7 1.5 1.9 3 2.9 3 4.7 0 1.6-1.3 2.8-3 2.8z" /></svg>;
+export const IRotate = (p: P) => <svg {...base(p)}><path d="M4 12a8 8 0 1 0 2.3-5.7" /><path d="M4 4v4h4" /></svg>;
+export const ISparkle = (p: P) => <svg {...base(p)}><path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z" /><path d="M19 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5z" /></svg>;
+export const IImage = (p: P) => <svg {...base(p)}><rect x="3" y="4" width="18" height="16" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="m21 16-5-5-9 9" /></svg>;
+export const IStar = (p: P) => <svg {...base({ ...p, fill: p.fill ?? "currentColor", strokeWidth: p.strokeWidth ?? 1.5 })}><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" /></svg>;
+export const ICheck = (p: P) => <svg {...base(p)}><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>;
+export const IDashboard = (p: P) => <svg {...base(p)}><rect x="3" y="3" width="7.5" height="9" rx="2" /><rect x="13.5" y="3" width="7.5" height="5.5" rx="2" /><rect x="13.5" y="11.5" width="7.5" height="9.5" rx="2" /><rect x="3" y="15" width="7.5" height="6" rx="2" /></svg>;
+export const IChart = (p: P) => <svg {...base(p)}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>;
+export const IPlan = (p: P) => <svg {...base(p)}><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M3 10h18M8 3v4M16 3v4" /><path d="m8.5 15 2 2 4-4" /></svg>;
+
+/** Brand tile: rounded square in the site's blue gradient with a white line icon. */
+export function IconTile({ children, size = 46, tone = "blue", glass = false }: {
+  children: React.ReactNode; size?: number; tone?: "blue" | "pink" | "teal" | "amber" | "green"; glass?: boolean;
+}) {
+  return (
+    <span className={`tile tile-${tone}${glass ? " tile-glass" : ""}`} style={{ width: size, height: size, borderRadius: size * 0.3 }} aria-hidden="true">
+      {children}
+    </span>
   );
 }

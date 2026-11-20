@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CoursesMark } from "./Icons";
 import { useApp } from "./AppProvider";
 import { courseText, piFmt, type CourseCard } from "@/lib/courses";
 import { RatingChip, useRatings } from "./Reviews";
@@ -15,7 +16,7 @@ export function CourseCards({ courses }: { courses: CourseCard[] }) {
         return (
           <Link key={c.id} href={`/course?id=${c.id}`} className="card course-card">
             <div className="cc-top">
-              <span className="cc-ico" aria-hidden="true">📚</span>
+              <CoursesMark size={42} />
               <span className={`chip ${Number(c.price_pi) > 0 ? "v" : "free"} num`}>{Number(c.price_pi) > 0 ? piFmt(c.price_pi) : t("free")}</span>
             </div>
             <b className="cc-title">{ct.title}</b>

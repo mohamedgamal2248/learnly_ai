@@ -6,10 +6,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
 import { UI_LANGS } from "@/lib/i18n";
 import { BuyModal } from "./BuyModal";
-import { IBook, IBot, IClose, IGear, IHome, IMenu, IMoon, IPlus, IShield, ISun, IUsers, ICap } from "./Icons";
+import { IBot, ICap, IClose, ICourses, IDashboard, IHome, IMenu, IMoon, IPlan, IPlus, IShield, ISun, IUsers } from "./Icons";
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { t, lang, ui, setLang, lite, toggleLite, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
+  const { t, lang, ui, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const path = usePathname();
@@ -24,8 +24,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const nav = [
     { href: "/", label: t("nHome"), icon: <IHome /> },
     { href: "/chat", label: t("nChat"), icon: <IBot /> },
-    { href: "/courses", label: t("nCourses"), icon: <IBook /> },
-    { href: "/learn", label: t("nLearn"), icon: <ICap /> },
+    { href: "/courses", label: t("nCourses"), icon: <ICourses /> },
+    { href: "/learn", label: t("nLearn"), icon: <IPlan /> },
     { href: "/community", label: t("nCommunity"), icon: <IUsers />, tag: t("free") },
     { href: "/academy", label: t("nAcademy"), icon: <IShield />, tag: t("free") },
     { href: "/teach", label: t("nTeach"), icon: <ICap /> },
@@ -85,16 +85,12 @@ export function Shell({ children }: { children: ReactNode }) {
           {user?.role === "admin" && (
             <>
               <div className="nav-sep" />
-              <Link href="/admin" className={`nav-item${isOn("/admin") ? " on" : ""}`}><IGear /><span>{t("nAdmin")}</span></Link>
+              <Link href="/admin" className={`nav-item${isOn("/admin") ? " on" : ""}`}><IDashboard /><span>{t("nAdmin")}</span></Link>
             </>
           )}
           <div className="nav-sep" />
           <button className="nav-item" onClick={toggleTheme}>
             {theme === "dark" ? <ISun /> : <IMoon />}<span>{theme === "dark" ? t("lightMode") : t("darkMode")}</span>
-          </button>
-          <button className="nav-item" onClick={toggleLite} aria-pressed={lite}>
-            <span aria-hidden="true" style={{ width: 22, textAlign: "center" }}>⚡</span><span>{t("liteMode")}</span>
-            <span className={`switch${lite ? " on" : ""}`} aria-hidden="true"><i /></span>
           </button>
         </nav>
         <div className="legal-links" style={{ padding: "0 16px 8px" }}><Link href="/privacy">{t("privacy")}</Link> · <Link href="/terms">{t("terms")}</Link></div>

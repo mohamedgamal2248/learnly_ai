@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { IStar } from "./Icons";
 import { useApp } from "./AppProvider";
 import { post } from "@/lib/pi-client";
 
@@ -23,7 +24,7 @@ export function RatingChip({ r }: { r?: Rating }) {
   const top = r.avg >= 4.5 && r.n >= 5;
   return (
     <span className={`chip rating${top ? " top" : ""} num`} title={t("ratingN", { n: r.n })}>
-      ★ {Number(r.avg).toFixed(1)} <span className="hint">({r.n})</span>{top ? ` · ${t("topRated")}` : ""}
+      <IStar width={12} height={12} /> {Number(r.avg).toFixed(1)} <span className="hint">({r.n})</span>{top ? ` · ${t("topRated")}` : ""}
     </span>
   );
 }
@@ -60,7 +61,7 @@ export function Reviews({ kind, id, canRate }: { kind: "bot" | "course"; id: str
         <form onSubmit={save} style={{ display: "grid", gap: 8 }}>
           <div className="stars" role="radiogroup" aria-label={t("yourRating")}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n} type="button" role="radio" aria-checked={stars === n} className={n <= stars ? "on" : ""} onClick={() => setStars(n)} aria-label={`${n}`}>★</button>
+              <button key={n} type="button" role="radio" aria-checked={stars === n} className={n <= stars ? "on" : ""} onClick={() => setStars(n)} aria-label={`${n}`}><IStar width={28} height={28} /></button>
             ))}
           </div>
           <textarea className="textarea" value={body} onChange={(e) => setBody(e.target.value)} maxLength={500} placeholder={t("reviewPh")} style={{ minHeight: 64 }} />
@@ -70,7 +71,7 @@ export function Reviews({ kind, id, canRate }: { kind: "bot" | "course"; id: str
       {d.list.length ? d.list.map((r, i) => (
         <div key={i} className="review">
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <b className="ltr small">@{r.username}</b><span className="review-stars">{"★".repeat(r.stars)}<span>{"★".repeat(5 - r.stars)}</span></span>
+            <b className="ltr small">@{r.username}</b><span className="review-stars" aria-label={`${r.stars}/5`}>{[1, 2, 3, 4, 5].map((n) => <IStar key={n} width={13} height={13} className={n <= r.stars ? "on" : ""} />)}</span>
             <span className="hint num" style={{ marginInlineStart: "auto" }}>{new Date(r.at).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}</span>
           </div>
           <p className="small post-body">{r.body}</p>

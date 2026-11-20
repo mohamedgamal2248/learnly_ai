@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { IAlert, IAward, IBook, ICheck, ICode, ICompass, IWallet, IconTile } from "@/components/Icons";
 import { LinkCard } from "@/components/Web";
 import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 
 import { LESSONS, type Q } from "@/lib/academy";
 
-const ICONS: Record<string, string> = { wallet: "🔐", scams: "🚨", browser: "🧭", build: "🛠️" };
+const ICONS: Record<string, React.ReactNode> = { wallet: <IWallet />, scams: <IAlert />, browser: <ICompass />, build: <ICode /> };
+const TONES = ["blue", "pink", "teal", "amber"] as const;
 
 function loadAnswers(): Record<string, number[]> {
   try { return JSON.parse(localStorage.getItem("ln-academy-ans") || "{}"); } catch { return {}; }
@@ -60,7 +62,7 @@ export default function AcademyPage() {
       </div>
       {done.length === lessons.length && (
         <div className="card cert-cta">
-          <span className="cert-cta-ico" aria-hidden="true">🎓</span>
+          <IconTile size={48} tone="amber"><IAward /></IconTile>
           <div style={{ flex: 1 }}><b>{t("certCta")}</b><p className="hint">{t("certCtaSub")}</p></div>
           <button className="btn primary" disabled={certBusy} onClick={getCert}>{certBusy ? t("preparing") : t("certGet")}</button>
         </div>
@@ -72,7 +74,7 @@ export default function AcademyPage() {
           return (
             <section key={l.id} className={`card lesson lesson-${i % 4}${isDone ? " done" : ""}${isOpen ? " open" : ""}`}>
               <button className="lesson-head" onClick={() => setOpen(isOpen ? null : l.id)} aria-expanded={isOpen}>
-                <span className="lesson-ico" aria-hidden="true">{ICONS[l.id] || "📘"}</span>
+                {isDone ? <IconTile tone="green"><ICheck /></IconTile> : <IconTile tone={TONES[i % 4]}>{ICONS[l.id] || <IBook />}</IconTile>}
                 <span className="lesson-tt">
                   <span className="lesson-n num">{t("lessonN", { n: i + 1 })}</span>
                   <h2>{l.title}</h2>

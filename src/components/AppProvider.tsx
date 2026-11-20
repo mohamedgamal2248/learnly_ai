@@ -8,7 +8,6 @@ export type User = { id: string; username: string; role: "user" | "teacher" | "a
 
 type Ctx = {
   /** Content language (ar/en). */ lang: Lang;
-  /** Low-data mode: no animations, no remote site icons. */ lite: boolean; toggleLite: () => void;
   /** Interface language (ar, en, es, fr, …). */ ui: UiLang; setLang: (l: UiLang) => void;
   theme: "light" | "dark"; toggleTheme: () => void;
   t: (k: Key, vars?: Record<string, string | number>) => string;
@@ -31,7 +30,6 @@ function store(k: string, v: string) { try { localStorage.setItem(k, v); } catch
 export function AppProvider({ children }: { children: ReactNode }) {
   const [ui, setUi] = useState<UiLang>("ar");
   const [dictVer, setDictVer] = useState(0);
-  const [lite, setLite] = useState(false);
   const lang = baseLang(ui);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [user, setUser] = useState<User | null>(null);
@@ -48,7 +46,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUi(l);
     if (!hasDict(l)) loadDict(l);
     setTheme(root.dataset.theme === "dark" ? "dark" : "light");
-    setLite(root.dataset.lite === "1");
     // Installable app + faster repeat visits (production only).
     if ("serviceWorker" in navigator && location.hostname !== "localhost") navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
@@ -93,15 +90,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       applyLang(l);
     }).catch(() => {});
   }, [applyLang]);
-
-  const toggleLite = useCallback(() => {
-    setLite((cur) => {
-      const next = !cur;
-      if (next) document.documentElement.dataset.lite = "1"; else delete document.documentElement.dataset.lite;
-      store("ll-lite", next ? "1" : "0");
-      return next;
-    });
-  }, []);
 
   const toggleTheme = useCallback(() => {
     setTheme((cur) => {
@@ -158,9 +146,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setCredits = useCallback((n: number) => setUser((u) => (u ? { ...u, credits: n } : u)), []);
 
   const value = useMemo<Ctx>(() => ({
-    lang, ui, setLang, lite, toggleLite, theme, toggleTheme, t, user, ready, loggingIn, login, logout, refresh, setCredits, toast,
+    lang, ui, setLang, theme, toggleTheme, t, user, ready, loggingIn, login, logout, refresh, setCredits, toast,
     buyOpen, openBuy: () => setBuyOpen(true), closeBuy: () => setBuyOpen(false),
-  }), [lang, ui, setLang, lite, toggleLite, theme, toggleTheme, t, user, ready, loggingIn, login, logout, refresh, setCredits, toast, buyOpen]);
+  }), [lang, ui, setLang, theme, toggleTheme, t, user, ready, loggingIn, login, logout, refresh, setCredits, toast, buyOpen]);
 
   return (
     <AppCtx.Provider value={value}>
