@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "crypto";
-import { completeChat, CREATE_FILE_TOOL, type ChatMessage, type Effort } from "./ai";
+import { completeChat, CREATE_FILE_TOOL, READ_ATTACHMENT_TOOL, SEARCH_ATTACHMENT_TOOL, type ChatMessage, type Effort } from "./ai";
+import { rpc } from "./db";
 import type { Bot } from "./bots";
 import { estimateTokens, INPUT_TOKEN_BUDGET, usageCost, type Usage } from "./pricing";
 import { normalizeSpec } from "./files/spec";
@@ -27,6 +28,8 @@ How to answer:
 - Never ask for, store or repeat a Pi wallet passphrase, private key or password. If someone shares one, tell them to move their funds to a new wallet.
 - No Pi price predictions, gambling, or medical, legal or financial advice beyond general education.
 Tools (use only when they clearly help; every call costs the learner credits):
+- Attachments: a note like [Attached file: NAME, id: ID ...] or a marker [📎 NAME #ID] means the learner attached a file. You get a preview; when you need more, call search_attachment (to find the relevant part) or read_attachment (to read a range). Read only what the question needs. Cite the page or slide you used.
+- Images the learner sends are for you to look at: describe, explain, solve or correct what is in them. If the image is unclear, say what you can't read.
 - create_file: only when the learner asks for a PDF, Word, PowerPoint or Excel file (or says yes after you offered one). Call it once with the complete content. Then reply with one short sentence; never paste the contents or a link, the app shows a download button.`;
 
 export function buildSystem(bot: Bot) {
@@ -42,7 +45,7 @@ export function buildSystem(bot: Bot) {
 }
 
 /** Same tool list on every turn of a bot, so the cached prefix (tools + system) stays identical. */
-export const BOT_TOOLS = [CREATE_FILE_TOOL];
+export const BOT_TOOLS = [CREATE_FILE_TOOL, READ_ATTACHMENT_TOOL, SEARCH_ATTACHMENT_TOOL];
 
 const FILE_WORDS = /\b(pdf|pdt|pfd|docx?|word|pptx?|power ?point|slides?|presentation|excel|xlsx|sheet|spreadsheet|file|download)\b|ملف|ملخص|عرض|شرائح|سلايد|بوربوينت|باوربوينت|وورد|ورد|اكسل|إكسل|جدول|شيت|تحميل|نزّل|نزل|بي ?دي ?[اإ]ف/i;
 /** Whether this message probably wants a file (used to reserve the file fee up front). */
@@ -133,7 +136,39 @@ export async function summarize(ctx: ChatContext, fold: StoredMsg[]) {
 }
 
 // ---------------- tools ----------------
+export type Attachment = { id: string; name: string; kind: string; text: string };
+
+/** What the model gets in the message itself: the whole file if small, else a preview + outline. */
+export function attachmentNote(a: Attachment) {
+  const FULL = 6000;
+  if (a.text.length <= FULL) return `[Attached file: ${a.name}, id: ${a.id} — full text below]\n${a.text}\n[End of ${a.name}]`;
+  const marks = a.text.match(/\[(Page|Slide|Sheet) [^\]]+\]/g) || [];
+  const outline = marks.length ? `${marks.length} ${((marks[0] || "").slice(1).split(" ")[0] || "part").toLowerCase()}s` : `${Math.round(a.text.length / 1000)}k characters`;
+  return `[Attached file: ${a.name}, id: ${a.id}, ${outline}, ${a.text.length} characters. Preview of the start below; use search_attachment / read_attachment for the rest]\n${a.text.slice(0, 3500)}\n[…]`;
+}
+
+const norm = (t: string) => t.toLowerCase().replace(/[\u064B-\u0652\u0640]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
+
+/** Simple keyword search over fixed windows; returns the best 3 passages. */
+export function searchText(text: string, query: string) {
+  const terms = [...new Set(norm(query).split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 1))].slice(0, 12);
+  if (!terms.length) return [];
+  const STEP = 1200, SIZE = 1600;
+  const hits: { from: number; score: number }[] = [];
+  const low = norm(text);
+  for (let i = 0; i < text.length; i += STEP) {
+    const w = low.slice(i, i + SIZE);
+    let score = 0;
+    for (const t of terms) { let k = w.indexOf(t); while (k >= 0) { score++; k = w.indexOf(t, k + t.length); } }
+    if (score) hits.push({ from: i, score });
+  }
+  return hits.sort((a, b) => b.score - a.score).slice(0, 3).sort((a, b) => a.from - b.from)
+    .map((h) => ({ from: h.from, text: text.slice(h.from, h.from + SIZE) }));
+}
+
 export type ToolCtx = {
+  uid: string;
+  attachments: Map<string, Attachment>;
   files: FileRef[];
   send: (evt: object) => void;
   /** Whether the remaining reservation still covers a file fee. */
@@ -153,6 +188,29 @@ export async function runTool(name: string, args: string, ctx: ToolCtx): Promise
     ctx.files.push(ref);
     ctx.send({ t: "file", ...ref, spec });
     return { ok: true, note: "The learner now sees a download button. Reply with one short sentence." };
+  }
+  if (name === "read_attachment" || name === "search_attachment") {
+    let a: any = {};
+    try { a = JSON.parse(args || "{}"); } catch {}
+    const id = typeof a.id === "string" ? a.id.replace(/^#/, "").trim() : "";
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, error: "Unknown attachment id." };
+    let att = ctx.attachments.get(id);
+    if (!att) {
+      // Files from earlier messages are loaded on demand, and only the learner's own.
+      const rows = await rpc<Attachment[]>("ln_att_get", { p_user: ctx.uid, p_ids: [id] }).catch(() => []);
+      att = rows[0];
+      if (!att) return { ok: false, error: "That attachment is no longer available. Ask the learner to attach it again." };
+      ctx.attachments.set(id, att);
+    }
+    ctx.send({ t: "reading", v: att.name });
+    if (name === "search_attachment") {
+      const found = searchText(att.text, String(a.query || ""));
+      return found.length ? { ok: true, file: att.name, passages: found } : { ok: true, file: att.name, passages: [], note: "No match. Try other keywords or read_attachment." };
+    }
+    const from = Math.max(0, Math.min(att.text.length, Number.isFinite(+a.from) ? Math.floor(+a.from) : 0));
+    const len = Math.max(500, Math.min(8000, Number.isFinite(+a.length) ? Math.floor(+a.length) : 6000));
+    const part = att.text.slice(from, from + len);
+    return { ok: true, file: att.name, from, to: from + part.length, total: att.text.length, text: part };
   }
   return { ok: false, error: "unknown tool" };
 }

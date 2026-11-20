@@ -5,8 +5,10 @@ import { env } from "./env";
 const URL = "https://api.meta.ai/v1/chat/completions";
 
 export type ToolCall = { id: string; name: string; arguments: string };
+export type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 export type ChatMessage =
-  | { role: "system" | "user"; content: string }
+  | { role: "system"; content: string }
+  | { role: "user"; content: string | ContentPart[] }
   | { role: "assistant"; content: string | null; tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[] }
   | { role: "tool"; tool_call_id: string; content: string };
 
@@ -209,6 +211,39 @@ export const CREATE_FILE_TOOL = {
         },
       },
       required: ["format", "title", "lang"],
+    },
+  },
+};
+
+export const READ_ATTACHMENT_TOOL = {
+  type: "function",
+  function: {
+    name: "read_attachment",
+    description: "Read part of a file the learner attached (by its id). Use when the preview you got is not enough. Read only what you need.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Attachment id from the [Attached file ...] note" },
+        from: { type: "integer", description: "Character offset to start from (0 = start)" },
+        length: { type: "integer", description: "How many characters, up to 8000" },
+      },
+      required: ["id"],
+    },
+  },
+};
+
+export const SEARCH_ATTACHMENT_TOOL = {
+  type: "function",
+  function: {
+    name: "search_attachment",
+    description: "Find the parts of an attached file that talk about something. Returns the best matching passages with their offsets. Cheaper than reading the whole file.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        query: { type: "string", description: "Keywords, in the file's language" },
+      },
+      required: ["id", "query"],
     },
   },
 };

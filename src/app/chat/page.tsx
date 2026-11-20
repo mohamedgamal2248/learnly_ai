@@ -4,19 +4,44 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import { Markdown } from "@/components/Markdown";
-import { IDownload, IPlus, ISend, IStop } from "@/components/Icons";
+import { IClip, IClose, IDownload, IPlus, ISend, IStop } from "@/components/Icons";
 import { botText, loadBots, type BotInfo } from "@/lib/bots";
 import { downloadFile, hasFileSpec, rememberSpec, saveFileSpec } from "@/lib/local-files";
 import type { Key } from "@/lib/i18n";
 
 type FileRef = { id: string; format: "pdf" | "docx" | "pptx" | "xlsx"; title: string };
-type Msg = { role: "user" | "assistant"; content: string; files?: FileRef[] | null; credits?: number | null; error?: string; code?: string };
+type Msg = { role: "user" | "assistant"; content: string; images?: string[]; files?: FileRef[] | null; credits?: number | null; error?: string; code?: string };
 type ChatItem = { id: string; title: string; msgs: number; updated_at: string };
-type Phase = "idle" | "thinking" | "writing" | "making";
+type Phase = "idle" | "thinking" | "writing" | "making" | "reading";
+type Pending = { key: string; kind: "img"; url: string; name: string } | { key: string; kind: "doc"; name: string; id?: string; busy: boolean };
+
+/** Shrinks a photo to at most 1280px JPEG so it is cheap to send and to analyze. */
+async function shrinkImage(file: File): Promise<string> {
+  const src = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = src; });
+    const scale = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+    const g = c.getContext("2d")!;
+    g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.8);
+  } finally { URL.revokeObjectURL(src); }
+}
+
+/** Stored user messages carry small markers for attachments; show them as chips. */
+function UserText({ text, imgLbl }: { text: string; imgLbl: string }) {
+  const chips: string[] = [];
+  const body = text.replace(/\[📎 (.+?) #[0-9a-f-]{36}\]/gi, (_, n) => { chips.push(`📎 ${n}`); return ""; })
+    .replace(/\[🖼\]/g, () => { chips.push(`🖼 ${imgLbl}`); return ""; }).trim();
+  return <>{body}{chips.length > 0 && <span className="att-row">{chips.map((c, i) => <span key={i} className="att-chip">{c}</span>)}</span>}</>;
+}
 
 const ERR: Record<string, Key> = {
   no_credits: "errNoCredits", daily_limit: "errDaily", paused: "errPaused", slow_down: "errSlow", daily_cap: "errDayCap",
   banned: "errBanned", ai_error: "errAi", login_required: "needLogin",
+  file_too_big: "errFileBig", file_type: "errFileType", scanned_pdf: "errScanned", empty_file: "errExtract", extract_failed: "errExtract", att_limit: "errAttLimit",
 };
 const activeKey = (botId: string) => `ln-active-${botId}`;
 const QUICK: Key[] = ["qQuiz", "qSimpler", "qSummary", "qPdf"];
@@ -36,6 +61,8 @@ function ChatInner() {
   const [dlBusy, setDlBusy] = useState<string | null>(null);
   const [atBottom, setAtBottom] = useState(true);
   const [copied, setCopied] = useState<number | null>(null);
+  const [pending, setPending] = useState<Pending[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -159,14 +186,20 @@ function ChatInner() {
   }, [msgs, phase]);
   const scrollDown = () => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
 
-  const send = useCallback(async (text: string, opts: { replaceLast?: boolean } = {}) => {
+  const send = useCallback(async (text: string, opts: { replaceLast?: boolean; withAttachments?: boolean } = {}) => {
     const content = text.trim();
-    if (!content || !bot || phase !== "idle") return;
+    const att = opts.withAttachments ? pending : [];
+    if (att.some((p) => p.kind === "doc" && p.busy)) return;
+    const images = att.flatMap((p) => (p.kind === "img" ? [p.url] : []));
+    const docs = att.flatMap((p) => (p.kind === "doc" && p.id ? [{ id: p.id, name: p.name }] : []));
+    if ((!content && !images.length && !docs.length) || !bot || phase !== "idle") return;
     if (!user) { await login(); return; }
+    const shown = [content, ...docs.map((d) => `[📎 ${d.name} #${d.id}]`)].filter(Boolean).join("\n");
     setMsgs((cur) => {
       const base = opts.replaceLast ? cur.slice(0, -2) : cur;
-      return [...base, { role: "user", content }, { role: "assistant", content: "" }];
+      return [...base, { role: "user", content: shown, images }, { role: "assistant", content: "" }];
     });
+    if (opts.withAttachments) setPending([]);
     setInput("");
     requestAnimationFrame(autosize);
     setPhase("thinking");
@@ -179,7 +212,7 @@ function ChatInner() {
       const res = await fetch("/api/chat", {
         method: "POST", credentials: "include", signal: ctrl.signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ botId: bot.id, chatId, message: content, replyLang }),
+        body: JSON.stringify({ botId: bot.id, chatId, message: content, replyLang, images, attachments: docs.map((d) => d.id) }),
       });
       if (!res.ok || !res.body) {
         const d = await res.json().catch(() => ({}));
@@ -204,6 +237,7 @@ function ChatInner() {
           if (ev.t === "d") { setPhase("writing"); enqueue(ev.v); }
           else if (ev.t === "think") setPhase("thinking");
           else if (ev.t === "making") setPhase("making");
+          else if (ev.t === "reading") setPhase("reading");
           else if (ev.t === "file") {
             rememberSpec(ev.id, ev.spec);
             saveFileSpec(ev.id, ev.spec);
@@ -216,7 +250,7 @@ function ChatInner() {
             if (ev.chatId && ev.chatId !== chatId) {
               setChatId(ev.chatId);
               try { localStorage.setItem(activeKey(bot.id), ev.chatId); } catch {}
-              setChats((cur) => [{ id: ev.chatId, title: content.slice(0, 60), msgs: 2, updated_at: new Date().toISOString() }, ...cur.filter((c) => c.id !== ev.chatId)]);
+              setChats((cur) => [{ id: ev.chatId, title: (content || docs[0]?.name || "🖼").slice(0, 60), msgs: 2, updated_at: new Date().toISOString() }, ...cur.filter((c) => c.id !== ev.chatId)]);
             }
           }
           else if (ev.t === "err") { flush(); patchLast((m) => ({ ...m, error: t(ERR[ev.v] || "errGeneric") })); }
@@ -229,7 +263,38 @@ function ChatInner() {
       abortRef.current = null;
       setPhase("idle");
     }
-  }, [bot, phase, user, login, chatId, t, setCredits, replyLang, enqueue, flush, patchLast]);
+  }, [bot, phase, user, login, chatId, t, setCredits, replyLang, enqueue, flush, patchLast, pending]);
+
+  async function addFiles(list: FileList | null) {
+    if (!list?.length) return;
+    if (!user) { await login(); return; }
+    const counts = { img: 0, doc: 0 };
+    pending.forEach((p) => counts[p.kind]++);
+    for (const f of Array.from(list)) {
+      const isImg = f.type.startsWith("image/");
+      if ((isImg && counts.img >= 2) || (!isImg && counts.doc >= 3)) { toast(t("maxAtt")); continue; }
+      counts[isImg ? "img" : "doc"]++;
+      const key = `${Date.now()}-${Math.random()}`;
+      if (isImg) {
+        try { const url = await shrinkImage(f); setPending((cur) => [...cur, { key, kind: "img", url, name: f.name }]); }
+        catch { toast(t("errFileType")); }
+        continue;
+      }
+      if (f.size > 4 * 1024 * 1024) { toast(t("errFileBig")); continue; }
+      setPending((cur) => [...cur, { key, kind: "doc", name: f.name, busy: true }]);
+      const fd = new FormData();
+      fd.append("file", f);
+      try {
+        const r = await fetch("/api/attach", { method: "POST", body: fd, credentials: "include" });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || "extract_failed");
+        setPending((cur) => cur.map((p) => (p.key === key ? { ...p, id: d.id, busy: false } : p)));
+      } catch (e: any) {
+        setPending((cur) => cur.filter((p) => p.key !== key));
+        toast(t(ERR[e.message] || "errExtract"));
+      }
+    }
+  }
 
   async function download(id: string) {
     setDlBusy(id);
@@ -304,7 +369,10 @@ function ChatInner() {
           if (m.role === "user") {
             return (
               <div key={i} className="msg-wrap me">
-                <div className="msg me">{m.content}</div>
+                <div className="msg me">
+                  {m.images?.length ? <span className="att-imgs">{m.images.map((u, k) => <img key={k} src={u} alt="" />)}</span> : null}
+                  <UserText text={m.content} imgLbl={t("imageLbl")} />
+                </div>
                 {i === lastUserIdx && idle && (
                   <div className="msg-actions">
                     <button onClick={() => { setInput(m.content); requestAnimationFrame(() => { autosize(); taRef.current?.focus(); }); }}>{t("edit")}</button>
@@ -320,7 +388,7 @@ function ChatInner() {
               <div className="msg bot">
                 {m.content ? <div className={`md${streaming && phase === "writing" ? " caret" : ""}`}><Markdown text={m.content} /></div> : null}
                 {streaming && phase !== "writing" && (
-                  <span className="thinking"><span className="dots"><i /><i /><i /></span>{phase === "making" ? t("making") : t("thinking")}…</span>
+                  <span className="thinking"><span className="dots"><i /><i /><i /></span>{phase === "making" ? t("making") : phase === "reading" ? t("reading") : t("thinking")}…</span>
                 )}
                 {m.files?.map((f) => {
                   const here = hasFileSpec(f.id);
@@ -344,7 +412,7 @@ function ChatInner() {
               {!streaming && (m.content || m.error) && (
                 <div className="msg-actions">
                   {m.content && <button onClick={() => copyText(i, m.content)}>{copied === i ? t("copied") : t("copy")}</button>}
-                  {isLast && idle && lastUserIdx >= 0 && <button onClick={() => send(msgs[lastUserIdx].content, { replaceLast: true })}>{t("regen")}</button>}
+                  {isLast && idle && lastUserIdx >= 0 && <button onClick={() => send(msgs[lastUserIdx].content.replace(/\[🖼\]/g, "").trim() || t("qSimpler"), { replaceLast: true })}>{t("regen")}</button>}
                   {typeof m.credits === "number" && <span className="num">{t("charged", { n: fmt(m.credits) })}</span>}
                 </div>
               )}
@@ -366,17 +434,33 @@ function ChatInner() {
       )}
 
       <div className="composer">
-        <form className="composer-in" onSubmit={(e) => { e.preventDefault(); send(input); }}>
+        {pending.length > 0 && (
+          <div className="pending-row">
+            {pending.map((p) => (
+              <span key={p.key} className={`pend${p.kind === "doc" && p.busy ? " busy" : ""}`}>
+                {p.kind === "img" ? <img src={p.url} alt="" /> : <span className="pend-ico">{(p.name.split(".").pop() || "").toUpperCase().slice(0, 4)}</span>}
+                <span className="pend-name">{p.kind === "doc" && p.busy ? t("uploading") : p.name}</span>
+                <button type="button" aria-label={t("close")} onClick={() => setPending((cur) => cur.filter((x) => x.key !== p.key))}><IClose width={12} height={12} /></button>
+              </span>
+            ))}
+          </div>
+        )}
+        <form className="composer-in" onSubmit={(e) => { e.preventDefault(); send(input, { withAttachments: true }); }}>
+          <input ref={fileRef} type="file" hidden multiple accept="image/*,.pdf,.docx,.pptx,.xlsx,.txt,.md,.csv"
+            onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+          <button type="button" className="attach-btn" onClick={() => fileRef.current?.click()} aria-label={t("attach")} title={t("attachHint")} disabled={!idle}>
+            <IClip width={20} height={20} />
+          </button>
           <textarea
             ref={taRef} rows={1} value={input} placeholder={user ? t("chatPh") : t("needLogin")} aria-label={t("chatPh")}
             maxLength={4000}
             onChange={(e) => { setInput(e.target.value); autosize(); }}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); send(input); } }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) { e.preventDefault(); send(input, { withAttachments: true }); } }}
           />
           {!idle ? (
             <button type="button" className="send" onClick={() => abortRef.current?.abort()} aria-label={t("stop")}><IStop width={16} height={16} /></button>
           ) : (
-            <button type="submit" className="send" disabled={!input.trim() || last?.role === "user"} aria-label="Send">
+            <button type="submit" className="send" disabled={(!input.trim() && !pending.some((p) => p.kind === "img" || p.id)) || pending.some((p) => p.kind === "doc" && p.busy) || last?.role === "user"} aria-label="Send">
               <ISend width={18} height={18} style={{ transform: lang === "ar" ? "scaleX(-1)" : undefined }} />
             </button>
           )}

@@ -24,6 +24,7 @@ export const IRefresh = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path 
 export const ICode = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M8 6l-6 6 6 6M16 6l6 6-6 6" /></svg>;
 export const IBriefcase = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5h8v2" /></svg>;
 export const ILang = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 5h9M8 3v2M6 5c0 4 3 7 7 8M11 5c-1 4-4 7-7 8" /><path d="M13 21l4-9 4 9M14.5 18h5" /></svg>;
+export const IClip = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" /></svg>;
 export const IBook = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 19V5h12l4 4v10z" /><path d="M8 10h8M8 14h6" /></svg>;
 
 export function Logo({ size = 30 }: { size?: number }) {
