@@ -10,7 +10,7 @@ export const maxDuration = 30;
  * Auth: Bearer token from the website (personal token) or from the OAuth flow used by ChatGPT / Claude.
  */
 const VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
-const cache = new Map<string, { at: number; uid: string; banned: boolean }>();
+const cache = new Map<string, { at: number; uid: string; banned: boolean; hash: string }>();
 
 async function authUser(req: Request) {
   const m = (req.headers.get("authorization") || "").match(/^Bearer\s+(lnt_[A-Za-z0-9_-]{20,80})$/);
@@ -20,7 +20,7 @@ async function authUser(req: Request) {
   if (hit && Date.now() - hit.at < 30_000) return hit;
   const u = await rpc<{ user_id: string; banned: boolean } | null>("ln_mcp_token_verify", { p_hash: hash });
   if (!u) { cache.delete(hash); return null; }
-  const v = { at: Date.now(), uid: u.user_id, banned: u.banned };
+  const v = { at: Date.now(), uid: u.user_id, banned: u.banned, hash };
   cache.set(hash, v);
   if (cache.size > 500) cache.clear();
   return v;
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       case "tools/call": {
         const name = String(msg.params?.name || "");
         if (!TOOLS.some((t) => t.name === name)) return rpcErr(id, -32602, `Unknown tool: ${name}`);
-        try { return rpcOk(id, await callTool(name, msg.params?.arguments || {}, { uid: user!.uid, origin })); }
+        try { return rpcOk(id, await callTool(name, msg.params?.arguments || {}, { uid: user!.uid, origin, tokenHash: user!.hash })); }
         catch (e: any) {
           console.error("mcp tool error", name, e?.message);
           return rpcOk(id, { content: [{ type: "text", text: "Something went wrong on our side. Try again in a moment." }], isError: true });

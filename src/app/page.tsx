@@ -26,7 +26,7 @@ export default function Home() {
   const [q, setQ] = useState("");
   const [resumeId, setResumeId] = useState<string | null>(null);
   const ratings = useRatings();
-  const [openTasks, setOpenTasks] = useState<{ id: string; kind: string; title: string; reward: number }[]>([]);
+  const [openTasks, setOpenTasks] = useState<{ id: string; category: string; title: string; reward: number }[]>([]);
   const [courses, setCourses] = useState<CourseCard[] | null>(null);
   const [stats, setStats] = useState<{ learners: number; bots: number; creators: number; messages: number } | null>(null);
 
@@ -100,7 +100,7 @@ export default function Home() {
                 <Link key={x.id} href="/tasks" className="card course-card">
                   <div className="cc-top"><IconTile size={38}><ITask /></IconTile><span className="chip free num ltr">{Number(x.reward).toLocaleString("en-US", { maximumFractionDigits: 4 })} π</span></div>
                   <b className="cc-title">{x.title}</b>
-                  <span className="chip" style={{ justifySelf: "start" }}>{t(`kind_${x.kind}` as Key)}</span>
+                  <span className="chip" style={{ justifySelf: "start" }}>{x.category}</span>
                 </Link>
               ))}
             </div>

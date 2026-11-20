@@ -6,7 +6,7 @@ import { post } from "@/lib/pi-client";
 import type { Key } from "@/lib/i18n";
 
 type Detail = {
-  id: string; kind: string; title: string; brief: string; input_text: string; lang: string; reward: number; net_reward: number;
+  id: string; category: string; delivery: string; title: string; brief: string; input_text: string; lang: string; reward: number; net_reward: number;
   status: string; role: string; reject_note: string | null; claimed_at: string | null;
 };
 const pi = (n: number | string) => `${Number(n).toLocaleString("en-US", { maximumFractionDigits: 4 })} π`;
@@ -66,14 +66,14 @@ export function TaskWork({ id, brief, onChange }: { id: string; brief?: string; 
     e.preventDefault();
     if (!d) return;
     setBusy(true);
-    const isDoc = d.kind === "pdf" || d.kind === "ppt";
-    const r = await post("/api/tasks/submit", isDoc ? { id, text: "", file: toSpec(d.kind, d.title, d.lang, text) } : { id, text });
+    const isDoc = d.delivery === "pdf" || d.delivery === "ppt";
+    const r = await post("/api/tasks/submit", isDoc ? { id, text: "", file: toSpec(d.delivery, d.title, d.lang, text) } : { id, text });
     setBusy(false);
     if (r.ok) { toast(t("tkSubmitted")); setText(""); await load(); onChange?.(); }
     else toast(r.data?.error === "need_text" ? t("tkNeedText") : r.data?.error === "need_file" ? t("tkNeedDoc") : t("errGeneric"));
   }
 
-  const isDoc = d.kind === "pdf" || d.kind === "ppt";
+  const isDoc = d.delivery === "pdf" || d.delivery === "ppt";
   return (
     <div className="grid" style={{ gap: 10, animation: "rise .2s both" }}>
       {d.brief && <p className="small post-body">{d.brief}</p>}
