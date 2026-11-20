@@ -10,7 +10,8 @@ export async function GET(req: Request) {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ bot: null });
     const b = await rpc<any>("ln_get_bot", { p_bot: id });
     const bot = b ? {
-      id: b.id, name: b.name, subject: b.subject, track: b.track, description: b.description, fee: b.fee,
+      id: b.id, name: b.name, name_en: b.name_en, subject: b.subject, subject_en: b.subject_en, track: b.track,
+      description: b.description, description_en: b.description_en, fee: b.fee,
       official: b.official, teacher_name: b.teacher_name, status: b.status, teacher_id: b.teacher_id,
       has_knowledge: !!b.knowledge,
     } : null;

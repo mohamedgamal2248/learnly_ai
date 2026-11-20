@@ -4,32 +4,31 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import { Markdown } from "@/components/Markdown";
-import { IDownload, IRefresh, ISend, IStop } from "@/components/Icons";
-import { loadBots, type BotInfo } from "@/lib/bots";
+import { IDownload, IPlus, ISend, IStop } from "@/components/Icons";
+import { botText, loadBots, type BotInfo } from "@/lib/bots";
+import { downloadFile, hasFileSpec, rememberSpec, saveFileSpec } from "@/lib/local-files";
 import type { Key } from "@/lib/i18n";
 
 type FileRef = { id: string; format: "pdf" | "docx" | "pptx" | "xlsx"; title: string };
-type Msg = { role: "user" | "assistant"; content: string; files?: FileRef[]; charged?: number; error?: string; code?: string };
+type Msg = { role: "user" | "assistant"; content: string; files?: FileRef[] | null; credits?: number | null; error?: string; code?: string };
+type ChatItem = { id: string; title: string; msgs: number; updated_at: string };
 type Phase = "idle" | "thinking" | "writing" | "making";
 
 const ERR: Record<string, Key> = {
   no_credits: "errNoCredits", daily_limit: "errDaily", paused: "errPaused", slow_down: "errSlow",
-  banned: "errBanned", message_too_long: "errTooLong", ai_error: "errAi", login_required: "needLogin",
+  banned: "errBanned", ai_error: "errAi", login_required: "needLogin",
 };
-
-function storeKey(id: string) { return `ln-chat-${id}`; }
-function loadMsgs(id: string): Msg[] {
-  try { return JSON.parse(localStorage.getItem(storeKey(id)) || "[]"); } catch { return []; }
-}
-function saveMsgs(id: string, msgs: Msg[]) {
-  try { localStorage.setItem(storeKey(id), JSON.stringify(msgs.slice(-40))); } catch {}
-}
+const activeKey = (botId: string) => `ln-active-${botId}`;
 
 function ChatInner() {
-  const { t, lang, user, login, openBuy, setCredits } = useApp();
+  const { t, lang, user, ready, login, openBuy, setCredits, toast } = useApp();
   const params = useSearchParams();
   const [bot, setBot] = useState<BotInfo | null | undefined>(undefined);
+  const [chats, setChats] = useState<ChatItem[]>([]);
+  const [chatId, setChatId] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const abortRef = useRef<AbortController | null>(null);
@@ -44,8 +43,7 @@ function ChatInner() {
         if (id) {
           const live = (await loadBots()).find((b) => b.id === id);
           if (live) return setBot(live);
-          const r = await fetch(`/api/bots?id=${id}`);
-          const d = await r.json();
+          const d = await (await fetch(`/api/bots?id=${id}`)).json();
           setBot(d.bot ?? null);
         } else {
           const all = await loadBots();
@@ -55,17 +53,40 @@ function ChatInner() {
     })();
   }, [params]);
 
+  const bt = bot ? botText(bot, lang) : null;
+
   useEffect(() => {
     if (!bot) return;
-    setMsgs(loadMsgs(bot.id));
-    try { localStorage.setItem("ln-last-bot", JSON.stringify({ id: bot.id, name: bot.name })); } catch {}
+    try { localStorage.setItem("ln-last-bot", JSON.stringify({ id: bot.id, name: botText(bot, lang).name })); } catch {}
+  }, [bot, lang]);
+
+  const openChat = useCallback(async (id: string | null) => {
+    setChatId(id);
+    setShowHistory(false);
+    if (bot) { try { id ? localStorage.setItem(activeKey(bot.id), id) : localStorage.removeItem(activeKey(bot.id)); } catch {} }
+    if (!id) { setMsgs([]); return; }
+    setLoadingChat(true);
+    try {
+      const r = await fetch(`/api/chats?id=${id}`, { credentials: "include" });
+      setMsgs(r.ok ? (await r.json()).messages : []);
+    } finally { setLoadingChat(false); }
   }, [bot]);
 
-  useEffect(() => { if (bot && phase === "idle") saveMsgs(bot.id, msgs); }, [msgs, phase, bot]);
-
+  // ---- the user's conversations with this bot (stored in the database) ----
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [msgs, phase]);
+    if (!bot || !user) { setChats([]); setMsgs([]); setChatId(null); return; }
+    (async () => {
+      const r = await fetch(`/api/chats?bot=${bot.id}`, { credentials: "include" });
+      const list: ChatItem[] = r.ok ? (await r.json()).chats : [];
+      setChats(list);
+      let saved: string | null = null;
+      try { saved = localStorage.getItem(activeKey(bot.id)); } catch {}
+      const pick = list.find((c) => c.id === saved)?.id ?? list[0]?.id ?? null;
+      openChat(pick);
+    })();
+  }, [bot, user, openChat]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, phase]);
 
   const autosize = () => {
     const el = taRef.current;
@@ -78,17 +99,10 @@ function ChatInner() {
     const content = text.trim();
     if (!content || !bot || phase !== "idle") return;
     if (!user) { await login(); return; }
-    const next: Msg[] = [...msgs, { role: "user", content }];
-    setMsgs([...next, { role: "assistant", content: "" }]);
+    setMsgs((cur) => [...cur, { role: "user", content }, { role: "assistant", content: "" }]);
     setInput("");
     requestAnimationFrame(autosize);
     setPhase("thinking");
-
-    // The model needs to know about files it made earlier, but not their contents.
-    const history = next.map((m) => ({
-      role: m.role,
-      content: m.files?.length ? `${m.content}\n${m.files.map((f) => `[file created: ${f.title}.${f.format}]`).join("\n")}` : m.content,
-    })).filter((m) => m.content.trim());
 
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -102,12 +116,11 @@ function ChatInner() {
       const res = await fetch("/api/chat", {
         method: "POST", credentials: "include", signal: ctrl.signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ botId: bot.id, messages: history }),
+        body: JSON.stringify({ botId: bot.id, chatId, message: content }),
       });
       if (!res.ok || !res.body) {
         const d = await res.json().catch(() => ({}));
-        const key = ERR[d.error] || "errGeneric";
-        patch((m) => ({ ...m, code: d.error, error: t(key, { have: d.credits ?? 0, need: d.need ?? "?" }) }));
+        patch((m) => ({ ...m, code: d.error, error: t(ERR[d.error] || "errGeneric", { have: d.credits ?? 0, need: d.need ?? "?" }) }));
         if (d.error === "login_required") login();
         return;
       }
@@ -128,8 +141,21 @@ function ChatInner() {
           if (ev.t === "d") { setPhase("writing"); patch((m) => ({ ...m, content: m.content + ev.v })); }
           else if (ev.t === "think") setPhase("thinking");
           else if (ev.t === "making") setPhase("making");
-          else if (ev.t === "file") patch((m) => ({ ...m, files: [...(m.files || []), { id: ev.id, format: ev.format, title: ev.title }] }));
-          else if (ev.t === "done") { patch((m) => ({ ...m, charged: ev.charged })); setCredits(ev.credits); }
+          else if (ev.t === "file") {
+            rememberSpec(ev.id, ev.spec);
+            saveFileSpec(ev.id, ev.spec);
+            patch((m) => ({ ...m, files: [...(m.files || []), { id: ev.id, format: ev.format, title: ev.title }] }));
+            setPhase("writing");
+          }
+          else if (ev.t === "done") {
+            patch((m) => ({ ...m, credits: ev.charged }));
+            setCredits(ev.credits);
+            if (ev.chatId && ev.chatId !== chatId) {
+              setChatId(ev.chatId);
+              try { localStorage.setItem(activeKey(bot.id), ev.chatId); } catch {}
+              setChats((cur) => [{ id: ev.chatId, title: content.slice(0, 60), msgs: 2, updated_at: new Date().toISOString() }, ...cur.filter((c) => c.id !== ev.chatId)]);
+            }
+          }
           else if (ev.t === "err") patch((m) => ({ ...m, error: t(ERR[ev.v] || "errGeneric") }));
         }
       }
@@ -139,12 +165,10 @@ function ChatInner() {
       abortRef.current = null;
       setPhase("idle");
     }
-  }, [bot, phase, user, login, msgs, t, setCredits]);
+  }, [bot, phase, user, login, chatId, t, setCredits]);
 
-  const reset = () => { if (bot && phase === "idle") { setMsgs([]); saveMsgs(bot.id, []); } };
-
-  if (bot === undefined) return <div className="skeleton" style={{ height: 120 }} />;
-  if (bot === null) return <div className="card empty">{t("botMissing")}</div>;
+  if (bot === undefined || !ready) return <div className="skeleton" style={{ height: 120 }} />;
+  if (bot === null || !bt) return <div className="card empty">{t("botMissing")}</div>;
 
   const last = msgs[msgs.length - 1];
   const fmt = (n: number) => n.toLocaleString(lang === "ar" ? "ar-EG" : "en-US");
@@ -153,19 +177,34 @@ function ChatInner() {
   return (
     <div className="chat-wrap">
       <div className="card chat-head">
-        <div className="avatar">{bot.name.slice(0, 1)}</div>
+        <div className="avatar">{bt.name.slice(0, 1)}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="bot-name">{bot.name}{bot.official ? <span className="chip v">{t("official")}</span> : <span className="chip v">{t("verified")}</span>}</div>
-          <div className="bot-sub">{bot.subject}{bot.teacher_name && !bot.official ? ` · ${bot.teacher_name}` : ""}</div>
+          <div className="bot-name">{bt.name}{bot.official ? <span className="chip v">{t("official")}</span> : <span className="chip v">{t("verified")}</span>}</div>
+          <div className="bot-sub">{bt.subject}{bot.teacher_name && !bot.official ? ` · ${bot.teacher_name}` : ""}</div>
           {bot.status && bot.status !== "live" && <span className="chip warn" style={{ marginTop: 4 }}>{t("testing")}</span>}
         </div>
-        <button className="icon-btn" onClick={reset} aria-label={t("newChat")} title={t("newChat")} disabled={phase !== "idle"}><IRefresh width={18} height={18} /></button>
+        {user && chats.length > 0 && (
+          <button className="btn sm" onClick={() => setShowHistory((v) => !v)} aria-expanded={showHistory}>{t("history")} <span className="num">{fmt(chats.length)}</span></button>
+        )}
+        <button className="icon-btn" onClick={() => openChat(null)} aria-label={t("newChat")} title={t("newChat")} disabled={phase !== "idle"}><IPlus width={18} height={18} /></button>
       </div>
 
+      {showHistory && (
+        <div className="card" style={{ marginTop: 8, display: "grid", gap: 4, animation: "rise .25s both" }}>
+          {chats.map((c) => (
+            <button key={c.id} className={`nav-item${c.id === chatId ? " on" : ""}`} onClick={() => openChat(c.id)} disabled={phase !== "idle"}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{c.title || "…"}</span>
+              <span className="hint num">{new Date(c.updated_at).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="chat-list" aria-live="polite">
-        {!msgs.length && (
+        {loadingChat && <div className="skeleton" style={{ height: 80 }} />}
+        {!loadingChat && !msgs.length && (
           <div className="card" style={{ animation: "rise .35s both" }}>
-            <p>{bot.description || t("tagline")}</p>
+            <p>{bt.description || t("tagline")}</p>
             {bot.fee > 0 && <p className="hint" style={{ marginTop: 6 }}>{t("perMsg", { n: bot.fee })}</p>}
             <div className="suggest">
               {suggestions.map((k) => <button key={k} onClick={() => send(t(k))}>{t(k)}</button>)}
@@ -173,30 +212,34 @@ function ChatInner() {
           </div>
         )}
         {msgs.map((m, i) => {
-          const isLast = i === msgs.length - 1;
           if (m.role === "user") return <div key={i} className="msg me">{m.content}</div>;
-          const streaming = isLast && phase !== "idle";
+          const streaming = i === msgs.length - 1 && phase !== "idle";
           return (
             <div key={i} className="msg bot">
               {m.content ? <div className={streaming && phase === "writing" ? "caret" : ""}><Markdown text={m.content} /></div> : null}
               {streaming && phase !== "writing" && (
                 <span className="thinking"><span className="dots"><i /><i /><i /></span>{phase === "making" ? t("making") : t("thinking")}…</span>
               )}
-              {m.files?.map((f) => (
-                <div key={f.id} className="file-card">
-                  <span className={`file-ico ${f.format}`}>{f.format.toUpperCase()}</span>
-                  <span className="ft"><b>{f.title}</b><span className="hint ltr">.{f.format}</span></span>
-                  <a className="btn primary sm" href={`/api/files/${f.id}`}><IDownload width={16} height={16} />{t("download")}</a>
-                </div>
-              ))}
+              {m.files?.map((f) => {
+                const here = hasFileSpec(f.id);
+                return (
+                  <div key={f.id} className="file-card">
+                    <span className={`file-ico ${f.format}`}>{f.format.toUpperCase()}</span>
+                    <span className="ft"><b>{f.title}</b><span className="hint">{here ? t("savedLocal") : t("fileElsewhere")}</span></span>
+                    <button className="btn primary sm" disabled={!here} onClick={() => { if (!downloadFile(f.id)) toast(t("fileElsewhere")); }}>
+                      <IDownload width={16} height={16} />{t("download")}
+                    </button>
+                  </div>
+                );
+              })}
               {m.error && (
                 <div className="notice warn" style={{ marginTop: m.content ? 8 : 0 }}>
                   {m.error}
                   {["no_credits", "daily_limit", "paused"].includes(m.code || "") && <button className="btn primary sm" style={{ marginInlineStart: 8 }} onClick={openBuy}>{t("buyTitle")}</button>}
                 </div>
               )}
-              {m.charged !== undefined && !streaming && (
-                <div className="msg-foot"><span className="num">{t("charged", { n: fmt(m.charged) })}</span></div>
+              {typeof m.credits === "number" && !streaming && (
+                <div className="msg-foot"><span className="num">{t("charged", { n: fmt(m.credits) })}</span></div>
               )}
             </div>
           );

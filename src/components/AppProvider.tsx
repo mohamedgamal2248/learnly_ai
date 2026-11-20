@@ -45,12 +45,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback((k: Key, vars?: Record<string, string | number>) => translate(lang, k, vars), [lang]);
 
-  const setLang = useCallback((l: Lang) => {
+  const applyLang = useCallback((l: Lang) => {
     setLangState(l);
     document.documentElement.lang = l;
     document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
-    store("ll-lang", l);
   }, []);
+
+  // A choice made with the EN/AR button is remembered on this device.
+  const setLang = useCallback((l: Lang) => { applyLang(l); store("ll-lang", l); }, [applyLang]);
+
+  // First visit: guess the language from the visitor's country (once per device, not saved as a choice).
+  useEffect(() => {
+    let saved: string | null = null, guessed: string | null = null;
+    try { saved = localStorage.getItem("ll-lang"); guessed = localStorage.getItem("ll-geo-lang"); } catch {}
+    if (saved) return;
+    if (guessed === "ar" || guessed === "en") { applyLang(guessed); return; }
+    fetch("/api/geo").then((r) => r.json()).then((d) => {
+      const l: Lang = d.lang === "en" ? "en" : "ar";
+      store("ll-geo-lang", l);
+      applyLang(l);
+    }).catch(() => {});
+  }, [applyLang]);
 
   const toggleTheme = useCallback(() => {
     setTheme((cur) => {

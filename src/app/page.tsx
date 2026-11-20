@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { IBook, IBriefcase, ICap, ICode, ILang, ISearch, IShield, IUsers, IBot } from "@/components/Icons";
-import { lastBot, loadBots, TRACK_KEYS, type BotInfo } from "@/lib/bots";
+import { botText, lastBot, loadBots, TRACK_KEYS, type BotInfo } from "@/lib/bots";
 
 const TRACK_ICON: Record<string, React.ReactNode> = {
   school: <IBook width={18} height={18} />, uni: <ICap width={18} height={18} />, job: <IBriefcase width={18} height={18} />,
@@ -12,7 +12,7 @@ const TRACK_ICON: Record<string, React.ReactNode> = {
 };
 
 export default function Home() {
-  const { t, user } = useApp();
+  const { t, user, lang } = useApp();
   const [bots, setBots] = useState<BotInfo[] | null>(null);
   const [track, setTrack] = useState<string>("all");
   const [q, setQ] = useState("");
@@ -27,7 +27,7 @@ export default function Home() {
     const s = q.trim().toLowerCase();
     return (bots || []).filter((b) =>
       (track === "all" || b.track === track) &&
-      (!s || `${b.name} ${b.subject} ${b.teacher_name ?? ""} ${b.description}`.toLowerCase().includes(s)));
+      (!s || `${b.name} ${b.name_en ?? ""} ${b.subject} ${b.subject_en ?? ""} ${b.teacher_name ?? ""} ${b.description} ${b.description_en ?? ""}`.toLowerCase().includes(s)));
   }, [bots, track, q]);
 
   return (
@@ -61,23 +61,23 @@ export default function Home() {
           <div className="bots">{[0, 1].map((i) => <div key={i} className="skeleton" style={{ height: 150 }} />)}</div>
         ) : shown.length ? (
           <div className="bots stagger">
-            {shown.map((b) => (
+            {shown.map((b) => { const bt = botText(b, lang); return (
               <Link key={b.id} href={`/chat?b=${b.id}`} className="card bot-card">
                 <div className="bot-top">
-                  <div className="avatar">{TRACK_ICON[b.track] || b.name.slice(0, 1)}</div>
+                  <div className="avatar">{TRACK_ICON[b.track] || bt.name.slice(0, 1)}</div>
                   <div style={{ minWidth: 0 }}>
-                    <div className="bot-name">{b.name}{b.official ? <span className="chip v">{t("official")}</span> : <span className="chip v">{t("verified")}</span>}</div>
-                    <div className="bot-sub">{b.subject}{b.teacher_name && !b.official ? ` · ${b.teacher_name}` : ""}</div>
+                    <div className="bot-name">{bt.name}{b.official ? <span className="chip v">{t("official")}</span> : <span className="chip v">{t("verified")}</span>}</div>
+                    <div className="bot-sub">{bt.subject}{b.teacher_name && !b.official ? ` · ${b.teacher_name}` : ""}</div>
                   </div>
                 </div>
-                {b.description && <p className="bot-desc">{b.description}</p>}
+                {bt.description && <p className="bot-desc">{bt.description}</p>}
                 <div className="meta">
                   {b.has_knowledge && <span className="chip">{t("fromFiles")}</span>}
                   {b.fee > 0 && <span className="chip num">{t("perMsg", { n: b.fee })}</span>}
                   <span className="chip free" style={{ marginInlineStart: "auto" }}>{t("ask")}</span>
                 </div>
               </Link>
-            ))}
+            ); })}
           </div>
         ) : (
           <div className="card empty">{t("noBots")}</div>

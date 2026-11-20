@@ -3,6 +3,7 @@
   "regions": ["lhr1"],
   "functions": {
     "src/app/api/chat/route.ts": { "maxDuration": 60 },
-    "src/app/api/files/[id]/route.ts": { "maxDuration": 30 }
+    "src/app/api/teach/architect/route.ts": { "maxDuration": 45 },
+    "src/app/api/files/render/route.ts": { "maxDuration": 30 }
   }
 }

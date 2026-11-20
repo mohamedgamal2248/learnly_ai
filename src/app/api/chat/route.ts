@@ -1,5 +1,7 @@
+import { randomUUID } from "crypto";
 import { rpc, getLimits } from "@/lib/server/db";
 import { fail, rateLimited, requireSession } from "@/lib/server/http";
+import { getBot, type Bot } from "@/lib/server/bots";
 import { streamChat, CREATE_FILE_TOOL, type ChatMessage } from "@/lib/server/ai";
 import {
   creditsForCost, estimateTokens, usageCost, INPUT_TOKEN_BUDGET, MAX_OUTPUT_TOKENS, MAX_ROUNDS, type Usage,
@@ -9,41 +11,32 @@ import { normalizeSpec } from "@/lib/server/files/spec";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-type Bot = {
-  id: string; teacher_id: string | null; name: string; subject: string; instructions: string;
-  knowledge: string; fee: number; status: string;
-};
+type FileRef = { id: string; format: string; title: string };
+type Stored = { role: "user" | "assistant"; content: string; files: FileRef[] | null };
 
 const BASE_RULES = `You are a tutor on Learnly AI, a learning app for adults (18+) inside the Pi Network ecosystem.
 Rules:
-- Reply in the student's language and dialect (Egyptian Arabic stays Egyptian Arabic). Keep answers short and clear: small paragraphs, bullet lists, no long preambles.
+- Reply in the student's language and dialect (Egyptian Arabic stays Egyptian Arabic, English stays English). Keep answers short and clear: small paragraphs, bullet lists, no long preambles.
 - Teach, don't just answer: check understanding with a short question when it helps. Do not write graded homework or exam answers for submission; explain the method instead.
-- If teacher materials are provided, answer from them first and cite them like (المصدر: file, page or slide). If the materials don't cover the question, say so, then answer from general knowledge and mark it as general.
+- If teacher materials are provided, answer from them first and cite them like (المصدر: file, page or slide) / (Source: file, page or slide). If the materials don't cover the question, say so, then answer from general knowledge and mark it as general.
 - Never ask for, store or repeat a Pi wallet passphrase, private key or password. If someone shares one, tell them to move their funds to a new wallet.
 - No Pi price predictions, gambling, or medical, legal or financial advice beyond general education.
 - Files: when the student asks for a PDF, Word, PowerPoint or Excel file, call create_file once with the complete content. After it succeeds, reply with one short sentence. Never paste the file contents or any link; the app shows a download button.`;
 
 function buildSystem(bot: Bot) {
-  const parts = [BASE_RULES, `\n## This bot\nName: ${bot.name}\nSubject: ${bot.subject}`];
+  const parts = [BASE_RULES, `\n## This bot\nName: ${bot.name}${bot.name_en ? ` / ${bot.name_en}` : ""}\nSubject: ${bot.subject}${bot.subject_en ? ` / ${bot.subject_en}` : ""}`];
   if (bot.instructions) parts.push(`\n## Teacher instructions\n${bot.instructions}`);
   let system = parts.join("\n");
   if (bot.knowledge) {
-    // Keep the system prompt (which is cached) to at most 60% of the input budget.
-    const room = Math.floor(INPUT_TOKEN_BUDGET * 0.6 - estimateTokens(system)) * 2.5;
-    const k = bot.knowledge.length > room ? bot.knowledge.slice(0, Math.max(0, room)) : bot.knowledge;
-    system += `\n\n## Teacher materials\n${k}`;
+    // The system prompt is the cached part; keep it to at most 60% of the input budget.
+    const room = Math.floor((INPUT_TOKEN_BUDGET * 0.6 - estimateTokens(system)) * 2.5);
+    system += `\n\n## Teacher materials\n${bot.knowledge.length > room ? bot.knowledge.slice(0, Math.max(0, room)) : bot.knowledge}`;
   }
   return system;
 }
 
-function cleanHistory(raw: unknown): { role: "user" | "assistant"; content: string }[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.slice(-60).flatMap((m: any) => {
-    if (m?.role !== "user" && m?.role !== "assistant") return [];
-    const content = typeof m.content === "string" ? m.content.slice(0, m.role === "user" ? 4000 : 12000) : "";
-    return content.trim() ? [{ role: m.role, content }] : [];
-  });
-}
+const asModelText = (m: Stored) =>
+  m.files?.length ? `${m.content}\n${m.files.map((f) => `[file created: ${f.title}.${f.format}]`).join("\n")}` : m.content;
 
 export async function POST(req: Request) {
   const s = requireSession(req);
@@ -52,26 +45,32 @@ export async function POST(req: Request) {
 
   let body: any;
   try { body = await req.json(); } catch { return fail("bad_request"); }
-  const history = cleanHistory(body?.messages);
-  if (!history.length || history[history.length - 1].role !== "user") return fail("bad_request");
-  if (typeof body?.botId !== "string") return fail("bad_request");
+  const message = typeof body?.message === "string" ? body.message.trim().slice(0, 4000) : "";
+  const chatId = typeof body?.chatId === "string" && /^[0-9a-f-]{36}$/i.test(body.chatId) ? body.chatId : null;
+  if (!message || typeof body?.botId !== "string" || !/^[0-9a-f-]{36}$/i.test(body.botId)) return fail("bad_request");
 
-  const [bot, cfg] = await Promise.all([rpc<Bot | null>("ln_get_bot", { p_bot: body.botId }), getLimits()]);
+  const [bot, cfg, stored] = await Promise.all([
+    getBot(body.botId),
+    getLimits(),
+    chatId ? rpc<Stored[] | null>("ln_chat_history", { p_user: s.uid, p_chat: chatId }) : Promise.resolve([] as Stored[]),
+  ]);
   if (!bot) return fail("bot_not_found", 404);
   if (bot.status !== "live" && bot.teacher_id !== s.uid && s.r !== "admin") return fail("bot_not_found", 404);
 
   // ---- fit everything under the input budget (cheaper tier, predictable cost) ----
   const system = buildSystem(bot);
-  const fixed = estimateTokens(system) + 1200; // tool schema
-  let used = fixed;
-  const kept: typeof history = [];
+  let used = estimateTokens(system) + 1200 + estimateTokens(message);
+  const kept: ChatMessage[] = [];
+  const history = stored || [];
   for (let i = history.length - 1; i >= 0; i--) {
-    const t = estimateTokens(history[i].content) + 8;
+    const text = asModelText(history[i]);
+    const t = estimateTokens(text) + 8;
     if (used + t > INPUT_TOKEN_BUDGET) break;
     used += t;
-    kept.unshift(history[i]);
+    kept.unshift({ role: history[i].role, content: text });
   }
-  if (!kept.length) return fail("message_too_long");
+  // The model expects user/assistant turns to start with the user.
+  while (kept.length && kept[0].role !== "user") kept.shift();
 
   // ---- reserve credits before calling the model ----
   const perRound = (used * 0.10 + MAX_OUTPUT_TOKENS * 0.50) / 1_000_000;
@@ -84,9 +83,8 @@ export async function POST(req: Request) {
   const encoder = new TextEncoder();
   const usage: Usage = { input: 0, cached: 0, output: 0 };
   let cost = 0;
-  let streamedChars = 0;
-  let files = 0;
-  // Every round is its own request and is priced on its own tier, then summed.
+  let reply = "";
+  const files: FileRef[] = [];
   const addRound = (u: Usage) => {
     cost += usageCost(u);
     usage.input += u.input; usage.cached += u.cached; usage.output += u.output;
@@ -94,8 +92,10 @@ export async function POST(req: Request) {
 
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (evt: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`));
-      const messages: ChatMessage[] = [{ role: "system", content: system }, ...kept];
+      const send = (evt: object) => {
+        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(evt)}\n\n`)); } catch {}
+      };
+      const messages: ChatMessage[] = [{ role: "system", content: system }, ...kept, { role: "user", content: message }];
       let errored = false;
       try {
         for (let round = 0; round < MAX_ROUNDS; round++) {
@@ -106,19 +106,13 @@ export async function POST(req: Request) {
           for await (const ev of streamChat({
             messages, tools: [CREATE_FILE_TOOL], maxTokens: MAX_OUTPUT_TOKENS, cacheKey: `ln-bot-${bot.id}`, signal: req.signal,
           })) {
-            if (ev.type === "text") {
-              text += ev.text;
-              streamedChars += ev.text.length;
-              send({ t: "d", v: ev.text });
-            } else {
+            if (ev.type === "text") { text += ev.text; reply += ev.text; send({ t: "d", v: ev.text }); }
+            else if (ev.type === "tool_start") { if (ev.name === "create_file") send({ t: "making" }); }
+            else {
               calls = ev.toolCalls;
-              if (ev.usage.input || ev.usage.output) {
-                gotUsage = true;
-                addRound(ev.usage);
-              }
+              if (ev.usage.input || ev.usage.output) { gotUsage = true; addRound(ev.usage); }
             }
           }
-          // No usage chunk (rare): bill a pessimistic estimate instead of nothing.
           if (!gotUsage) addRound({ input: used, cached: 0, output: estimateTokens(text) + 200 });
           if (!calls.length) break;
 
@@ -129,19 +123,17 @@ export async function POST(req: Request) {
           for (const c of calls) {
             let result: object = { ok: false, error: "unknown tool" };
             if (c.name === "create_file") {
-              if (files >= 2) result = { ok: false, error: "File limit reached for this message." };
+              if (files.length >= 2) result = { ok: false, error: "File limit reached for this message." };
               else {
                 let parsed: unknown = null;
                 try { parsed = JSON.parse(c.arguments || "{}"); } catch {}
                 const spec = normalizeSpec(parsed);
                 if (!spec) result = { ok: false, error: "The file content was empty or invalid. Fill sections, slides or sheets." };
                 else {
-                  send({ t: "making", format: spec.format });
-                  const id = await rpc<string>("ln_file_save", {
-                    p_user: s.uid, p_format: spec.format, p_title: spec.title, p_spec: spec,
-                  });
-                  files++;
-                  send({ t: "file", id, format: spec.format, title: spec.title });
+                  // The file itself is kept on the student's device; only a reference is stored with the chat.
+                  const ref = { id: randomUUID(), format: spec.format, title: spec.title };
+                  files.push(ref);
+                  send({ t: "file", ...ref, spec });
                   result = { ok: true, note: "The student now sees a download button. Reply with one short sentence." };
                 }
               }
@@ -155,18 +147,19 @@ export async function POST(req: Request) {
         console.error("chat error", e?.message);
       }
 
-      // ---- settle: charge what was actually used, refund the rest ----
-      // Aborted mid-stream before the usage chunk arrived: estimate what was spent.
-      if (!cost && streamedChars) addRound({ input: used, cached: 0, output: Math.ceil(streamedChars / 2.5) });
-      const nothingHappened = errored && !streamedChars && !files;
-      const actual = nothingHappened ? 0 : Math.min(reserve, creditsForCost(cost, cfg) + bot.fee + files * cfg.file_fee);
+      // ---- settle: charge what was actually used, refund the rest, store the exchange ----
+      if (!cost && reply) addRound({ input: used, cached: 0, output: Math.ceil(reply.length / 2.5) });
+      const nothingHappened = errored && !reply && !files.length;
+      const actual = nothingHappened ? 0 : Math.min(reserve, creditsForCost(cost, cfg) + bot.fee + files.length * cfg.file_fee);
       try {
-        const settled = await rpc<{ credits: number; charged: number }>("ln_settle", {
-          p_user: s.uid, p_reserved: reserve, p_actual: actual, p_cost_usd: Number(cost.toFixed(8)),
-          p_bot: bot.id, p_teacher_share: nothingHappened ? 0 : Math.floor(bot.fee * 0.7),
-          p_meta: { in: usage.input, cached: usage.cached, out: usage.output, files },
+        const done = await rpc<{ credits: number; charged: number; chat_id: string | null }>("ln_chat_finish", {
+          p_user: s.uid, p_bot: bot.id, p_chat: chatId, p_user_msg: nothingHappened ? null : message,
+          p_reply: reply, p_files: files.length ? files : null,
+          p_reserved: reserve, p_actual: actual, p_cost_usd: Number(cost.toFixed(8)),
+          p_teacher_share: nothingHappened ? 0 : Math.floor(bot.fee * 0.7),
+          p_meta: { in: usage.input, cached: usage.cached, out: usage.output, files: files.length },
         });
-        if (!req.signal.aborted) send({ t: "done", charged: settled.charged, credits: settled.credits });
+        send({ t: "done", charged: done.charged, credits: done.credits, chatId: done.chat_id });
       } catch (e: any) {
         console.error("settle error", e?.message);
       }
@@ -175,10 +168,6 @@ export async function POST(req: Request) {
   });
 
   return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-store, no-transform",
-      "X-Accel-Buffering": "no",
-    },
+    headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" },
   });
 }

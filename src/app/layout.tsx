@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 };
 
 // Runs before first paint so the saved language and theme never flash.
-const boot = `try{var l=localStorage.getItem('ll-lang')||'ar',t=localStorage.getItem('ll-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),d=document.documentElement;d.lang=l;d.dir=l==='ar'?'rtl':'ltr';d.dataset.theme=t;}catch(e){}`;
+const boot = `try{var l=localStorage.getItem('ll-lang')||localStorage.getItem('ll-geo-lang')||'ar',t=localStorage.getItem('ll-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),d=document.documentElement;d.lang=l;d.dir=l==='ar'?'rtl':'ltr';d.dataset.theme=t;}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
