@@ -463,9 +463,11 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 .ico-inline { display: inline-flex; vertical-align: -3px; }
 
 /* ---------- tasks and connect ---------- */
-.copy-row { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
-.copy-row code { flex: 1; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.copy-row { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); min-width: 0; max-width: 100%; }
+.copy-row code { flex: 1; font-size: 13px; min-width: 0; overflow-wrap: anywhere; word-break: break-all; }
 .pair-code { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--primary-soft); border: 1px dashed var(--primary); }
 .pair-code b { font-size: 26px; letter-spacing: 4px; color: var(--primary); font-family: ui-monospace, Menlo, Consolas, monospace; }
-.prompt-box { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; }
+.prompt-box { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; min-width: 0; max-width: 100%; }
 .pair-input { font-size: 22px; letter-spacing: 4px; text-align: center; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.task-input { margin-top: 4px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; }
+.card.grid, .card > .grid { min-width: 0; }

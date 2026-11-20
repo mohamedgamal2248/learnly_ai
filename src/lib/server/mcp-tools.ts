@@ -1,17 +1,8 @@
 import "server-only";
 import { rpc } from "./db";
-import { normalizeSpec } from "./files/spec";
+import { KIND_GUIDE, submitTaskResult, type Kind } from "./tasks";
 
-export type Kind = "summary" | "translate" | "pdf" | "ppt" | "research";
 
-/** What a finished task must contain, per kind. */
-export const KIND_GUIDE: Record<Kind, string> = {
-  summary: "Deliver a clear summary as Markdown in `text` (key points first, short). Same language as requested.",
-  translate: "Deliver the full translation as Markdown/plain text in `text`. Keep the structure; don't add commentary.",
-  research: "Deliver a researched answer as Markdown in `text`, with a short list of sources (title + URL) at the end. Only cite pages you actually read.",
-  pdf: "Deliver a document in `file` with format \"pdf\": {format, title, lang, sections:[{heading, paragraphs[], bullets[], table[][]}]}. `text` can hold a one-line note.",
-  ppt: "Deliver a presentation in `file` with format \"pptx\": {format, title, lang, slides:[{title, bullets[], notes}]} (max 6 bullets per slide). `text` can hold a one-line note.",
-};
 
 export const INSTRUCTIONS = `Learnly AI Tasks: small jobs (summaries, translations, research, PDF and PowerPoint files) posted by people, paid in Pi.
 Workflow: list_tasks → get_task → claim_task (you have 2 hours) → do the work yourself → submit_result. The requester approves (or it auto-approves after 48h) and the reward lands in your Pi balance on the website, where you withdraw it yourself.
@@ -112,22 +103,13 @@ export async function callTool(name: string, args: any, ctx: Ctx) {
     case "submit_result": {
       const id = taskId(args);
       if (!id) return text("task_id must be a task id.", true);
-      const t = await rpc<TaskView | null>("ln_task_get", { p_user: ctx.uid, p_task: id });
-      if (!t || t.role !== "worker" || t.status !== "claimed") return text("You haven't claimed this task (or the 2 hours ran out). Use claim_task first.", true);
-      const body = typeof args?.text === "string" ? args.text.trim().slice(0, 20000) : "";
-      let file: ReturnType<typeof normalizeSpec> = null;
-      if (t.kind === "pdf" || t.kind === "ppt") {
-        file = normalizeSpec(args?.file);
-        const want = t.kind === "pdf" ? ["pdf", "docx"] : ["pptx"];
-        if (!file || !want.includes(file.format)) return text(`This task needs \`file\` with format ${want.map((f) => `"${f}"`).join(" or ")}. ${KIND_GUIDE[t.kind]}`, true);
-        if (JSON.stringify(file).length > 150_000) return text("The file content is too large (max ~150 KB of text). Shorten it.", true);
-      } else if (body.length < 20) {
-        return text("`text` is required (at least a few sentences) for this task.", true);
-      }
-      const r = await rpc<{ ok: boolean }>("ln_task_submit", { p_user: ctx.uid, p_task: id, p_result: { text: body, file, at: new Date().toISOString() } });
-      return r.ok
-        ? text(`Submitted. The requester will review it (auto-approved after 48 hours). When approved, ${pi(t.net_reward)} is added to your balance. See ${ctx.origin}/tasks.`)
-        : text("Couldn't submit: the task is no longer claimed by you.", true);
+      const r = await submitTaskResult(ctx.uid, id, args?.text, args?.file);
+      if (r.ok) return text(`Submitted. The requester will review it (auto-approved after 48 hours). When approved, ${pi(r.net)} is added to your balance. See ${ctx.origin}/tasks.`);
+      if (r.error === "not_claimed") return text("You haven't claimed this task (or the 2 hours ran out). Use claim_task first.", true);
+      if (r.error === "need_text") return text("`text` is required (at least a few sentences) for this task.", true);
+      if (r.error === "file_too_big") return text("The file content is too large (max ~150 KB of text). Shorten it.", true);
+      if (r.error.startsWith("need_file:")) { const [, want, guide] = r.error.split(":"); return text(`This task needs \`file\` with format ${want.split("|").map((f) => `"${f}"`).join(" or ")}. ${guide}`, true); }
+      return text("Couldn't submit.", true);
     }
     case "my_tasks": {
       const list = await rpc<any[]>("ln_my_tasks", { p_user: ctx.uid, p_role: "worker" });

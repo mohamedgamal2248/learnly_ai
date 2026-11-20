@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { IconTile, ITask } from "@/components/Icons";
 import { Markdown } from "@/components/Markdown";
+import { TaskWork } from "@/components/TaskWork";
 import { downloadFile, rememberSpec } from "@/lib/local-files";
 import { post } from "@/lib/pi-client";
 import type { Key } from "@/lib/i18n";
@@ -20,14 +21,8 @@ const CHIP: Record<string, string> = { open: "v", claimed: "warn", submitted: "w
 
 export default function TasksPage() {
   const { t, user, ready, login } = useApp();
-  const [tab, setTab] = useState<"mine" | "work">("mine");
-  if (!ready) return <div className="skeleton" style={{ height: 200 }} />;
-  if (!user) return (
-    <div className="card" style={{ display: "grid", gap: 12, maxWidth: 640, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 20 }}>{t("tasksTitle")}</h1><p className="muted">{t("tasksSub")}</p>
-      <button className="btn primary" onClick={login}>{t("login")}</button>
-    </div>
-  );
+  const [tab, setTab] = useState<"board" | "mine" | "work">("board");
+  const needLogin = !user && tab !== "board";
   return (
     <div className="grid" style={{ maxWidth: 820, margin: "0 auto" }}>
       <div className="hero-card">
@@ -35,11 +30,55 @@ export default function TasksPage() {
         <div><h1>{t("tasksTitle")}</h1><p>{t("tasksSub")}</p></div>
       </div>
       <div className="chips" role="tablist">
+        <button role="tab" aria-selected={tab === "board"} className={`pill${tab === "board" ? " on" : ""}`} onClick={() => setTab("board")}>{t("tkTabBoard")}</button>
         <button role="tab" aria-selected={tab === "mine"} className={`pill${tab === "mine" ? " on" : ""}`} onClick={() => setTab("mine")}>{t("tkTabMine")}</button>
         <button role="tab" aria-selected={tab === "work"} className={`pill${tab === "work" ? " on" : ""}`} onClick={() => setTab("work")}>{t("tkTabWork")}</button>
       </div>
-      {tab === "mine" ? <Mine /> : <Work />}
+      {!ready ? <div className="skeleton" style={{ height: 160 }} /> : needLogin ? (
+        <div className="card" style={{ display: "grid", gap: 10 }}><p className="muted">{t("tkLoginFirst")}</p><button className="btn primary" style={{ justifySelf: "start" }} onClick={login}>{t("login")}</button></div>
+      ) : tab === "board" ? <Board /> : tab === "mine" ? <Mine /> : <Work />}
     </div>
+  );
+}
+
+type BoardTask = { id: string; kind: string; title: string; brief: string; reward: number; lang: string };
+function Board() {
+  const { t } = useApp();
+  const [kind, setKind] = useState<string>("");
+  const [rows, setRows] = useState<BoardTask[] | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/tasks/board${kind ? `?kind=${kind}` : ""}`, { credentials: "include", cache: "no-store" });
+    setRows(r.ok ? (await r.json()).tasks : []);
+  }, [kind]);
+  useEffect(() => { setRows(null); load(); }, [load]);
+  return (
+    <>
+      <p className="hint">{t("tkBoardSub")}</p>
+      <div className="chips">
+        {["", ...KINDS].map((k) => <button key={k || "all"} className={`pill${kind === k ? " on" : ""}`} onClick={() => setKind(k)}>{k ? t(`kind_${k}` as Key) : t("all")}</button>)}
+      </div>
+      {!rows ? <div className="skeleton" style={{ height: 100 }} /> : !rows.length ? <div className="card empty">{t("tkNoBoard")}</div> : (
+        <div className="grid stagger">
+          {rows.map((r) => (
+            <div key={r.id} className="card" style={{ display: "grid", gap: 8 }}>
+              <button className="lesson-head" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}>
+                <span className="lesson-tt">
+                  <span style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                    <span className="chip">{t(`kind_${r.kind}` as Key)}</span>
+                    <span className="chip free num ltr">{pi(r.reward)}</span>
+                  </span>
+                  <h2 style={{ fontSize: 15.5 }}>{r.title}</h2>
+                  {open !== r.id && r.brief && <span className="hint" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.brief}</span>}
+                </span>
+                <span className="lesson-chev" aria-hidden="true">⌄</span>
+              </button>
+              {open === r.id && <TaskWork id={r.id} brief={r.brief} onChange={load} />}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -194,7 +233,9 @@ function Work() {
   const [tokens, setTokens] = useState<{ id: string; name: string; last_used: string | null; created_at: string }[]>([]);
   const [fresh, setFresh] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const url = typeof location !== "undefined" ? `${location.origin}/mcp` : "/mcp";
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US");
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([fetch("/api/mcp/tokens", { credentials: "include", cache: "no-store" }), fetch("/api/tasks?role=worker", { credentials: "include", cache: "no-store" })]);
@@ -214,7 +255,7 @@ function Work() {
     if (r.ok) { setCode({ code: r.data.code, at: Date.now() }); setLeft(600); } else toast(t("errGeneric"));
   }
   async function newToken() {
-    const r = await post("/api/mcp/tokens", { action: "create", name: "Personal token" });
+    const r = await post("/api/mcp/tokens", { action: "create", name: "API key" });
     if (r.ok) { setFresh(r.data.token); load(); } else toast(t("errGeneric"));
   }
   async function off(id: string) { await post("/api/mcp/tokens", { action: "off", id }); load(); }
@@ -247,29 +288,48 @@ function Work() {
         </div>
       </div>
 
+      <div className="card" style={{ display: "grid", gap: 10 }}>
+        <b>{t("tkKeyTitle")}</b>
+        <p className="hint">{t("tkKeyHint")}</p>
+        <button className="btn sm" style={{ justifySelf: "start" }} onClick={newToken}>{t("tkTokenNew")}</button>
+        {fresh && (
+          <div className="grid" style={{ gap: 8 }}>
+            <span className="hint">{t("tkTokenOnce")}</span>
+            <div className="copy-row"><code className="ltr" style={{ overflowWrap: "anywhere" }}>{fresh}</code><button className="btn sm" onClick={() => copy(fresh)}>{t("copy")}</button></div>
+            <span className="small">{t("tkHeaderHow")}</span>
+            <div className="copy-row"><code className="ltr" style={{ overflowWrap: "anywhere" }}>Authorization: Bearer {fresh}</code><button className="btn sm" onClick={() => copy(`Authorization: Bearer ${fresh}`)}>{t("copy")}</button></div>
+            <span className="small">{t("tkMuseTitle")}</span>
+            <div className="prompt-box ltr" style={{ textAlign: "start" }}>{t("tkMuseMsg", { url, token: fresh })}</div>
+            <button className="btn primary sm" style={{ justifySelf: "start" }} onClick={() => copy(t("tkMuseMsg", { url, token: fresh }))}>{t("copy")}</button>
+          </div>
+        )}
+      </div>
+
       <div className="card" style={{ display: "grid", gap: 8 }}>
         <b>{t("tkLinked")}</b>
         {tokens.length ? tokens.map((k) => (
-          <div key={k.id} className="earn-row"><span>{k.name || "AI"}</span><span className="hint num">{k.last_used ? `${t("tkLastUsed")}: ${new Date(k.last_used).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}` : new Date(k.created_at).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}</span>
+          <div key={k.id} className="earn-row"><span>{k.name || "AI"}</span><span className="hint num">{k.last_used ? `${t("tkLastUsed")}: ${fmtDate(k.last_used)}` : fmtDate(k.created_at)}</span>
             <button className="btn danger sm" style={{ marginInlineStart: "auto" }} onClick={() => off(k.id)}>{t("tkTokenOff")}</button></div>
         )) : <span className="hint">{t("tkNoTokens")}</span>}
-        <details>
-          <summary className="hint" style={{ cursor: "pointer" }}>{t("tkAdvanced")}</summary>
-          <p className="hint" style={{ margin: "6px 0" }}>{t("tkAdvancedHint")}</p>
-          <button className="btn sm" onClick={newToken}>{t("tkTokenNew")}</button>
-          {fresh && <div style={{ marginTop: 8, display: "grid", gap: 6 }}><span className="hint">{t("tkTokenOnce")}</span><div className="copy-row"><code className="ltr" style={{ overflowWrap: "anywhere" }}>{fresh}</code><button className="btn sm" onClick={() => copy(fresh)}>{t("copy")}</button></div></div>}
-        </details>
       </div>
 
       <div className="sec-h"><h2>{t("tkMyWork")}</h2></div>
       <p className="hint">{t("tkWithdrawHint")} <Link className="md-link" href="/learn">{t("nLearn")}</Link></p>
       {!rows ? <div className="skeleton" style={{ height: 80 }} /> : !rows.length ? <div className="card empty">{t("tkNoTasks")}</div> : (
         <div className="grid">{rows.map((r) => (
-          <div key={r.id} className="card" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span className="chip">{t(`kind_${r.kind}` as Key)}</span>
-            <span className={`chip ${CHIP[r.status] || ""}`}>{t(`tkS_${r.status}` as Key)}</span>
-            <b className="small" style={{ flex: 1, minWidth: 120 }}>{r.title}</b>
-            <span className="chip num ltr">{r.status === "approved" && r.paid_pi ? pi(r.paid_pi) : pi(r.net_reward)}</span>
+          <div key={r.id} className="card" style={{ display: "grid", gap: 8 }}>
+            <button className="lesson-head" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}>
+              <span className="lesson-tt">
+                <span style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <span className="chip">{t(`kind_${r.kind}` as Key)}</span>
+                  <span className={`chip ${CHIP[r.status] || ""}`}>{t(`tkS_${r.status}` as Key)}</span>
+                  <span className="chip num ltr">{r.status === "approved" && r.paid_pi ? pi(r.paid_pi) : pi(r.net_reward)}</span>
+                </span>
+                <h2 style={{ fontSize: 15.5 }}>{r.title}</h2>
+              </span>
+              <span className="lesson-chev" aria-hidden="true">⌄</span>
+            </button>
+            {open === r.id && <TaskWork id={r.id} onChange={load} />}
           </div>
         ))}</div>
       )}

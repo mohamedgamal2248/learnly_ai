@@ -10,7 +10,9 @@ export async function POST(req: Request) {
   if (!uris.length || uris.length > 5 || !uris.every(validRedirect)) {
     return Response.json({ error: "invalid_redirect_uri", error_description: "redirect_uris must be https (or http on localhost)" }, { status: 400, headers: CORS });
   }
-  const name = typeof b?.client_name === "string" ? b.client_name.slice(0, 80) : "AI app";
+  let host = "AI app";
+  try { host = new URL(uris[0] as string).hostname; } catch {}
+  const name = typeof b?.client_name === "string" && b.client_name.trim() ? b.client_name.trim().slice(0, 80) : host;
   const client_id = oauthSign({ t: "client", ru: uris, n: name });
   return Response.json({
     client_id, client_name: name, redirect_uris: uris, token_endpoint_auth_method: "none",

@@ -13,6 +13,7 @@ function ConnectInner() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const msg = (e: string) => ({ bad_code: "cnBad", code_expired: "cnExpired", code_used: "cnUsedUp", code_replaced: "cnReplaced", slow_down: "cnSlow" } as const)[e as "bad_code"];
   const p = {
     client_id: q.get("client_id") || "", redirect_uri: q.get("redirect_uri") || "", state: q.get("state") || "",
     code_challenge: q.get("code_challenge") || "", code_challenge_method: q.get("code_challenge_method") || "",
@@ -32,7 +33,7 @@ function ConnectInner() {
     const d = await r.json().catch(() => ({}));
     setBusy(false);
     if (r.ok && d.redirect) window.location.href = d.redirect;
-    else setErr(t("cnBad"));
+    else { const k = msg(d.error); setErr(k ? t(k) : `${t("cnTech")} (${d.error || r.status})`); }
   }
   return (
     <form className="card" onSubmit={allow} style={{ display: "grid", gap: 12, maxWidth: 520, margin: "0 auto" }}>

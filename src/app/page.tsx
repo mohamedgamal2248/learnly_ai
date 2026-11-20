@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { Key } from "@/lib/i18n";
 import { useApp } from "@/components/AppProvider";
 import { CourseCards } from "@/components/CourseCards";
 import { RatingChip, useRatings } from "@/components/Reviews";
 import type { CourseCard } from "@/lib/courses";
-import { IBook, IBriefcase, ICap, ICode, ILang, ISearch, IShield, IUsers, IBot } from "@/components/Icons";
+import { IconTile, ITask, IBook, IBriefcase, ICap, ICode, ILang, ISearch, IShield, IUsers, IBot } from "@/components/Icons";
 import { botText, lastBotId, loadBots, TRACK_KEYS, type BotInfo } from "@/lib/bots";
 
 const TRACK_ICON: Record<string, React.ReactNode> = {
@@ -25,6 +26,7 @@ export default function Home() {
   const [q, setQ] = useState("");
   const [resumeId, setResumeId] = useState<string | null>(null);
   const ratings = useRatings();
+  const [openTasks, setOpenTasks] = useState<{ id: string; kind: string; title: string; reward: number }[]>([]);
   const [courses, setCourses] = useState<CourseCard[] | null>(null);
   const [stats, setStats] = useState<{ learners: number; bots: number; creators: number; messages: number } | null>(null);
 
@@ -32,6 +34,7 @@ export default function Home() {
     loadBots().then(setBots).catch(() => setBots([]));
     setResumeId(lastBotId());
     fetch("/api/courses").then((r) => r.json()).then((d) => setCourses(d.courses || [])).catch(() => setCourses([]));
+    fetch("/api/tasks/board?limit=4").then((r) => r.json()).then((d) => setOpenTasks(d.tasks || [])).catch(() => {});
     fetch("/api/stats").then((r) => r.json()).then(setStats).catch(() => {});
   }, []);
 
@@ -84,6 +87,23 @@ export default function Home() {
               <h2 style={{ flex: 1 }}>{t("coursesTitle")}</h2><Link href="/courses" className="small md-link">{t("more")}</Link>
             </div>
             <CourseCards courses={courses.slice(0, 4)} />
+          </>
+        )}
+
+        {openTasks.length > 0 && (
+          <>
+            <div className="sec-h" style={{ display: "flex", alignItems: "center" }}>
+              <h2 style={{ flex: 1 }}>{t("tkTabBoard")}</h2><Link href="/tasks" className="small md-link">{t("more")}</Link>
+            </div>
+            <div className="course-grid stagger">
+              {openTasks.map((x) => (
+                <Link key={x.id} href="/tasks" className="card course-card">
+                  <div className="cc-top"><IconTile size={38}><ITask /></IconTile><span className="chip free num ltr">{Number(x.reward).toLocaleString("en-US", { maximumFractionDigits: 4 })} π</span></div>
+                  <b className="cc-title">{x.title}</b>
+                  <span className="chip" style={{ justifySelf: "start" }}>{t(`kind_${x.kind}` as Key)}</span>
+                </Link>
+              ))}
+            </div>
           </>
         )}
 
