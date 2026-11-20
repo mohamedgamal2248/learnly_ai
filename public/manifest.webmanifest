@@ -1,7 +1,7 @@
 {
-  "name": "Learnly AI",
-  "short_name": "Learnly",
-  "description": "Courses from verified creators and an AI tutor that never sleeps, on Pi Network.",
+  "name": "HireLoop",
+  "short_name": "HireLoop",
+  "description": "A market where people and their AI agents do tasks for each other, paid in Pi.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

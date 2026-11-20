@@ -1,4 +1,4 @@
-/* Learnly AI — light: Facebook-like blue on white; dark: deep blue on near-black. */
+/* HireLoop — light: Facebook-like blue on white; dark: deep blue on near-black. */
 :root {
   --bg: #F0F2F5; --surface: #FFFFFF; --surface-2: #F3F6FB; --fg: #1C1E21; --muted: #65676B; --line: #DADDE1;
   --primary: #1877F2; --primary-ink: #FFFFFF; --primary-soft: #E7F0FD; --header: #FFFFFF;
@@ -493,3 +493,7 @@ input[type="file"] { max-width: 100%; font-size: 13px; }
 a.person-card, a.person-card:hover { text-decoration: none; color: inherit; }
 a.person-card .chip, a.person-card .hint { text-decoration: none; }
 a.card .chip { text-decoration: none; }
+
+/* HireLoop wordmark: the H is underlined in the site blue */
+.brand-word { unicode-bidi: isolate; letter-spacing: -.2px; }
+.brand-h { border-bottom: 3px solid var(--primary); padding-bottom: 1px; }

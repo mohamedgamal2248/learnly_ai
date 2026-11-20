@@ -8,7 +8,7 @@ export const PRIVACY: Record<"ar" | "en", Doc> = {
   ar: {
     title: "سياسة الخصوصية", updated: UPDATED.ar,
     sections: [
-      { h: "مين إحنا", p: ["Learnly AI منصة تعليم بالذكاء الاصطناعي للكبار (+18) جوه منظومة Pi Network. صنّاع الكورسات بيعملوا بوتات وكورسات، والمتعلّمين بيتعلّموا منها."] },
+      { h: "مين إحنا", p: ["HireLoop سوق مهام وناس للكبار (+18) جوه منظومة Pi Network: بتنشر مهمة أو بتنفّذها بنفسك أو بالـAI agent بتاعك، وبتعمل ملف شخصي ومعرض أعمال، وبتتفاوض وتدفع بعملة Pi. الفلوس بتتحجز لحد ما الشغل يتسلّم ويتقبّل."] },
       { h: "البيانات اللي بنجمعها", p: [
         "اسم المستخدم في Pi ومعرّفه، عشان تسجيل الدخول. ما بنطلبش ولا بنخزّن عبارة المرور (Passphrase) أو أي مفتاح خاص.",
         "رصيد الكريدت وسجل المشتريات والمدفوعات (رقم الدفع ومعاملة البلوكتشين).",
@@ -27,7 +27,7 @@ export const PRIVACY: Record<"ar" | "en", Doc> = {
   en: {
     title: "Privacy Policy", updated: UPDATED.en,
     sections: [
-      { h: "Who we are", p: ["Learnly AI is an AI learning platform for adults (18+) in the Pi Network ecosystem. Course creators build bots and courses; learners learn from them."] },
+      { h: "Who we are", p: ["HireLoop is a market of tasks and people for adults (18+) in the Pi Network ecosystem: you post a task or do tasks yourself or with your own AI agent, build a profile and portfolio, negotiate and pay in Pi. The money is held until the work is delivered and accepted."] },
       { h: "Data we collect", p: [
         "Your Pi username and user id, for sign-in. We never ask for or store your wallet passphrase or any private key.",
         "Your credit balance and purchase/payment records (payment id and blockchain transaction).",
@@ -49,7 +49,7 @@ export const TERMS: Record<"ar" | "en", Doc> = {
   ar: {
     title: "شروط الاستخدام", updated: UPDATED.ar,
     sections: [
-      { h: "الموافقة", p: ["استخدامك لـ Learnly AI معناه موافقتك على الشروط دي وعلى شروط Pi Network. لازم يكون سنك ١٨ سنة أو أكتر."] },
+      { h: "الموافقة", p: ["استخدامك لـ HireLoop معناه موافقتك على الشروط دي وعلى شروط Pi Network. لازم يكون سنك ١٨ سنة أو أكتر."] },
       { h: "الكريدت والمدفوعات", p: [
         "الكريدت وحدة استخدام جوه المنصة بتتشحن بعملة Pi بسعر السوق وقت الشراء. مش عملة ولا استثمار وما بتتحوّلش لفلوس.",
         "كل رسالة بتتخصم حسب تكلفتها الفعلية؛ بنحجز الحد الأقصى قبل الرد ونرجّع الفرق بعده. البحث في الإنترنت وقراءة الملفات وإنشاء الملفات ليهم تكلفة إضافية بتظهر قبلها.",
@@ -62,14 +62,14 @@ export const TERMS: Record<"ar" | "en", Doc> = {
       ] },
       { h: "الاستخدام المقبول", p: ["ممنوع: الغش في امتحانات رسمية، النصب، طلب عبارات المرور، المحتوى المسيء أو غير القانوني، محاولة اختراق المنصة أو استنزاف خدماتها، والإعلانات المزعجة في المجتمع."] },
       { h: "حدود الذكاء الاصطناعي", p: ["ردود الذكاء الاصطناعي ممكن تغلط. هي للتعليم بس ومش نصيحة طبية أو قانونية أو مالية. اتأكد من المعلومات المهمة من مصادرها."] },
-      { h: "الشهادات", p: ["الشهادات بتثبت إنك خلّصت كورس على Learnly AI، وليها رابط تحقق عام. مش شهادة أكاديمية معتمدة إلا لو صانع الكورس جهة معتمدة."] },
+      { h: "الشهادات", p: ["الشهادات بتثبت إنك خلّصت كورس على HireLoop، وليها رابط تحقق عام. مش شهادة أكاديمية معتمدة إلا لو صانع الكورس جهة معتمدة."] },
       { h: "الإيقاف والتعديل", p: ["ممكن نوقف أي حساب بيخالف الشروط. ممكن نعدّل الشروط، وهنعلن عن أي تعديل مهم جوه المنصة."] },
     ],
   },
   en: {
     title: "Terms of Use", updated: UPDATED.en,
     sections: [
-      { h: "Agreement", p: ["By using Learnly AI you agree to these terms and to Pi Network's terms. You must be 18 or older."] },
+      { h: "Agreement", p: ["By using HireLoop you agree to these terms and to Pi Network's terms. You must be 18 or older."] },
       { h: "Credits and payments", p: [
         "Credits are an in-app usage unit bought with Pi at the market rate at purchase time. They are not a currency or investment and can't be cashed out.",
         "Each message is charged by its actual cost: we reserve the maximum before replying and refund the difference after. Web search, reading files and creating files cost extra, shown beforehand.",
@@ -82,7 +82,7 @@ export const TERMS: Record<"ar" | "en", Doc> = {
       ] },
       { h: "Acceptable use", p: ["Not allowed: cheating in official exams, scams, asking for passphrases, abusive or illegal content, attempts to break into or drain the platform, and spam in the community."] },
       { h: "AI limits", p: ["AI answers can be wrong. They are for education only and are not medical, legal or financial advice. Check important facts at their source."] },
-      { h: "Certificates", p: ["Certificates prove you completed a course on Learnly AI, and each has a public verification link. They are not accredited degrees unless the creator is an accredited body."] },
+      { h: "Certificates", p: ["Certificates prove you completed a course on HireLoop, and each has a public verification link. They are not accredited degrees unless the creator is an accredited body."] },
       { h: "Suspension and changes", p: ["We may suspend accounts that break these terms. We may update the terms and will announce important changes in the app."] },
     ],
   },

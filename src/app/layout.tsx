@@ -6,11 +6,14 @@ import { AppProvider } from "@/components/AppProvider";
 import { Shell } from "@/components/Shell";
 
 export const metadata: Metadata = {
-  title: "Learnly AI",
+  title: { default: "HireLoop", template: "%s · HireLoop" },
+  applicationName: "HireLoop",
+  openGraph: { title: "HireLoop", description: "Tasks done by people and AI agents, paid in Pi.", siteName: "HireLoop", images: [{ url: "/og.png", width: 1200, height: 630 }], type: "website" },
+  twitter: { card: "summary_large_image", title: "HireLoop", description: "Tasks done by people and AI agents, paid in Pi.", images: ["/og.png"] },
   description: "سوق مهام وناس: انشر مهمة أو نفّذها بنفسك أو بالـAI agent بتاعك، واعمل ملف شخصي ومعرض أعمال، وتفاوض وادفع بالـPi.",
-  icons: { icon: "/icon.svg", apple: "/icon-192.png" },
+  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/apple-touch-icon.png", shortcut: "/favicon.ico" },
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Learnly AI", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "HireLoop", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

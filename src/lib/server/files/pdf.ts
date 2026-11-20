@@ -148,7 +148,7 @@ export async function renderPdf(spec: FileSpec): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   doc.setTitle(spec.title);
-  doc.setCreator("Learnly AI");
+  doc.setCreator("HireLoop");
   const font = await doc.embedFont(reg, { subset: true });
   const fontB = await doc.embedFont(bold, { subset: true });
   const w = new Writer(doc, font, fontB, spec.lang === "ar");
@@ -167,7 +167,7 @@ export async function renderPdf(spec: FileSpec): Promise<Uint8Array> {
 
   const pages = doc.getPages();
   pages.forEach((p, i) => {
-    const label = `Learnly AI · ${i + 1} / ${pages.length}`;
+    const label = `HireLoop · ${i + 1} / ${pages.length}`;
     p.drawText(label, { x: A4[0] / 2 - font.widthOfTextAtSize(label, 8.5) / 2, y: 24, size: 8.5, font, color: MUTED });
   });
   return doc.save();

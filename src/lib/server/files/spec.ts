@@ -19,7 +19,7 @@ export function normalizeSpec(raw: unknown): FileSpec | null {
   const r = raw as Record<string, unknown>;
   const format = r.format as FileSpec["format"];
   if (!["pdf", "docx", "pptx", "xlsx"].includes(format)) return null;
-  const title = str(r.title, 120) || "Learnly";
+  const title = str(r.title, 120) || "HireLoop";
   const lang: FileSpec["lang"] = r.lang === "en" ? "en" : "ar";
 
   const sections: Section[] = arr<any>(r.sections, 60).map((s) => ({

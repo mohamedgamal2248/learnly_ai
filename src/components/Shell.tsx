@@ -9,6 +9,7 @@ import { BuyModal } from "./BuyModal";
 import { ITask, IChatB, IClose, IDashboard, IHome, IMenu, IMoon, IPerson, ISun, IUsers, IWallet } from "./Icons";
 
 import { BRAND } from "@/lib/brand";
+import { Brand } from "./Brand";
 
 export function Shell({ children }: { children: ReactNode }) {
   const { t, ui, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, buyOpen } = useApp();
@@ -49,7 +50,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <button className="icon-btn" aria-label={t("menu")} aria-expanded={open} aria-controls="drawer" onClick={() => setOpen(true)}>
             <IMenu />
           </button>
-          <Link className="brand" href="/" aria-label={BRAND}><span>{BRAND}</span></Link>
+          <Link className="brand" href="/" aria-label={BRAND}><Brand /></Link>
           <div className="spacer" />
           {user ? (
             <Link className="credit-btn" href="/wallet" aria-label={t("nWallet")}>

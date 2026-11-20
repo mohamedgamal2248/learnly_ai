@@ -19,7 +19,7 @@ export function TopUp({ onDone }: { onDone: (balance?: number) => void }) {
     setBusy(true);
     if (!(await ensurePiAuth(p))) { setBusy(false); toast(t("payErr")); return; }
     p.createPayment(
-      { amount: Math.round(v * 1e7) / 1e7, memo: "Learnly AI balance", metadata: { deposit: true } },
+      { amount: Math.round(v * 1e7) / 1e7, memo: "HireLoop balance", metadata: { deposit: true } },
       {
         onReadyForServerApproval: async (paymentId) => {
           const r = await post("/api/pi/approve", { paymentId });

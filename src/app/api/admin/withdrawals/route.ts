@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   const amount = Math.floor((Number(w.pi) - NETWORK_FEE) * 1e7) / 1e7;
   if (!(amount > 0)) { await set("failed", { note: "amount_too_small" }); return fail("send_failed", 400, { detail: "amount_too_small" }); }
   try {
-    const txid = await sendDirect(w.address, amount, `Learnly payout`);
+    const txid = await sendDirect(w.address, amount, `HireLoop payout`);
     await set("sending", { txid });
     await set("sent");
     return json({ ok: true, txid });

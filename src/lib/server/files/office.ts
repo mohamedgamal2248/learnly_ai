@@ -48,7 +48,7 @@ export async function renderDocx(spec: FileSpec): Promise<Uint8Array> {
       children.push(new Paragraph({ children: [] }));
     }
   }
-  const doc = new Document({ creator: "Learnly AI", title: spec.title, sections: [{ children }] });
+  const doc = new Document({ creator: "HireLoop", title: spec.title, sections: [{ children }] });
   return new Uint8Array(await Packer.toBuffer(doc));
 }
 
@@ -59,14 +59,14 @@ export async function renderPptx(spec: FileSpec): Promise<Uint8Array> {
   pptx.layout = "LAYOUT_WIDE";
   pptx.rtlMode = rtl;
   pptx.title = spec.title;
-  pptx.author = "Learnly AI";
+  pptx.author = "HireLoop";
   const font = rtl ? "Arial" : "Calibri";
   const align = rtl ? "right" : "left";
 
   const cover = pptx.addSlide();
   cover.background = { color: BLUE };
   cover.addText(spec.title, { x: 0.8, y: 2.4, w: 11.7, h: 1.6, fontFace: font, fontSize: 40, bold: true, color: "FFFFFF", align, rtlMode: rtl });
-  cover.addText("Learnly AI", { x: 0.8, y: 4.2, w: 11.7, h: 0.6, fontFace: font, fontSize: 18, color: "DCE8FD", align, rtlMode: rtl });
+  cover.addText("HireLoop", { x: 0.8, y: 4.2, w: 11.7, h: 0.6, fontFace: font, fontSize: 18, color: "DCE8FD", align, rtlMode: rtl });
 
   spec.slides.forEach((s, i) => {
     const slide = pptx.addSlide();
@@ -89,7 +89,7 @@ export async function renderPptx(spec: FileSpec): Promise<Uint8Array> {
 /* ---------- Excel ---------- */
 export async function renderXlsx(spec: FileSpec): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Learnly AI";
+  wb.creator = "HireLoop";
   wb.title = spec.title;
   const used = new Set<string>();
   for (const sh of spec.sheets) {

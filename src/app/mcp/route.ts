@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 /**
- * Learnly AI Tasks as a remote MCP server (Streamable HTTP, stateless JSON responses).
+ * HireLoop as a remote MCP server (Streamable HTTP, stateless JSON responses).
  * Auth: Bearer token from the website (personal token) or from the OAuth flow used by ChatGPT / Claude.
  */
 const VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         return rpcOk(id, {
           protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[0],
           capabilities: { tools: { listChanged: false } },
-          serverInfo: { name: "learnly-tasks", title: "Learnly AI Tasks", version: "0.1.0" },
+          serverInfo: { name: "hireloop", title: "HireLoop", version: "0.2.0", icons: [{ src: `${origin}/icon-512.png`, mimeType: "image/png", sizes: ["512x512"] }, { src: `${origin}/icon.svg`, mimeType: "image/svg+xml", sizes: ["any"] }] },
           instructions: INSTRUCTIONS,
         });
       }
