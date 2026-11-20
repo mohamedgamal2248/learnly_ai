@@ -1,0 +1,29 @@
+"use client";
+
+import Link from "next/link";
+import { useApp } from "./AppProvider";
+import { courseText, piFmt, type CourseCard } from "@/lib/courses";
+
+export function CourseCards({ courses }: { courses: CourseCard[] }) {
+  const { t, lang } = useApp();
+  return (
+    <div className="course-grid stagger">
+      {courses.map((c) => {
+        const ct = courseText(c, lang);
+        return (
+          <Link key={c.id} href={`/course?id=${c.id}`} className="card course-card">
+            <div className="cc-top">
+              <span className="cc-ico" aria-hidden="true">📚</span>
+              <span className={`chip ${Number(c.price_pi) > 0 ? "v" : "free"} num`}>{Number(c.price_pi) > 0 ? piFmt(c.price_pi) : t("free")}</span>
+            </div>
+            <b className="cc-title">{ct.title}</b>
+            {ct.description && <p className="cc-desc">{ct.description}</p>}
+            <div className="cc-meta hint num">
+              <span>{t("lessonsN", { n: c.lessons })}</span><span>·</span><span>{t("studentsN", { n: c.students })}</span><span>·</span><span className="ltr">@{c.creator}</span>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

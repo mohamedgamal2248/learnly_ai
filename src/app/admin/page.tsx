@@ -32,7 +32,7 @@ type BotRow = {
 const L = {
   ar: {
     title: "صفحة الأدمن", forbidden: "الصفحة دي للأدمن بس.",
-    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (كريدت)",
+    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", tCourses: "الكورسات", crNone: "مفيش كورسات", crPublish: "انشر", crReject: "ارفض", crPause: "وقّف", crView: "معاينة", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (كريدت)",
     revenue: "الإيرادات", revenueSub: "اللي المستخدمين دفعوه بالباي ({n} عملية)",
     aiCost: "اتصرف على الـAI (Meta)", aiCostSub: "التكلفة الحقيقية لكل الرسايل لحد دلوقتي",
     gross: "الكاش بعد تكلفة الـAI", grossSub: "الإيرادات ناقص تكلفة الـAI",
@@ -59,7 +59,7 @@ const L = {
   },
   en: {
     title: "Admin", forbidden: "This page is for admins only.",
-    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (credits)",
+    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", tCourses: "Courses", crNone: "No courses", crPublish: "Publish", crReject: "Reject", crPause: "Pause", crView: "Preview", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (credits)",
     revenue: "Revenue", revenueSub: "What users paid in Pi ({n} payments)",
     aiCost: "Spent on AI (Meta)", aiCostSub: "Real cost of every message so far",
     gross: "Cash after AI cost", grossSub: "Revenue minus AI cost",
@@ -86,7 +86,7 @@ const L = {
   },
 };
 type LKey = keyof typeof L.ar;
-type Tab = "fin" | "users" | "bots" | "req" | "wd" | "rep" | "set";
+type Tab = "fin" | "users" | "bots" | "courses" | "req" | "wd" | "rep" | "set";
 
 export default function AdminPage() {
   const { user, ready, lang } = useApp();
@@ -100,7 +100,7 @@ export default function AdminPage() {
   if (!ready) return <div className="skeleton" style={{ height: 160 }} />;
   if (user?.role !== "admin") return <div className="card empty">{tr("forbidden")}</div>;
 
-  const tabs: [Tab, LKey][] = [["fin", "tFin"], ["users", "tUsers"], ["bots", "tBots"], ["req", "tReq"], ["wd", "tWd"], ["rep", "tRep"], ["set", "tSet"]];
+  const tabs: [Tab, LKey][] = [["fin", "tFin"], ["users", "tUsers"], ["bots", "tBots"], ["courses", "tCourses"], ["req", "tReq"], ["wd", "tWd"], ["rep", "tRep"], ["set", "tSet"]];
   return (
     <div className="grid">
       <div className="card"><h1 style={{ fontSize: 20 }}>{tr("title")}</h1></div>
@@ -115,6 +115,7 @@ export default function AdminPage() {
         {tab === "bots" && <BotsTab tr={tr} only={null} />}
         {tab === "req" && <RequestsTab tr={tr} />}
         {tab === "wd" && <WithdrawalsTab tr={tr} />}
+        {tab === "courses" && <CoursesTab tr={tr} />}
         {tab === "rep" && <ReportsTab tr={tr} />}
         {tab === "set" && <SettingsTab tr={tr} />}
       </div>
@@ -379,6 +380,45 @@ function RequestsTab({ tr }: { tr: Tr }) {
       ))}
       <div className="sec-h"><h2>{tr("review")}</h2></div>
       <BotsTab tr={tr} only="review" />
+    </div>
+  );
+}
+
+type AdminCourse = { id: string; title: string; title_en: string; creator: string; price_pi: number; lessons: number; status: string; students: number };
+function CoursesTab({ tr }: { tr: Tr }) {
+  const { toast } = useApp();
+  const [list, setList] = useState<AdminCourse[] | null>(null);
+  const load = useCallback(async () => {
+    const r = await fetch("/api/admin/courses", { credentials: "include" });
+    setList(r.ok ? (await r.json()).courses : []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  async function setStatus(id: string, status: string) {
+    const r = await post("/api/admin/courses", { id, status });
+    toast(r.ok ? tr("done") : tr("err"));
+    load();
+  }
+  if (!list) return <div className="skeleton" style={{ height: 120 }} />;
+  if (!list.length) return <div className="card empty">{tr("crNone")}</div>;
+  return (
+    <div className="grid">
+      {list.map((c) => (
+        <div key={c.id} className="card" style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <b>{c.title || c.title_en}</b>
+            <span className="chip">{c.status}</span>
+            <span className="chip num">{Number(c.price_pi) > 0 ? `${Number(c.price_pi)} π` : "free"}</span>
+            <span className="chip num">{c.lessons} · {c.students}</span>
+            <span className="hint ltr">@{c.creator}</span>
+          </div>
+          <div className="row-actions">
+            <Link className="btn sm" href={`/course?id=${c.id}`}>{tr("crView")}</Link>
+            {c.status !== "live" && <button className="btn primary sm" onClick={() => setStatus(c.id, "live")}>{tr("crPublish")}</button>}
+            {c.status === "review" && <button className="btn danger sm" onClick={() => setStatus(c.id, "rejected")}>{tr("crReject")}</button>}
+            {c.status === "live" && <button className="btn danger sm" onClick={() => setStatus(c.id, "paused")}>{tr("crPause")}</button>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

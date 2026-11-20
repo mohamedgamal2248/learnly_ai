@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Earnings } from "@/components/Earnings";
+import { CourseManager } from "@/components/CourseManager";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { post } from "@/lib/pi-client";
@@ -108,6 +109,7 @@ export default function TeachPage() {
               })}
             </div>
           )}
+          <CourseManager bots={data.bots.map((b) => ({ id: b.id, name: b.name || b.name_en }))} />
         </>
       )}
       <Guide />

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { CourseCards } from "@/components/CourseCards";
+import type { CourseCard } from "@/lib/courses";
 import { IBook, IBriefcase, ICap, ICode, ILang, ISearch, IShield, IUsers, IBot } from "@/components/Icons";
 import { botText, lastBotId, loadBots, TRACK_KEYS, type BotInfo } from "@/lib/bots";
 
@@ -21,11 +23,13 @@ export default function Home() {
   const [track, setTrack] = useState<string>("all");
   const [q, setQ] = useState("");
   const [resumeId, setResumeId] = useState<string | null>(null);
+  const [courses, setCourses] = useState<CourseCard[] | null>(null);
   const [stats, setStats] = useState<{ learners: number; bots: number; creators: number; messages: number } | null>(null);
 
   useEffect(() => {
     loadBots().then(setBots).catch(() => setBots([]));
     setResumeId(lastBotId());
+    fetch("/api/courses").then((r) => r.json()).then((d) => setCourses(d.courses || [])).catch(() => setCourses([]));
     fetch("/api/stats").then((r) => r.json()).then(setStats).catch(() => {});
   }, []);
 
@@ -70,6 +74,15 @@ export default function Home() {
               <div key={n} className="card how-step"><span className="how-n num">{n}</span><b>{t(h)}</b><span className="muted small">{t(sub)}</span></div>
             ))}
           </section>
+        )}
+
+        {courses && courses.length > 0 && (
+          <>
+            <div className="sec-h" style={{ display: "flex", alignItems: "center" }}>
+              <h2 style={{ flex: 1 }}>{t("coursesTitle")}</h2><Link href="/courses" className="small md-link">{t("more")}</Link>
+            </div>
+            <CourseCards courses={courses.slice(0, 4)} />
+          </>
         )}
 
         <div className="sec-h"><h2>{t("tracks")}</h2></div>
