@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppProvider } from "@/components/AppProvider";
 import { Shell } from "@/components/Shell";
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProvider>
           <Shell>{children}</Shell>
         </AppProvider>
+        <Analytics />
       </body>
     </html>
   );
