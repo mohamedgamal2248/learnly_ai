@@ -12,7 +12,7 @@ export function TopUp({ onDone }: { onDone: (balance?: number) => void }) {
   const [amt, setAmt] = useState("1");
   const [busy, setBusy] = useState(false);
   const v = Number(amt.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[٫,]/g, "."));
-  const ok = v >= 0.1 && v <= 100;
+  const ok = v >= 0.1 && v <= 100000;
   async function go() {
     const p = await waitForPi();
     if (!p) { toast(t("openInPi")); return; }
@@ -39,7 +39,7 @@ export function TopUp({ onDone }: { onDone: (balance?: number) => void }) {
     <div className="card" style={{ display: "grid", gap: 8 }}>
       <b>{t("tkTopUp")}</b>
       <p className="hint">{t("tkTopUpHint")}</p>
-      <div className="chips">{[0.5, 1, 5, 10].map((n) => <button key={n} className={`chip${v === n ? " v" : ""}`} onClick={() => setAmt(String(n))} disabled={busy}>{n} π</button>)}</div>
+      <div className="chips">{[1, 5, 10, 50, 100].map((n) => <button key={n} className={`chip${v === n ? " v" : ""}`} onClick={() => setAmt(String(n))} disabled={busy}>{n} π</button>)}</div>
       <div className="earn-form">
         <input className="input ltr" inputMode="decimal" value={amt} onChange={(x) => setAmt(x.target.value.replace(/[^\d٠-٩.,٫]/g, ""))} aria-label={t("tkReward")} />
         <span className="num earn-pi">π</span>

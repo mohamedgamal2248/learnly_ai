@@ -1,4 +1,4 @@
-import { rpc, setLimitsCache, type Limits } from "@/lib/server/db";
+import { getLimits, rpc, setLimitsCache, type Limits } from "@/lib/server/db";
 import { fail, json, requireUser } from "@/lib/server/http";
 
 export const runtime = "nodejs";
@@ -7,7 +7,14 @@ const NUM: Record<string, [number, number]> = {
   markup: [1.5, 20], welcome_credits: [0, 1000], free_daily_msgs: [0, 500],
   daily_budget_usd: [0, 1000], max_reserve: [20, 2000], file_fee: [0, 200],
   max_per_minute: [1, 60], daily_credit_cap: [50, 1_000_000], min_withdraw_pi: [0.1, 1000],
+  task_fee_pct: [0, 60], new_worker_done: [0, 50], new_worker_max_pi: [0.05, 50], mcp_post_daily_pi: [0.05, 50],
 };
+
+export async function GET(req: Request) {
+  const a = await requireUser(req, ["admin"]);
+  if (a instanceof Response) return a;
+  return json({ config: await getLimits(true) });
+}
 
 export async function POST(req: Request) {
   const a = await requireUser(req, ["admin"]);

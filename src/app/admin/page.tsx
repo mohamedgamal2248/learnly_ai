@@ -5,94 +5,211 @@ import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { post } from "@/lib/pi-client";
 
-type Overview = {
-  config: Record<string, number | boolean>;
-  today: { cost_usd?: number; credits?: number; msgs?: number };
-  users: number; paid_users: number;
-  apps: { id: string; username: string; display_name: string; subjects: string; bio: string; years: number; doc_name: string | null; has_doc: boolean }[];
-  reported: { id: number; username: string; body: string; reports: number }[];
-};
-type Finance = {
-  raw: { payments: number; credits_sold: number; credits_welcome: number; credits_spent: number; msgs_total: number;
-    days: { day: string; cost_usd: number; msgs: number }[]; revenue_days: { day: string; pi: number; usd: number }[] };
-  summary: { revenue_usd: number; revenue_pi: number; ai_cost_usd: number; gross_usd: number; teachers_credits: number;
-    teachers_usd: number; outstanding_credits: number; outstanding_cost_usd: number; net_usd: number; topup_30d_usd: number; avg_daily_cost_usd: number };
-  rate: number | null; credit_usd: number; markup: number;
-};
-type UserRow = {
-  id: string; username: string; role: string; credits: number; earned: number; paid: boolean; banned: boolean;
-  pi_paid: number; usd_paid: number; credits_bought: number; credits_spent: number; ai_cost: number; teacher_cut: number; charges: number; bots: number;
-};
-type BotRow = {
-  id: string; name: string; name_en: string; subject: string; subject_en: string; status: string; official: boolean; fee: number;
-  teacher_name: string | null; description: string; description_en: string; instructions: string; knowledge_chars: number;
-  files: { name: string; chars: number }[]; chats: number; messages: number; credits_charged: number; ai_cost: number; teacher_credits: number;
-};
-
 const L = {
   ar: {
-    title: "صفحة الأدمن", forbidden: "الصفحة دي للأدمن بس.",
-    tDisp: "نزاعات المهام", dpNone: "مفيش نزاعات مفتوحة", dpWorker: "ادفع للمنفّذ", dpRequester: "الرفض صح", dpSplit: "قسّم النص بالنص", dpReject: "سبب الرفض", dpWorkerSays: "كلام المنفّذ", dpResult: "الشغل المسلّم", dpDone: "اتحسم ✓",
-    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", tCourses: "الكورسات", grantTitle: "إضافة أرباح Pi لمستخدم", grantHint: "بتتضاف لرصيد أرباحه بالـPi، وتقدر تجرّب بيها السحب. أقصى حاجة ١٠٠٠ Pi في المرة.", grantUser: "اسم المستخدم", grantAmount: "المبلغ (Pi)", grantBtn: "أضف", grantDone: "اتضاف ✓ رصيده دلوقتي", grantNotFound: "المستخدم ده مش موجود", crNone: "مفيش كورسات", crPublish: "انشر", crReject: "ارفض", crPause: "وقّف", crView: "معاينة", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (Pi)",
-    revenue: "الإيرادات", revenueSub: "اللي المستخدمين دفعوه بالباي ({n} عملية)",
-    aiCost: "اتصرف على الـAI (Meta)", aiCostSub: "التكلفة الحقيقية لكل الرسايل لحد دلوقتي",
-    gross: "الكاش بعد تكلفة الـAI", grossSub: "الإيرادات ناقص تكلفة الـAI",
-    teachers: "اتحوّل لصنّاع الكورسات", teachersSub: "{n} كريدت نزلت في رصيدهم تلقائيًا",
-    outstanding: "كريدت لسه مع المستخدمين", outstandingSub: "تكلفة خدمتهم المتوقعة {v}",
-    net: "صافي ربحك", netSub: "بعد تكلفة الـAI وخصم تكلفة الكريدت اللي لسه ما اتصرفش",
-    topup: "اشحن حساب Meta بحوالي", topupSub: "يكفي 30 يوم (متوسط آخر 7 أيام × 30 + 20% أمان + الكريدت المعلّق)",
-    rate: "سعر PI النهارده: ${r} · الكريدت = ${c} · الهامش ×{m}", noRate: "سعر PI مش متاح دلوقتي",
-    chartCost: "تكلفة الـAI اليومية (آخر 30 يوم)", chartRev: "الإيرادات اليومية بالباي (آخر 30 يوم)",
-    credits: "كريدت", msgs: "رسالة", noData: "مفيش بيانات لسه.",
-    search: "دوّر باسم المستخدم", user: "المستخدم", balance: "الرصيد", paid: "دفع", spent: "صرف", cost: "كلّف", profit: "ربحك منه",
-    earned: "كسب (صانع كورس)", bots: "بوتات", ban: "إيقاف", unban: "رجّعه", banned: "موقوف", prev: "السابق", next: "التالي",
-    status_live: "منشور", status_review: "مستني مراجعة", status_paused: "متوقف", status_rejected: "مرفوض", status_draft: "مسودة",
-    publish: "انشر", pause: "وقّف", reject: "ارفض", chats: "محادثات", charged: "اتحصّل", teacherGot: "صانع الكورس خد",
-    details: "التفاصيل", files: "ملفات المادة", instructions: "التعليمات", try: "جرّب", official: "رسمي",
-    apps: "طلبات صنّاع الكورسات", noApps: "مفيش طلبات مستنية.", viewDoc: "عرض المستند", approve: "موافقة", reasonPh: "سبب الرفض (اختياري)",
-    review: "بوتات ودروس مستنية موافقتك", noReview: "مفيش حاجة مستنية.", years: "{n} سنة خبرة",
-    reported: "بوستات عليها بلاغات", noReported: "مفيش بلاغات.", hide: "إخفاء", keep: "إبقاء",
-    killFree: "إيقاف الـAI لغير الدافعين", save: "احفظ", saved: "اتحفظ", done: "اتسجّل", err: "حصلت مشكلة",
-    lMarkup: "هامش الربح على تكلفة الـAI (×)", lWelcome: "كريدت الترحيب", lFreeMsgs: "رسايل يومية لغير الدافعين",
-    lBudget: "ميزانية الـAI اليومية لغير الدافعين ($)", lReserve: "أقصى حجز للرسالة (كريدت)", lFileFee: "رسوم إنشاء ملف (كريدت)",
-    lPerMin: "أقصى رسايل في الدقيقة لكل مستخدم", lDayCap: "أقصى كريدت يصرفه أي مستخدم في اليوم",
-    today: "النهارده", usersN: "مستخدم", paidN: "دفعوا",
+    grantTitle: "إضافة أرباح Pi لمستخدم",
+    grantHint: "بتتضاف لرصيد أرباحه بالـPi، وتقدر تجرّب بيها السحب. أقصى حاجة ١٠٠٠ Pi في المرة.",
+    grantUser: "اسم المستخدم",
+    grantAmount: "المبلغ (Pi)",
+    grantBtn: "أضف",
+    grantDone: "اتضاف ✓ رصيده دلوقتي",
+    grantNotFound: "المستخدم ده مش موجود",
+    wdNone: "مفيش طلبات سحب",
+    wdApprove: "ابعت Pi",
+    wdReject: "ارفض",
+    wdRetry: "كمّل الإرسال",
+    wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.",
+    wdSent: "اتبعت ✓",
+    wdStatus_pending: "مستني",
+    wdStatus_sending: "بيتبعت",
+    wdStatus_sent: "اتبعت",
+    wdStatus_rejected: "مرفوض",
+    wdStatus_failed: "فشل",
+    done: "اتسجّل",
+    err: "حصلت مشكلة",
+    save: "احفظ",
+    saved: "اتحفظ",
+    search: "دوّر باسم المستخدم",
+    prev: "السابق",
+    next: "التالي",
+    ban: "إيقاف",
+    unban: "رجّعه",
+    banned: "موقوف",
+    noData: "مفيش بيانات لسه.",
+    forbidden: "الصفحة دي للأدمن بس.",
+    title: "صفحة الأدمن",
+    tMarket: "نظرة عامة",
+    tTasks: "المهام",
+    tDisp: "النزاعات",
+    tUsers: "المستخدمين",
+    tWd: "السحب والرصيد",
+    tSet: "الإعدادات",
+    mUsers: "المستخدمين",
+    mUsersSub: "{n} جدد آخر ٧ أيام",
+    mProfiles: "ملفات شخصية",
+    mProfilesSub: "{n} عمل في المعارض",
+    mVolume: "حجم المهام المقبولة",
+    mVolumeSub: "{n} مهمة اتقبلت",
+    mFees: "عمولة الموقع",
+    mFeesSub: "اللي فاضل بعد دفع المنفّذين",
+    mHeld: "محجوز في مهام شغّالة",
+    mHeldSub: "فلوس ما اتسلّمتش لحد دلوقتي",
+    mDeposits: "اتشحن بالباي",
+    mDepositsSub: "{n} عملية شحن",
+    mBalances: "أرصدة المستخدمين",
+    mBalancesSub: "اتسحب {n} π لحد دلوقتي",
+    mOpen: "مهام مفتوحة",
+    mOpenSub: "{a} شغّالة · {b} مستنية قبول",
+    mDeals: "مفاوضات مفتوحة",
+    mDealsSub: "{n} اتفاق اتقفل",
+    mDisp: "نزاعات مستنية قرارك",
+    mWd: "طلبات سحب مستنية",
+    mViaMcp: "مهام من الـAI agents",
+    chartVol: "حجم المهام المقبولة يومياً بالباي (آخر ١٤ يوم)",
+    chartDep: "الشحن اليومي بالباي (آخر ١٤ يوم)",
+    tkAll: "الكل",
+    tkTitle: "المهمة",
+    tkReq: "صاحب الطلب",
+    tkWorker: "المنفّذ",
+    tkReward: "المكافأة",
+    tkStatus: "الحالة",
+    tkCancel: "الغي وارجّع الفلوس",
+    tkNone: "مفيش مهام",
+    tkS_open: "مفتوحة",
+    tkS_claimed: "اتاخدت",
+    tkS_submitted: "اتسلّمت",
+    tkS_approved: "اتقبلت",
+    tkS_cancelled: "اتلغت",
+    tkDraft: "مسودة",
+    uPiBal: "الرصيد",
+    uPiEarned: "أرباح",
+    uWithdrawn: "اتسحب",
+    uDeposited: "اتشحن",
+    uPosted: "نشر",
+    uDone: "نفّذ",
+    uRating: "التقييم",
+    uProfile: "ملف",
+    sFee: "عمولة الموقع على المهام (٪)",
+    sNewDone: "مهام مقبولة تخرّج المنفّذ من حدود الجدد",
+    sNewMax: "أقصى مكافأة للمنفّذ الجديد (Pi)",
+    sMcpCap: "الحد اليومي الافتراضي لنشر الـAI (Pi)",
+    sMinWd: "أقل سحب (Pi)",
+    dpTitle: "النزاعات",
+    dpNone: "مفيش نزاعات مفتوحة",
+    dpWorker: "ادفع للمنفّذ",
+    dpRequester: "الرفض صح",
+    dpSplit: "قسّم النص بالنص",
+    dpReject: "سبب الرفض",
+    dpWorkerSays: "كلام المنفّذ",
+    dpResult: "الشغل المسلّم",
+    dpDone: "اتحسم ✓",
   },
   en: {
-    title: "Admin", forbidden: "This page is for admins only.",
-    tDisp: "Task disputes", dpNone: "No open disputes", dpWorker: "Pay the worker", dpRequester: "Rejection stands", dpSplit: "Split 50/50", dpReject: "Rejection reason", dpWorkerSays: "Worker says", dpResult: "Delivered work", dpDone: "Decided ✓",
-    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", tCourses: "Courses", grantTitle: "Add Pi earnings to a user", grantHint: "Added to their Pi earnings balance so you can test withdrawals. Up to 1000 Pi at a time.", grantUser: "Username", grantAmount: "Amount (Pi)", grantBtn: "Add", grantDone: "Added ✓ Their balance is now", grantNotFound: "User not found", crNone: "No courses", crPublish: "Publish", crReject: "Reject", crPause: "Pause", crView: "Preview", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (Pi)",
-    revenue: "Revenue", revenueSub: "What users paid in Pi ({n} payments)",
-    aiCost: "Spent on AI (Meta)", aiCostSub: "Real cost of every message so far",
-    gross: "Cash after AI cost", grossSub: "Revenue minus AI cost",
-    teachers: "Paid to course creators", teachersSub: "{n} credits added to their balances automatically",
-    outstanding: "Credits users still hold", outstandingSub: "Expected cost to serve them {v}",
-    net: "Your net profit", netSub: "After AI cost and the expected cost of unspent credits",
-    topup: "Top up your Meta account with about", topupSub: "Covers 30 days (last 7 days' average × 30 + 20% buffer + unspent credits)",
-    rate: "PI today: ${r} · 1 credit = ${c} · margin ×{m}", noRate: "PI price unavailable right now",
-    chartCost: "Daily AI cost (last 30 days)", chartRev: "Daily revenue in Pi (last 30 days)",
-    credits: "credits", msgs: "messages", noData: "No data yet.",
-    search: "Search by username", user: "User", balance: "Balance", paid: "Paid", spent: "Spent", cost: "Cost", profit: "Your profit",
-    earned: "Earned (creator)", bots: "Bots", ban: "Suspend", unban: "Restore", banned: "Suspended", prev: "Previous", next: "Next",
-    status_live: "Live", status_review: "In review", status_paused: "Paused", status_rejected: "Rejected", status_draft: "Draft",
-    publish: "Publish", pause: "Pause", reject: "Reject", chats: "chats", charged: "Charged", teacherGot: "Creator got",
-    details: "Details", files: "Course files", instructions: "Instructions", try: "Try it", official: "Official",
-    apps: "Course creator applications", noApps: "No pending applications.", viewDoc: "View document", approve: "Approve", reasonPh: "Rejection reason (optional)",
-    review: "Bots and lessons waiting for you", noReview: "Nothing waiting.", years: "{n} years",
-    reported: "Reported posts", noReported: "No reports.", hide: "Hide", keep: "Keep",
-    killFree: "Stop AI for non-paying users", save: "Save", saved: "Saved", done: "Done", err: "Something went wrong",
-    lMarkup: "Margin on AI cost (×)", lWelcome: "Welcome credits", lFreeMsgs: "Daily messages for non-paying users",
-    lBudget: "Daily AI budget for non-paying users ($)", lReserve: "Max reserve per message (credits)", lFileFee: "File creation fee (credits)",
-    lPerMin: "Max messages per minute per user", lDayCap: "Max credits any user can spend per day",
-    today: "Today", usersN: "users", paidN: "paying",
+    grantTitle: "Add Pi earnings to a user",
+    grantHint: "Added to their Pi earnings balance so you can test withdrawals. Up to 1000 Pi at a time.",
+    grantUser: "Username",
+    grantAmount: "Amount (Pi)",
+    grantBtn: "Add",
+    grantDone: "Added ✓ Their balance is now",
+    grantNotFound: "User not found",
+    wdNone: "No withdrawal requests",
+    wdApprove: "Send Pi",
+    wdReject: "Reject",
+    wdRetry: "Finish sending",
+    wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.",
+    wdSent: "Sent ✓",
+    wdStatus_pending: "Pending",
+    wdStatus_sending: "Sending",
+    wdStatus_sent: "Sent",
+    wdStatus_rejected: "Rejected",
+    wdStatus_failed: "Failed",
+    done: "Done",
+    err: "Something went wrong",
+    save: "Save",
+    saved: "Saved",
+    search: "Search by username",
+    prev: "Previous",
+    next: "Next",
+    ban: "Suspend",
+    unban: "Restore",
+    banned: "Suspended",
+    noData: "No data yet.",
+    forbidden: "This page is for admins only.",
+    title: "Admin",
+    tMarket: "Overview",
+    tTasks: "Tasks",
+    tDisp: "Disputes",
+    tUsers: "Users",
+    tWd: "Withdrawals",
+    tSet: "Settings",
+    mUsers: "Users",
+    mUsersSub: "{n} new in the last 7 days",
+    mProfiles: "Public profiles",
+    mProfilesSub: "{n} portfolio items",
+    mVolume: "Approved task volume",
+    mVolumeSub: "{n} tasks approved",
+    mFees: "Site fees",
+    mFeesSub: "What is left after workers are paid",
+    mHeld: "Held in running tasks",
+    mHeldSub: "Money not delivered yet",
+    mDeposits: "Added with Pi",
+    mDepositsSub: "{n} top-ups",
+    mBalances: "User balances",
+    mBalancesSub: "{n} π withdrawn so far",
+    mOpen: "Open tasks",
+    mOpenSub: "{a} in progress · {b} waiting approval",
+    mDeals: "Open negotiations",
+    mDealsSub: "{n} deals agreed",
+    mDisp: "Disputes waiting for you",
+    mWd: "Withdrawal requests waiting",
+    mViaMcp: "Tasks from AI agents",
+    chartVol: "Approved task volume per day in Pi (last 14 days)",
+    chartDep: "Top-ups per day in Pi (last 14 days)",
+    tkAll: "All",
+    tkTitle: "Task",
+    tkReq: "Requester",
+    tkWorker: "Worker",
+    tkReward: "Reward",
+    tkStatus: "Status",
+    tkCancel: "Cancel and refund",
+    tkNone: "No tasks",
+    tkS_open: "Open",
+    tkS_claimed: "Taken",
+    tkS_submitted: "Delivered",
+    tkS_approved: "Approved",
+    tkS_cancelled: "Cancelled",
+    tkDraft: "Draft",
+    uPiBal: "Balance",
+    uPiEarned: "Earned",
+    uWithdrawn: "Withdrawn",
+    uDeposited: "Deposited",
+    uPosted: "Posted",
+    uDone: "Done",
+    uRating: "Rating",
+    uProfile: "Profile",
+    sFee: "Site fee on tasks (%)",
+    sNewDone: "Approved tasks that end the new-worker limits",
+    sNewMax: "Max reward for a new worker (Pi)",
+    sMcpCap: "Default daily AI posting cap (Pi)",
+    sMinWd: "Minimum withdrawal (Pi)",
+    dpTitle: "Disputes",
+    dpNone: "No open disputes",
+    dpWorker: "Pay the worker",
+    dpRequester: "Rejection stands",
+    dpSplit: "Split 50/50",
+    dpReject: "Rejection reason",
+    dpWorkerSays: "Worker says",
+    dpResult: "Delivered work",
+    dpDone: "Decided ✓",
   },
 };
 type LKey = keyof typeof L.ar;
-type Tab = "fin" | "users" | "bots" | "courses" | "req" | "wd" | "disp" | "rep" | "set";
+type Tab = "market" | "tasks" | "disp" | "users" | "wd" | "set";
+type Tr = (k: LKey, v?: Record<string, string | number>) => string;
 
 export default function AdminPage() {
   const { user, ready, lang } = useApp();
-  const [tab, setTab] = useState<Tab>("fin");
+  const [tab, setTab] = useState<Tab>("market");
   const tr = useCallback((k: LKey, v?: Record<string, string | number>) => {
     let s: string = L[lang][k];
     if (v) for (const [a, b] of Object.entries(v)) s = s.replaceAll(`{${a}}`, String(b));
@@ -102,7 +219,7 @@ export default function AdminPage() {
   if (!ready) return <div className="skeleton" style={{ height: 160 }} />;
   if (user?.role !== "admin") return <div className="card empty">{tr("forbidden")}</div>;
 
-  const tabs: [Tab, LKey][] = [["fin", "tFin"], ["users", "tUsers"], ["bots", "tBots"], ["courses", "tCourses"], ["req", "tReq"], ["wd", "tWd"], ["disp", "tDisp"], ["rep", "tRep"], ["set", "tSet"]];
+  const tabs: [Tab, LKey][] = [["market", "tMarket"], ["tasks", "tTasks"], ["disp", "tDisp"], ["users", "tUsers"], ["wd", "tWd"], ["set", "tSet"]];
   return (
     <div className="grid">
       <div className="card"><h1 style={{ fontSize: 20 }}>{tr("title")}</h1></div>
@@ -112,30 +229,23 @@ export default function AdminPage() {
         ))}
       </div>
       <div key={tab} className="page">
-        {tab === "fin" && <FinanceTab tr={tr} />}
-        {tab === "users" && <UsersTab tr={tr} />}
-        {tab === "bots" && <BotsTab tr={tr} only={null} />}
-        {tab === "req" && <RequestsTab tr={tr} />}
-        {tab === "wd" && <WithdrawalsTab tr={tr} />}
+        {tab === "market" && <MarketTab tr={tr} />}
+        {tab === "tasks" && <TasksTab tr={tr} />}
         {tab === "disp" && <DisputesTab tr={tr} />}
-        {tab === "courses" && <CoursesTab tr={tr} />}
-        {tab === "rep" && <ReportsTab tr={tr} />}
+        {tab === "users" && <UsersTab tr={tr} />}
+        {tab === "wd" && <WithdrawalsTab tr={tr} />}
         {tab === "set" && <SettingsTab tr={tr} />}
       </div>
     </div>
   );
 }
 
-type Tr = (k: LKey, v?: Record<string, string | number>) => string;
-
 function useFmt() {
   const { lang } = useApp();
   const loc = lang === "ar" ? "ar-EG" : "en-US";
-  return {
-    n: (v: number, d = 0) => Number(v || 0).toLocaleString(loc, { maximumFractionDigits: d }),
-    usd: (v: number) => `$${Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: v !== 0 && Math.abs(v) < 1 ? 4 : 2 })}`,
-  };
+  return { n: (v: number, d = 0) => Number(v || 0).toLocaleString(loc, { maximumFractionDigits: d }) };
 }
+const piF = (v: number | string) => `${Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 4 })} π`;
 
 function Kpi({ label, value, sub, tone }: { label: string; value: React.ReactNode; sub?: string; tone?: "ok" | "bad" | "info" }) {
   return (
@@ -147,73 +257,108 @@ function Kpi({ label, value, sub, tone }: { label: string; value: React.ReactNod
   );
 }
 
-function Bars({ data, label, value }: { data: { day: string; v: number }[]; label: string; value: (v: number) => string }) {
+function Bars({ data, label }: { data: { day: string; v: number }[]; label: string }) {
   const max = Math.max(0.000001, ...data.map((d) => d.v));
   return (
     <div className="card">
       <div className="small" style={{ fontWeight: 600, marginBottom: 10 }}>{label}</div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 110, direction: "ltr" }}>
-        {data.map((d) => (
-          <div key={d.day} title={`${d.day}: ${value(d.v)}`} style={{ flex: 1, minWidth: 3, height: `${Math.max(2, (d.v / max) * 100)}%`, background: "var(--primary)", borderRadius: "3px 3px 0 0", opacity: 0.85 }} />
-        ))}
+        {data.map((d) => <div key={d.day} title={`${d.day}: ${piF(d.v)}`} style={{ flex: 1, minWidth: 3, height: `${Math.max(2, (d.v / max) * 100)}%`, background: "var(--primary)", borderRadius: "3px 3px 0 0", opacity: 0.85 }} />)}
       </div>
-      <div className="hint ltr" style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span>{data[0]?.day.slice(5)}</span><span>{value(max)}</span><span>{data[data.length - 1]?.day.slice(5)}</span>
-      </div>
+      <div className="hint ltr" style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}><span>{data[0]?.day.slice(5)}</span><span>{piF(max)}</span><span>{data[data.length - 1]?.day.slice(5)}</span></div>
     </div>
   );
 }
 
-function FinanceTab({ tr }: { tr: Tr }) {
-  const [f, setF] = useState<Finance | null>(null);
-  const { n, usd } = useFmt();
-  useEffect(() => { fetch("/api/admin/finance", { credentials: "include", cache: "no-store" }).then((r) => r.json()).then(setF).catch(() => {}); }, []);
-  if (!f) return <div className="skeleton" style={{ height: 200 }} />;
-  const s = f.summary;
-  const pi = (v: number) => (f.rate ? `${n(v / f.rate, 2)} π` : "—");
-  const both = (v: number) => <>{usd(v)} <span className="hint">· {pi(v)}</span></>;
+type Market = {
+  users: number; new_7d: number; profiles: number; portfolio: number; volume_pi: number; fees_pi: number; held_pi: number; deposits_pi: number; deposits_n: number;
+  balances_pi: number; withdrawn_pi: number; pending_withdrawals: number; disputes_open: number; deals_open: number; deals_accepted: number;
+  tasks: { open: number; claimed: number; submitted: number; approved: number; cancelled: number; via_mcp: number; via_deal: number };
+  by_day: { day: string; volume: number; deposits: number }[];
+};
+function MarketTab({ tr }: { tr: Tr }) {
+  const [m, setM] = useState<Market | null>(null);
+  const { n } = useFmt();
+  useEffect(() => { fetch("/api/admin/market", { credentials: "include", cache: "no-store" }).then((r) => r.json()).then(setM).catch(() => {}); }, []);
+  if (!m) return <div className="skeleton" style={{ height: 200 }} />;
   return (
     <div className="grid">
-      <p className="hint">{f.rate ? tr("rate", { r: f.rate.toFixed(4), c: f.credit_usd, m: f.markup }) : tr("noRate")}</p>
-      <div className="kpis stagger">
-        <Kpi label={tr("revenue")} value={<>{n(s.revenue_pi, 4)} π <span className="hint">· {usd(s.revenue_usd)}</span></>} sub={tr("revenueSub", { n: n(f.raw.payments) })} />
-        <Kpi label={tr("aiCost")} value={both(s.ai_cost_usd)} sub={tr("aiCostSub")} />
-        <Kpi label={tr("gross")} value={both(s.gross_usd)} sub={tr("grossSub")} />
-        <Kpi label={tr("teachers")} value={both(s.teachers_usd)} sub={tr("teachersSub", { n: n(s.teachers_credits) })} />
-        <Kpi label={tr("outstanding")} value={<>{n(s.outstanding_credits)} {tr("credits")}</>} sub={tr("outstandingSub", { v: usd(s.outstanding_cost_usd) })} />
-        <Kpi label={tr("net")} value={both(s.net_usd)} sub={tr("netSub")} tone={s.net_usd >= 0 ? "ok" : "bad"} />
-        <Kpi label={tr("topup")} value={both(s.topup_30d_usd)} sub={tr("topupSub")} tone="info" />
-        <Kpi label={tr("msgs")} value={n(f.raw.msgs_total)} sub={`${n(f.raw.credits_spent)} ${tr("credits")}`} />
+      <div className="kpis">
+        <Kpi label={tr("mVolume")} value={piF(m.volume_pi)} sub={tr("mVolumeSub", { n: m.tasks.approved })} tone="ok" />
+        <Kpi label={tr("mFees")} value={piF(m.fees_pi)} sub={tr("mFeesSub")} tone="info" />
+        <Kpi label={tr("mHeld")} value={piF(m.held_pi)} sub={tr("mHeldSub")} />
+        <Kpi label={tr("mDeposits")} value={piF(m.deposits_pi)} sub={tr("mDepositsSub", { n: m.deposits_n })} />
+        <Kpi label={tr("mBalances")} value={piF(m.balances_pi)} sub={tr("mBalancesSub", { n: n(m.withdrawn_pi, 2) })} />
+        <Kpi label={tr("mOpen")} value={n(m.tasks.open)} sub={tr("mOpenSub", { a: m.tasks.claimed, b: m.tasks.submitted })} />
+        <Kpi label={tr("mUsers")} value={n(m.users)} sub={tr("mUsersSub", { n: m.new_7d })} />
+        <Kpi label={tr("mProfiles")} value={n(m.profiles)} sub={tr("mProfilesSub", { n: m.portfolio })} />
+        <Kpi label={tr("mDeals")} value={n(m.deals_open)} sub={tr("mDealsSub", { n: m.deals_accepted })} />
+        <Kpi label={tr("mViaMcp")} value={n(m.tasks.via_mcp)} />
+        <Kpi label={tr("mDisp")} value={n(m.disputes_open)} tone={m.disputes_open ? "bad" : undefined} />
+        <Kpi label={tr("mWd")} value={n(m.pending_withdrawals)} tone={m.pending_withdrawals ? "bad" : undefined} />
       </div>
-      {f.raw.days.length ? (
-        <Bars label={tr("chartCost")} data={f.raw.days.map((d) => ({ day: d.day, v: Number(d.cost_usd) }))} value={usd} />
-      ) : <div className="card empty">{tr("noData")}</div>}
-      {f.raw.revenue_days.length > 0 && (
-        <Bars label={tr("chartRev")} data={f.raw.revenue_days.map((d) => ({ day: d.day, v: Number(d.pi) }))} value={(v) => `${n(v, 2)} π`} />
-      )}
+      <Bars data={m.by_day.map((d) => ({ day: d.day, v: Number(d.volume) }))} label={tr("chartVol")} />
+      <Bars data={m.by_day.map((d) => ({ day: d.day, v: Number(d.deposits) }))} label={tr("chartDep")} />
     </div>
   );
 }
 
+type AT = { id: string; title: string; category: string; status: string; draft: boolean; source: string; reward: number; paid: number | null; requester: string; worker: string | null; rating: number | null; created_at: string };
+function TasksTab({ tr }: { tr: Tr }) {
+  const { toast } = useApp();
+  const [status, setStatus] = useState("");
+  const [list, setList] = useState<AT[] | null>(null);
+  const load = useCallback(async () => {
+    setList(null);
+    const r = await fetch(`/api/admin/tasks?status=${status}`, { credentials: "include", cache: "no-store" });
+    setList(r.ok ? (await r.json()).list : []);
+  }, [status]);
+  useEffect(() => { load(); }, [load]);
+  async function cancel(id: string) {
+    const r = await post("/api/admin/tasks", { id });
+    toast(r.ok ? tr("done") : tr("err")); load();
+  }
+  return (
+    <div className="grid">
+      <div className="chips">
+        {["", "open", "claimed", "submitted", "approved", "cancelled"].map((s) => (
+          <button key={s} className={`pill${status === s ? " on" : ""}`} onClick={() => setStatus(s)}>{s ? tr(`tkS_${s}` as LKey) : tr("tkAll")}</button>
+        ))}
+      </div>
+      {!list ? <div className="skeleton" style={{ height: 160 }} /> : !list.length ? <div className="card empty">{tr("tkNone")}</div> : list.map((t) => (
+        <div key={t.id} className="card" style={{ display: "grid", gap: 6 }}>
+          <div className="chips" style={{ flexWrap: "wrap" }}>
+            <span className="chip">{tr(`tkS_${t.status}` as LKey)}</span>
+            {t.draft && <span className="chip warn">{tr("tkDraft")}</span>}
+            <span className="chip">{t.category}</span>
+            <span className="chip num ltr">{piF(t.reward)}</span>
+            {t.source !== "web" && <span className="chip v">{t.source}</span>}
+          </div>
+          <b style={{ fontSize: 15 }}>{t.title}</b>
+          <span className="hint ltr">@{t.requester}{t.worker ? ` → @${t.worker}` : ""}{t.rating ? ` · ${"★".repeat(t.rating)}` : ""}</span>
+          {["open", "claimed", "submitted"].includes(t.status) && <button className="btn danger sm" style={{ justifySelf: "start" }} onClick={() => cancel(t.id)}>{tr("tkCancel")}</button>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type UserRow = { id: string; username: string; role: string; banned: boolean; pi_balance: number; pi_earned: number; pi_withdrawn: number; deposited: number; posted: number; done: number; avg_rating: number | null; has_profile: boolean };
 function UsersTab({ tr }: { tr: Tr }) {
   const { toast } = useApp();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
   const [data, setData] = useState<{ total: number; rows: UserRow[] } | null>(null);
-  const [cu, setCu] = useState(0.001);
-  const { n, usd } = useFmt();
+  const { n } = useFmt();
   const load = useCallback(async () => {
     const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}&page=${page}`, { credentials: "include", cache: "no-store" });
     if (r.ok) setData(await r.json());
   }, [q, page]);
   useEffect(() => { const id = setTimeout(load, 250); return () => clearTimeout(id); }, [load]);
-  useEffect(() => { fetch("/api/admin/finance", { credentials: "include" }).then((r) => r.json()).then((f) => setCu(f.credit_usd)).catch(() => {}); }, []);
-
   async function ban(u: UserRow) {
     const r = await post("/api/admin/decide", { kind: "ban", id: u.id, banned: !u.banned });
     if (r.ok) { toast(tr("done")); load(); } else toast(tr("err"));
   }
-
   return (
     <div className="grid">
       <label className="search" style={{ marginTop: 0 }}>
@@ -221,37 +366,33 @@ function UsersTab({ tr }: { tr: Tr }) {
       </label>
       {!data ? <div className="skeleton" style={{ height: 200 }} /> : (
         <div className="card" style={{ overflowX: "auto", padding: 0 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 820 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 760 }}>
             <thead>
-              <tr style={{ textAlign: "start", color: "var(--muted)" }}>
-                {(["user", "balance", "paid", "spent", "cost", "profit", "earned", "bots", ""] as (LKey | "")[]).map((k, i) => (
+              <tr style={{ color: "var(--muted)" }}>
+                {(["uProfile", "uPiBal", "uPiEarned", "uWithdrawn", "uDeposited", "uPosted", "uDone", "uRating", ""] as (LKey | "")[]).map((k, i) => (
                   <th key={i} style={{ padding: "10px 12px", textAlign: "start", fontWeight: 600, borderBottom: "1px solid var(--line)" }}>{k ? tr(k) : ""}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {data.rows.map((u) => {
-                const profit = u.credits_spent * cu - u.ai_cost - u.teacher_cut * cu;
-                return (
-                  <tr key={u.id} style={{ borderBottom: "1px solid var(--line)" }}>
-                    <td style={{ padding: "10px 12px" }}>
-                      <b className="ltr">@{u.username}</b>{" "}
-                      {u.role !== "user" && <span className="chip v">{u.role}</span>}{" "}
-                      {u.banned && <span className="chip bad">{tr("banned")}</span>}
-                    </td>
-                    <td className="num" style={{ padding: "10px 12px" }}>{n(u.credits)}</td>
-                    <td className="num ltr" style={{ padding: "10px 12px", textAlign: "start" }}>{u.pi_paid ? `${n(u.pi_paid, 4)} π` : "—"}</td>
-                    <td className="num" style={{ padding: "10px 12px" }}>{n(u.credits_spent)}</td>
-                    <td className="num ltr" style={{ padding: "10px 12px", textAlign: "start" }}>{usd(u.ai_cost)}</td>
-                    <td className="num ltr" style={{ padding: "10px 12px", textAlign: "start", color: profit >= 0 ? "var(--ok)" : "var(--danger)" }}>{usd(profit)}</td>
-                    <td className="num" style={{ padding: "10px 12px" }}>{u.earned ? n(u.earned) : "—"}</td>
-                    <td className="num" style={{ padding: "10px 12px" }}>{u.bots || "—"}</td>
-                    <td style={{ padding: "10px 12px" }}>
-                      {u.role !== "admin" && <button className={`btn sm ${u.banned ? "" : "danger"}`} onClick={() => ban(u)}>{u.banned ? tr("unban") : tr("ban")}</button>}
-                    </td>
-                  </tr>
-                );
-              })}
+              {data.rows.map((u) => (
+                <tr key={u.id} style={{ borderBottom: "1px solid var(--line)" }}>
+                  <td style={{ padding: "10px 12px" }}>
+                    <Link className="ltr" href={`/u?name=${encodeURIComponent(u.username)}`}><b>@{u.username}</b></Link>{" "}
+                    {u.role !== "user" && <span className="chip v">{u.role}</span>}{" "}
+                    {u.has_profile && <span className="chip free">✓</span>}{" "}
+                    {u.banned && <span className="chip bad">{tr("banned")}</span>}
+                  </td>
+                  <td className="num ltr" style={{ padding: "10px 12px", textAlign: "start" }}>{piF(u.pi_balance)}</td>
+                  <td className="num ltr" style={{ padding: "10px 12px", textAlign: "start" }}>{piF(u.pi_earned)}</td>
+                  <td className="num ltr" style={{ padding: "10px 12px", textAlign: "start" }}>{piF(u.pi_withdrawn)}</td>
+                  <td className="num ltr" style={{ padding: "10px 12px", textAlign: "start" }}>{u.deposited ? piF(u.deposited) : "—"}</td>
+                  <td className="num" style={{ padding: "10px 12px" }}>{n(u.posted)}</td>
+                  <td className="num" style={{ padding: "10px 12px" }}>{n(u.done)}</td>
+                  <td className="num" style={{ padding: "10px 12px" }}>{u.avg_rating ? `★ ${u.avg_rating}` : "—"}</td>
+                  <td style={{ padding: "10px 12px" }}>{u.role !== "admin" && <button className={`btn sm ${u.banned ? "" : "danger"}`} onClick={() => ban(u)}>{u.banned ? tr("unban") : tr("ban")}</button>}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
           {!data.rows.length && <div className="empty">{tr("noData")}</div>}
@@ -268,160 +409,29 @@ function UsersTab({ tr }: { tr: Tr }) {
   );
 }
 
-function BotsTab({ tr, only }: { tr: Tr; only: string | null }) {
-  const { lang, toast } = useApp();
-  const [bots, setBots] = useState<BotRow[] | null>(null);
-  const [cu, setCu] = useState(0.001);
-  const [open, setOpen] = useState<string | null>(null);
-  const { n, usd } = useFmt();
-  const load = useCallback(async () => {
-    const [b, f] = await Promise.all([
-      fetch("/api/admin/bots", { credentials: "include", cache: "no-store" }).then((r) => r.json()),
-      fetch("/api/admin/finance", { credentials: "include" }).then((r) => r.json()).catch(() => null),
-    ]);
-    setBots(b.bots || []);
-    if (f?.credit_usd) setCu(f.credit_usd);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  async function setStatus(id: string, status: string) {
-    const r = await post("/api/admin/decide", { kind: "bot_status", id, status });
-    if (r.ok) { toast(tr("done")); load(); } else toast(tr("err"));
-  }
-
-  if (!bots) return <div className="skeleton" style={{ height: 200 }} />;
-  const list = only ? bots.filter((b) => b.status === only) : bots;
-  if (!list.length) return <div className="card empty">{only ? tr("noReview") : tr("noData")}</div>;
-  const chip: Record<string, string> = { live: "free", review: "warn", paused: "bad", rejected: "bad" };
-
-  return (
-    <div className="grid stagger">
-      {list.map((b) => {
-        const name = (lang === "en" ? b.name_en : b.name) || b.name || b.name_en;
-        const subject = (lang === "en" ? b.subject_en : b.subject) || b.subject;
-        const profit = b.credits_charged * cu - b.ai_cost - b.teacher_credits * cu;
-        return (
-          <div key={b.id} className="card" style={{ display: "grid", gap: 10 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <b>{name}</b>
-              <span className={`chip ${chip[b.status] || ""}`}>{tr(`status_${b.status}` as LKey)}</span>
-              {b.official && <span className="chip v">{tr("official")}</span>}
-              <span className="chip">{subject}</span>
-              {b.teacher_name && !b.official && <span className="chip">{b.teacher_name}</span>}
-              {b.fee > 0 && <span className="chip num">+{b.fee} / {tr("msgs")}</span>}
-            </div>
-            <div className="meta">
-              <span className="chip num">{n(b.chats)} {tr("chats")}</span>
-              <span className="chip num">{n(b.messages)} {tr("msgs")}</span>
-              <span className="chip num">{tr("charged")}: {n(b.credits_charged)}</span>
-              <span className="chip num ltr">{tr("cost")}: {usd(b.ai_cost)}</span>
-              <span className="chip num">{tr("teacherGot")}: {n(b.teacher_credits)}</span>
-              <span className={`chip num ltr ${profit >= 0 ? "free" : "bad"}`}>{tr("profit")}: {usd(profit)}</span>
-            </div>
-            {open === b.id && (
-              <div className="grid" style={{ gap: 8, animation: "rise .25s both" }}>
-                {b.description && <p className="small">{b.description}</p>}
-                {b.description_en && <p className="small ltr" style={{ textAlign: "start" }}>{b.description_en}</p>}
-                {b.instructions && <div><b className="small">{tr("instructions")}</b><p className="small muted" style={{ whiteSpace: "pre-wrap" }}>{b.instructions}</p></div>}
-                <div>
-                  <b className="small">{tr("files")}</b>
-                  <div className="meta" style={{ marginTop: 4 }}>
-                    {b.files.length ? b.files.map((f, i) => <span key={i} className="chip">{f.name} · <span className="num">{n(f.chars)}</span></span>) : <span className="hint">—</span>}
-                  </div>
-                </div>
-              </div>
-            )}
-            <div className="row-actions">
-              <button className="btn sm" onClick={() => setOpen(open === b.id ? null : b.id)}>{tr("details")}</button>
-              <Link className="btn sm" href={`/chat?b=${b.id}`}>{tr("try")}</Link>
-              {b.status !== "live" && <button className="btn ok sm" onClick={() => setStatus(b.id, "live")}>{tr("publish")}</button>}
-              {b.status === "live" && !b.official && <button className="btn sm" onClick={() => setStatus(b.id, "paused")}>{tr("pause")}</button>}
-              {b.status === "review" && <button className="btn danger sm" onClick={() => setStatus(b.id, "rejected")}>{tr("reject")}</button>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function useOverview() {
-  const [o, setO] = useState<Overview | null>(null);
-  const load = useCallback(async () => {
-    const r = await fetch("/api/admin/overview", { credentials: "include", cache: "no-store" });
-    if (r.ok) setO(await r.json());
-  }, []);
-  useEffect(() => { load(); }, [load]);
-  return { o, load };
-}
-
-function RequestsTab({ tr }: { tr: Tr }) {
+const FIELDS: [string, LKey, string][] = [["task_fee_pct", "sFee", "1"], ["new_worker_done", "sNewDone", "1"], ["new_worker_max_pi", "sNewMax", "0.05"], ["mcp_post_daily_pi", "sMcpCap", "0.05"], ["min_withdraw_pi", "sMinWd", "0.1"]];
+const DEFAULTS: Record<string, number> = { task_fee_pct: 20, new_worker_done: 3, new_worker_max_pi: 1, mcp_post_daily_pi: 5, min_withdraw_pi: 1 };
+function SettingsTab({ tr }: { tr: Tr }) {
   const { toast } = useApp();
-  const { o, load } = useOverview();
-  const [reasons, setReasons] = useState<Record<string, string>>({});
-  async function decide(id: string, approve: boolean) {
-    const r = await post("/api/admin/decide", { kind: "app", id, approve, reason: reasons[id] });
-    if (r.ok) { toast(tr("done")); load(); } else toast(tr("err"));
+  const [cfg, setCfg] = useState<Record<string, number> | null>(null);
+  useEffect(() => { fetch("/api/admin/config", { credentials: "include", cache: "no-store" }).then((r) => r.json()).then((d) => setCfg({ ...DEFAULTS, ...(d.config || {}) })).catch(() => setCfg(DEFAULTS)); }, []);
+  if (!cfg) return <div className="skeleton" style={{ height: 160 }} />;
+  async function save() {
+    const body: Record<string, number> = {};
+    for (const [k] of FIELDS) body[k] = Number(cfg![k]);
+    const r = await post("/api/admin/config", body);
+    if (r.ok) { setCfg({ ...DEFAULTS, ...r.data.config }); toast(tr("saved")); } else toast(`${tr("err")} ${r.data?.field ?? ""}`);
   }
   return (
-    <div className="grid">
-      <div className="sec-h" style={{ marginTop: 0 }}><h2>{tr("apps")}</h2></div>
-      {!o ? <div className="skeleton" style={{ height: 120 }} /> : o.apps.length === 0 ? <div className="card empty">{tr("noApps")}</div> : o.apps.map((a) => (
-        <div key={a.id} className="card" style={{ display: "grid", gap: 8 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <b>{a.display_name}</b><span className="chip ltr">@{a.username}</span><span className="chip">{tr("years", { n: a.years })}</span>
-          </div>
-          <p className="small"><b>{a.subjects}</b></p>
-          <p className="small muted" style={{ whiteSpace: "pre-wrap" }}>{a.bio}</p>
-          {a.has_doc && <a className="link" href={`/api/admin/doc/${a.id}`} target="_blank" rel="noopener noreferrer">{tr("viewDoc")} · {a.doc_name}</a>}
-          <input className="input" placeholder={tr("reasonPh")} value={reasons[a.id] || ""} onChange={(e) => setReasons({ ...reasons, [a.id]: e.target.value })} aria-label={tr("reasonPh")} />
-          <div className="row-actions">
-            <button className="btn ok sm" onClick={() => decide(a.id, true)}>{tr("approve")}</button>
-            <button className="btn danger sm" onClick={() => decide(a.id, false)}>{tr("reject")}</button>
-          </div>
-        </div>
-      ))}
-      <div className="sec-h"><h2>{tr("review")}</h2></div>
-      <BotsTab tr={tr} only="review" />
-    </div>
-  );
-}
-
-type AdminCourse = { id: string; title: string; title_en: string; creator: string; price_pi: number; lessons: number; status: string; students: number };
-function CoursesTab({ tr }: { tr: Tr }) {
-  const { toast } = useApp();
-  const [list, setList] = useState<AdminCourse[] | null>(null);
-  const load = useCallback(async () => {
-    const r = await fetch("/api/admin/courses", { credentials: "include" });
-    setList(r.ok ? (await r.json()).courses : []);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-  async function setStatus(id: string, status: string) {
-    const r = await post("/api/admin/courses", { id, status });
-    toast(r.ok ? tr("done") : tr("err"));
-    load();
-  }
-  if (!list) return <div className="skeleton" style={{ height: 120 }} />;
-  if (!list.length) return <div className="card empty">{tr("crNone")}</div>;
-  return (
-    <div className="grid">
-      {list.map((c) => (
-        <div key={c.id} className="card" style={{ display: "grid", gap: 8 }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <b>{c.title || c.title_en}</b>
-            <span className="chip">{c.status}</span>
-            <span className="chip num">{Number(c.price_pi) > 0 ? `${Number(c.price_pi)} π` : "free"}</span>
-            <span className="chip num">{c.lessons} · {c.students}</span>
-            <span className="hint ltr">@{c.creator}</span>
-          </div>
-          <div className="row-actions">
-            <Link className="btn sm" href={`/course?id=${c.id}`}>{tr("crView")}</Link>
-            {c.status !== "live" && <button className="btn primary sm" onClick={() => setStatus(c.id, "live")}>{tr("crPublish")}</button>}
-            {c.status === "review" && <button className="btn danger sm" onClick={() => setStatus(c.id, "rejected")}>{tr("crReject")}</button>}
-            {c.status === "live" && <button className="btn danger sm" onClick={() => setStatus(c.id, "paused")}>{tr("crPause")}</button>}
-          </div>
-        </div>
-      ))}
+    <div className="card" style={{ display: "grid", gap: 12 }}>
+      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+        {FIELDS.map(([k, label, step]) => (
+          <label key={k} className="field"><span>{tr(label)}</span>
+            <input className="input num" type="number" step={step} value={String(cfg[k] ?? "")} onChange={(e) => setCfg({ ...cfg, [k]: Number(e.target.value) })} />
+          </label>
+        ))}
+      </div>
+      <button className="btn primary" style={{ justifySelf: "start" }} onClick={save}>{tr("save")}</button>
     </div>
   );
 }
@@ -539,75 +549,3 @@ function GrantPi({ tr }: { tr: Tr }) {
   );
 }
 
-function ReportsTab({ tr }: { tr: Tr }) {
-  const { toast } = useApp();
-  const { o, load } = useOverview();
-  async function decide(id: number, keep: boolean) {
-    const r = await post("/api/admin/decide", { kind: "post", id, approve: keep });
-    if (r.ok) { toast(tr("done")); load(); } else toast(tr("err"));
-  }
-  if (!o) return <div className="skeleton" style={{ height: 120 }} />;
-  if (!o.reported.length) return <div className="card empty">{tr("noReported")}</div>;
-  return (
-    <div className="grid">
-      {o.reported.map((p) => (
-        <div key={p.id} className="card" style={{ display: "grid", gap: 8 }}>
-          <div><b className="ltr">@{p.username}</b> <span className="chip bad num">{p.reports}</span></div>
-          <p className="post-body small">{p.body}</p>
-          <div className="row-actions">
-            <button className="btn danger sm" onClick={() => decide(p.id, false)}>{tr("hide")}</button>
-            <button className="btn sm" onClick={() => decide(p.id, true)}>{tr("keep")}</button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const LIMIT_FIELDS: [string, LKey, number][] = [
-  ["markup", "lMarkup", 0.5], ["welcome_credits", "lWelcome", 10], ["free_daily_msgs", "lFreeMsgs", 1],
-  ["daily_budget_usd", "lBudget", 0.5], ["max_reserve", "lReserve", 10], ["file_fee", "lFileFee", 1],
-  ["max_per_minute", "lPerMin", 1], ["daily_credit_cap", "lDayCap", 100], ["min_withdraw_pi", "lMinWd", 0.1],
-];
-
-function SettingsTab({ tr }: { tr: Tr }) {
-  const { toast } = useApp();
-  const { o } = useOverview();
-  const { n, usd } = useFmt();
-  const [cfg, setCfg] = useState<Record<string, number | boolean>>({});
-  useEffect(() => { if (o) setCfg(o.config); }, [o]);
-  async function save(patch: Record<string, number | boolean>) {
-    const r = await post("/api/admin/config", patch);
-    if (r.ok) { setCfg(r.data.config); toast(tr("saved")); } else toast(`${tr("err")} ${r.data?.field ?? ""}`);
-  }
-  if (!o) return <div className="skeleton" style={{ height: 160 }} />;
-  const budget = Number(o.config.daily_budget_usd) || 1;
-  const cost = Number(o.today.cost_usd || 0);
-  return (
-    <div className="grid">
-      <div className="kpis">
-        <Kpi label={tr("today")} value={`${usd(cost)} / ${usd(budget)}`} sub={`${n(o.today.msgs || 0)} ${tr("msgs")}`} />
-        <Kpi label={tr("tUsers")} value={n(o.users)} sub={`${n(o.paid_users)} ${tr("paidN")}`} />
-      </div>
-      <div className="card" style={{ display: "grid", gap: 12 }}>
-        <label className="switch">
-          <span>{tr("killFree")}</span>
-          <input type="checkbox" id="kill_free" checked={!!cfg.kill_free} onChange={(e) => save({ kill_free: e.target.checked })} style={{ width: 22, height: 22 }} />
-        </label>
-        <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-          {LIMIT_FIELDS.map(([k, label, step]) => (
-            <label key={k} className="field"><span>{tr(label)}</span>
-              <input className="input num" id={`cfg-${k}`} type="number" step={step} value={String(cfg[k] ?? "")}
-                onChange={(e) => setCfg({ ...cfg, [k]: Number(e.target.value) })} />
-            </label>
-          ))}
-        </div>
-        <button className="btn primary" style={{ justifySelf: "start" }} onClick={() => {
-          const nums: Record<string, number> = {};
-          for (const [k] of LIMIT_FIELDS) nums[k] = Number(cfg[k]);
-          save(nums);
-        }}>{tr("save")}</button>
-      </div>
-    </div>
-  );
-}
