@@ -423,7 +423,7 @@ function CoursesTab({ tr }: { tr: Tr }) {
   );
 }
 
-type Wd = { id: string; username: string; pi: number; status: string; payment_id: string | null; txid: string | null; note: string | null; at: string };
+type Wd = { id: string; username: string; pi: number; sent: number | null; address: string | null; status: string; payment_id: string | null; txid: string | null; note: string | null; at: string };
 function WithdrawalsTab({ tr }: { tr: Tr }) {
   const { toast } = useApp();
   const [d, setD] = useState<{ list: Wd[]; ready: boolean } | null>(null);
@@ -454,6 +454,7 @@ function WithdrawalsTab({ tr }: { tr: Tr }) {
             <span className={`chip ${w.status === "sent" ? "free" : w.status === "failed" || w.status === "rejected" ? "bad" : "warn"}`}>{tr(`wdStatus_${w.status}` as LKey)}</span>
             <span className="hint num" style={{ marginInlineStart: "auto" }}>{new Date(w.at).toLocaleString()}</span>
           </div>
+          {w.address && <span className="hint ltr" style={{ overflowWrap: "anywhere" }}>→ {w.address}{w.sent != null ? ` · ${Number(w.sent).toLocaleString("en-US", { maximumFractionDigits: 4 })} π` : ""}</span>}
           {w.txid && <span className="hint ltr" style={{ overflowWrap: "anywhere" }}>tx: {w.txid}</span>}
           {w.note && <span className="hint" style={{ overflowWrap: "anywhere" }}>{w.note}</span>}
           {(w.status === "pending" || (w.status === "sending" && w.txid)) && (

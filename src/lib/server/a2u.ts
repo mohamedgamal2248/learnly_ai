@@ -1,5 +1,5 @@
 import "server-only";
-import { Asset, Keypair, Memo, Operation, TransactionBuilder, Account } from "@stellar/stellar-base";
+import { Asset, Keypair, Memo, Operation, StrKey, TransactionBuilder, Account } from "@stellar/stellar-base";
 import { env } from "./env";
 
 /**
@@ -53,6 +53,37 @@ export async function sendA2U(payment: { id: string; to: string }, amount: numbe
   });
   const out = await sub.json().catch(() => ({}));
   if (!sub.ok || !out.hash) throw new Error(`horizon_submit_${sub.status}: ${JSON.stringify(out?.extras?.result_codes || out).slice(0, 300)}`);
+  return out.hash as string;
+}
+
+/**
+ * Direct payout: sends Pi from the app wallet to a wallet address the user entered.
+ * The network fee (0.01 Pi) is taken out of the user's amount by the caller.
+ */
+export async function sendDirect(to: string, amount: number, memo: string) {
+  if (!StrKey.isValidEd25519PublicKey(to)) throw new Error("bad_address");
+  const net = NET[env.piNetwork as "testnet" | "mainnet"];
+  const dest = await fetch(`${net.horizon}/accounts/${to}`, { cache: "no-store" });
+  if (dest.status === 404) throw new Error("destination_not_active");
+  const kp = Keypair.fromSecret(env.piWalletSeed);
+  if (kp.publicKey() === to) throw new Error("same_wallet");
+  const accRes = await fetch(`${net.horizon}/accounts/${kp.publicKey()}`, { cache: "no-store" });
+  if (!accRes.ok) throw new Error(`app_wallet_${accRes.status}`);
+  const acc = await accRes.json();
+  const native = (acc.balances || []).find((b: any) => b.asset_type === "native");
+  if (native && Number(native.balance) < amount + 1.02) throw new Error("app_wallet_low_balance");
+  const tx = new TransactionBuilder(new Account(kp.publicKey(), acc.sequence), { fee: "100000", networkPassphrase: net.passphrase })
+    .addOperation(Operation.payment({ destination: to, asset: Asset.native(), amount: amount.toFixed(7) }))
+    .addMemo(Memo.text(memo.slice(0, 28)))
+    .setTimeout(180)
+    .build();
+  tx.sign(kp);
+  const sub = await fetch(`${net.horizon}/transactions`, {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ tx: tx.toXDR() }).toString(),
+  });
+  const out = await sub.json().catch(() => ({}));
+  if (!sub.ok || !out.hash) throw new Error(`horizon_submit_${sub.status}: ${JSON.stringify(out?.extras?.result_codes || out?.title || out).slice(0, 300)}`);
   return out.hash as string;
 }
 
