@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
 import { BuyModal } from "./BuyModal";
-import { IBot, IClose, IGear, IHome, IMenu, IMoon, IPlus, IShield, ISun, IUsers, ICap, Logo } from "./Icons";
+import { IBot, IClose, IGear, IHome, IMenu, IMoon, IPlus, IShield, ISun, IUsers, ICap } from "./Icons";
 
 export function Shell({ children }: { children: ReactNode }) {
   const { t, lang, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
@@ -36,7 +36,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <button className="icon-btn" aria-label={t("menu")} aria-expanded={open} aria-controls="drawer" onClick={() => setOpen(true)}>
             <IMenu />
           </button>
-          <Link className="brand" href="/" aria-label="Learnly AI"><Logo /><span>Learnly <b>AI</b></span></Link>
+          <Link className="brand" href="/" aria-label="Learnly AI"><span>Learnly <b>AI</b></span></Link>
           <div className="spacer" />
           <button className="credit-btn" onClick={() => (user ? openBuy() : login())} aria-label={t("credits")}>
             <IPlus width={16} height={16} strokeWidth={2.4} />

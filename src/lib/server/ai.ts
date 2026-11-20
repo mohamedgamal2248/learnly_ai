@@ -124,11 +124,11 @@ export const PROPOSE_BOT_TOOL = {
       properties: {
         name_ar: { type: "string" }, name_en: { type: "string" },
         subject_ar: { type: "string", description: "Subject and level, e.g. كيمياء — تالتة ثانوي" }, subject_en: { type: "string" },
-        description_ar: { type: "string", description: "1-2 sentences for students" }, description_en: { type: "string" },
+        description_ar: { type: "string", description: "1-2 sentences for learners" }, description_en: { type: "string" },
         track: { type: "string", enum: ["school", "uni", "job", "code", "lang", "academy"] },
         instructions: { type: "string", description: "Teaching instructions for the bot: audience, level, style, what to focus on, what to avoid. 80-200 words." },
         fee: { type: "integer", description: "Suggested credits per message for the teacher, 0-10" },
-        starters_ar: { type: "array", items: { type: "string" }, description: "3 example questions a student could ask" },
+        starters_ar: { type: "array", items: { type: "string" }, description: "3 example questions a learner could ask" },
       },
       required: ["name_ar", "name_en", "subject_ar", "subject_en", "description_ar", "description_en", "track", "instructions"],
     },
@@ -159,7 +159,7 @@ export const CREATE_FILE_TOOL = {
   function: {
     name: "create_file",
     description:
-      "Create a downloadable file for the student: a PDF or Word document (use sections), a PowerPoint deck (use slides), or an Excel workbook (use sheets). Call it only when the student asks for a file. Write the content in the student's language.",
+      "Create a downloadable file for the learner: a PDF or Word document (use sections), a PowerPoint deck (use slides), or an Excel workbook (use sheets). Call it only when the learner asks for a file. Write the content in the learner's language.",
     parameters: {
       type: "object",
       properties: {

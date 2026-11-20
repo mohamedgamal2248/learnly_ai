@@ -7,7 +7,7 @@ import { Shell } from "@/components/Shell";
 
 export const metadata: Metadata = {
   title: "Learnly AI",
-  description: "مدرّس حقيقي موثّق، ومساعد AI ما بينامش.",
+  description: "كورسات من ناس خبرة موثّقين، ومساعد AI ما بينامش.",
   icons: { icon: "/icon.svg" },
 };
 

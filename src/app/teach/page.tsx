@@ -157,6 +157,14 @@ function Architect({ onClose, onDraft }: { onClose: () => void; onDraft: (d: Dra
   return (
     <form className="card" onSubmit={go} style={{ maxWidth: 720, margin: "0 auto", display: "grid", gap: 12 }}>
       <div><h1 style={{ fontSize: 20 }}>✦ {t("archTitle")}</h1><p className="muted small" style={{ marginTop: 4 }}>{t("archSub")}</p></div>
+      <div className="grid" style={{ gap: 6 }}>
+        <span className="hint">{t("archExTitle")}</span>
+        <div className="suggest" style={{ marginTop: 0 }}>
+          {(["archEx1", "archEx2", "archEx3", "archEx4"] as Key[]).map((k) => (
+            <button type="button" key={k} onClick={() => setPrompt(t(k))}>{t(k).split(":")[0]}</button>
+          ))}
+        </div>
+      </div>
       <textarea className="textarea" id="arch-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("archPh")} maxLength={3000} style={{ minHeight: 120 }} />
       <p className="hint">{t("archCost")}</p>
       {err && (

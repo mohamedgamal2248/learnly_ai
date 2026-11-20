@@ -44,7 +44,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--surface-2); display: grid; place-items: center; flex: none; transition: background .15s, transform .15s var(--ease); }
 .icon-btn:hover { background: var(--primary-soft); }
 .icon-btn:active { transform: scale(.94); }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; text-decoration: none; direction: ltr; min-width: 0; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; letter-spacing: -.01em; text-decoration: none; direction: ltr; min-width: 0; }
 .brand span { white-space: nowrap; }
 .brand b { color: var(--primary); }
 .spacer { flex: 1; }
