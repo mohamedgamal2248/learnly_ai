@@ -18,11 +18,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   width: "device-width", initialScale: 1, viewportFit: "cover",
-  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#FFFFFF" }, { media: "(prefers-color-scheme: dark)", color: "#0A1530" }],
+  themeColor: "#FFFFFF", colorScheme: "light",
 };
 
 // Runs before first paint so the saved language and theme never flash.
-const boot = `try{var l=localStorage.getItem('ll-lang')||localStorage.getItem('ll-geo-lang')||'ar',t=localStorage.getItem('ll-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),d=document.documentElement;d.lang=l;d.dir=l==='ar'?'rtl':'ltr';d.dataset.theme=t;}catch(e){}`;
+const boot = `try{var l=localStorage.getItem('ll-lang')||localStorage.getItem('ll-geo-lang')||'ar',d=document.documentElement;if(l!=='ar')l='en';d.lang=l;d.dir=l==='ar'?'rtl':'ltr';d.dataset.theme='light';}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

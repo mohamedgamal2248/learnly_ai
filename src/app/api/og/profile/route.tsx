@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { rpc } from "@/lib/server/db";
 import { BRAND } from "@/lib/brand";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 /** 1200x630 preview card for a profile link. Only Latin text is drawn (the built-in font has no Arabic). */
 export async function GET(req: Request) {

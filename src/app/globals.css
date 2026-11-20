@@ -509,3 +509,5 @@ a.card .chip { text-decoration: none; }
 .stage-bar i.on { background: var(--primary); }
 a.notif, a.notif:hover { text-decoration: none; color: inherit; }
 a.notif .hint { text-decoration: none; }
+
+:root { color-scheme: light; }

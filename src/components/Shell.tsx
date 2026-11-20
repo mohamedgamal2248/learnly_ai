@@ -4,22 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
-import { UI_LANGS } from "@/lib/i18n";
 import { BuyModal } from "./BuyModal";
-import { IBell, ITask, IChatB, IClose, IDashboard, IHome, IMenu, IMoon, IPerson, ISun, IUsers, IWallet } from "./Icons";
+import { IBell, ITask, IChatB, IClose, IDashboard, IHome, IMenu, IPerson, IUsers, IWallet } from "./Icons";
 
 import { BRAND } from "@/lib/brand";
 import { Brand } from "./Brand";
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { t, ui, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, buyOpen } = useApp();
+  const { t, ui, setLang, user, ready, login, logout, loggingIn, buyOpen } = useApp();
   const [open, setOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
   const path = usePathname();
 
-  useEffect(() => { setOpen(false); setLangOpen(false); }, [path]);
+  useEffect(() => { setOpen(false); }, [path]);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); setLangOpen(false); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); } };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, []);
@@ -72,26 +70,9 @@ export function Shell({ children }: { children: ReactNode }) {
           ) : (
             <button className="credit-btn" onClick={login} aria-label={t("login")}><span className="lbl">{t("login")}</span></button>
           )}
-          <div className="lang-wrap">
-            <button className="lang" onClick={() => setLangOpen((v) => !v)} aria-label="Language" aria-expanded={langOpen} aria-haspopup="listbox">
-              {ui.toUpperCase()}
-            </button>
-            {langOpen && (
-              <>
-                <div className="lang-scrim" onClick={() => setLangOpen(false)} />
-                <ul className="lang-menu" role="listbox" aria-label="Language">
-                  {UI_LANGS.map((l) => (
-                    <li key={l.code}>
-                      <button role="option" aria-selected={ui === l.code} className={ui === l.code ? "on" : ""}
-                        onClick={() => { setLang(l.code); setLangOpen(false); }}>
-                        <span>{l.name}</span><span className="code">{l.code.toUpperCase()}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
+          <button className="lang" onClick={() => setLang(ui === "ar" ? "en" : "ar")} aria-label={ui === "ar" ? "Switch to English" : "التبديل للعربية"}>
+            {ui === "ar" ? "EN" : "AR"}
+          </button>
         </div>
       </header>
 
@@ -113,10 +94,6 @@ export function Shell({ children }: { children: ReactNode }) {
               <Link href="/admin" className={`nav-item${isOn("/admin") ? " on" : ""}`}><IDashboard /><span>{t("nAdmin")}</span></Link>
             </>
           )}
-          <div className="nav-sep" />
-          <button className="nav-item" onClick={toggleTheme}>
-            {theme === "dark" ? <ISun /> : <IMoon />}<span>{theme === "dark" ? t("lightMode") : t("darkMode")}</span>
-          </button>
         </nav>
         <div className="legal-links" style={{ padding: "0 16px 8px" }}><Link href="/privacy">{t("privacy")}</Link> · <Link href="/terms">{t("terms")}</Link></div>
         <div className="drawer-foot">

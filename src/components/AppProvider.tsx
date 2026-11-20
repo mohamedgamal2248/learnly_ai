@@ -45,7 +45,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const l = isUiLang(root.lang) ? root.lang : "ar";
     setUi(l);
     if (!hasDict(l)) loadDict(l);
-    setTheme(root.dataset.theme === "dark" ? "dark" : "light");
     // Installable app + faster repeat visits (production only).
     if ("serviceWorker" in navigator && location.hostname !== "localhost") navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
@@ -91,14 +90,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }).catch(() => {});
   }, [applyLang]);
 
-  const toggleTheme = useCallback(() => {
-    setTheme((cur) => {
-      const next = cur === "dark" ? "light" : "dark";
-      document.documentElement.dataset.theme = next;
-      store("ll-theme", next);
-      return next;
-    });
-  }, []);
+  // Dark mode was removed: the site is always light.
+  const toggleTheme = useCallback(() => { setTheme("light"); }, []);
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);

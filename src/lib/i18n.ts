@@ -4,10 +4,6 @@ export type Lang = "ar" | "en";
 export type UiLang = Lang | "es" | "fr" | "id" | "vi" | "tl" | "hi" | "ko" | "zh";
 export const UI_LANGS: { code: UiLang; name: string; ai?: string }[] = [
   { code: "ar", name: "العربية" }, { code: "en", name: "English" },
-  { code: "es", name: "Español", ai: "Spanish" }, { code: "fr", name: "Français", ai: "French" },
-  { code: "id", name: "Bahasa Indonesia", ai: "Indonesian" }, { code: "vi", name: "Tiếng Việt", ai: "Vietnamese" },
-  { code: "tl", name: "Filipino", ai: "Filipino (Tagalog)" }, { code: "hi", name: "हिन्दी", ai: "Hindi" },
-  { code: "ko", name: "한국어", ai: "Korean" }, { code: "zh", name: "中文", ai: "Simplified Chinese" },
 ];
 export const isUiLang = (v: unknown): v is UiLang => UI_LANGS.some((l) => l.code === v);
 export const baseLang = (ui: UiLang): Lang => (ui === "ar" ? "ar" : "en");
