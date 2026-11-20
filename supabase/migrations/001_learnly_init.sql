@@ -384,7 +384,6 @@ returns uuid language plpgsql security definer set search_path = public, extensi
 declare fid uuid;
 begin
   perform public.ln_check(p_secret);
-  delete from public.ln_files where user_id = p_user and created_at < now() - interval '30 days';
   insert into public.ln_files(user_id, format, title, spec) values (p_user, p_format, left(p_title, 120), p_spec) returning id into fid;
   return fid;
 end $$;
@@ -495,15 +494,6 @@ returns jsonb language plpgsql security definer set search_path = public, extens
 begin
   perform public.ln_check(p_secret);
   if p_hide then update public.ln_posts set hidden = true where id = p_post;
-  else update public.ln_posts set reports = 0 where id = p_post; delete from public.ln_post_reports where post_id = p_post; end if;
+  else update public.ln_posts set reports = 0 where id = p_post; end if;
   return jsonb_build_object('ok', true);
-end $$;
-
--- Only the API roles may call these; the secret check inside each one does the real gating.
-do $$ declare f record; begin
-  for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname = 'public' and p.proname like 'ln\_%' loop
-    execute format('revoke all on function %s from public', f.sig);
-    execute format('grant execute on function %s to anon, authenticated, service_role', f.sig);
-  end loop;
 end $$;
