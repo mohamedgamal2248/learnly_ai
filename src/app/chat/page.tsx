@@ -459,7 +459,6 @@ function ChatInner() {
               {!streaming && (m.content || m.error) && (
                 <div className="msg-actions">
                   {m.content && <button onClick={() => copyText(i, m.content)}>{copied === i ? t("copied") : t("copy")}</button>}
-                  {isLast && idle && lastUserIdx >= 0 && <button onClick={() => send(msgs[lastUserIdx].content.replace(/\[🖼\]/g, "").trim() || t("qSimpler"), { replaceLast: true })}>{t("regen")}</button>}
                   {typeof m.credits === "number" && <span className="num">{t("charged", { n: fmt(m.credits) })}</span>}
                 </div>
               )}
