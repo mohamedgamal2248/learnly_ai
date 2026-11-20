@@ -54,6 +54,7 @@ const L = {
     killFree: "إيقاف الـAI لغير الدافعين", save: "احفظ", saved: "اتحفظ", done: "اتسجّل", err: "حصلت مشكلة",
     lMarkup: "هامش الربح على تكلفة الـAI (×)", lWelcome: "كريدت الترحيب", lFreeMsgs: "رسايل يومية لغير الدافعين",
     lBudget: "ميزانية الـAI اليومية لغير الدافعين ($)", lReserve: "أقصى حجز للرسالة (كريدت)", lFileFee: "رسوم إنشاء ملف (كريدت)",
+    lPerMin: "أقصى رسايل في الدقيقة لكل مستخدم", lDayCap: "أقصى كريدت يصرفه أي مستخدم في اليوم",
     today: "النهارده", usersN: "مستخدم", paidN: "دفعوا",
   },
   en: {
@@ -80,6 +81,7 @@ const L = {
     killFree: "Stop AI for non-paying users", save: "Save", saved: "Saved", done: "Done", err: "Something went wrong",
     lMarkup: "Margin on AI cost (×)", lWelcome: "Welcome credits", lFreeMsgs: "Daily messages for non-paying users",
     lBudget: "Daily AI budget for non-paying users ($)", lReserve: "Max reserve per message (credits)", lFileFee: "File creation fee (credits)",
+    lPerMin: "Max messages per minute per user", lDayCap: "Max credits any user can spend per day",
     today: "Today", usersN: "users", paidN: "paying",
   },
 };
@@ -408,6 +410,7 @@ function ReportsTab({ tr }: { tr: Tr }) {
 const LIMIT_FIELDS: [string, LKey, number][] = [
   ["markup", "lMarkup", 0.5], ["welcome_credits", "lWelcome", 10], ["free_daily_msgs", "lFreeMsgs", 1],
   ["daily_budget_usd", "lBudget", 0.5], ["max_reserve", "lReserve", 10], ["file_fee", "lFileFee", 1],
+  ["max_per_minute", "lPerMin", 1], ["daily_credit_cap", "lDayCap", 100],
 ];
 
 function SettingsTab({ tr }: { tr: Tr }) {

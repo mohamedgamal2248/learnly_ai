@@ -24,7 +24,7 @@ const EMPTY: Draft = {
   instructions: "", notes: "", fee: 0, files: [], reply_lang: "auto",
 };
 const STATUS_CHIP: Record<string, string> = { live: "free", review: "warn", rejected: "bad", paused: "bad", draft: "" };
-const ERRS: Record<string, Key> = { no_credits: "errNoCredits", daily_limit: "errDaily", paused: "errPaused", slow_down: "errSlow", too_short: "errShort", ai_error: "errAi" };
+const ERRS: Record<string, Key> = { no_credits: "errNoCredits", daily_limit: "errDaily", paused: "errPaused", slow_down: "errSlow", daily_cap: "errDayCap", too_short: "errShort", ai_error: "errAi" };
 
 export default function TeachPage() {
   const { t, user, ready, login, loggingIn, lang } = useApp();

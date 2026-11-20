@@ -15,7 +15,7 @@ type ChatItem = { id: string; title: string; msgs: number; updated_at: string };
 type Phase = "idle" | "thinking" | "writing" | "making";
 
 const ERR: Record<string, Key> = {
-  no_credits: "errNoCredits", daily_limit: "errDaily", paused: "errPaused", slow_down: "errSlow",
+  no_credits: "errNoCredits", daily_limit: "errDaily", paused: "errPaused", slow_down: "errSlow", daily_cap: "errDayCap",
   banned: "errBanned", ai_error: "errAi", login_required: "needLogin",
 };
 const activeKey = (botId: string) => `ln-active-${botId}`;
