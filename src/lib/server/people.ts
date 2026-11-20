@@ -26,7 +26,7 @@ export async function saveProfile(uid: string, a: ProfileInput): Promise<{ ok: t
 
 export type PortfolioInput = { title?: unknown; description?: unknown; made_with?: unknown; tags?: unknown };
 
-/** Adds one portfolio item (what the person can do, made with AI or by hand). `image` is an already validated small image. */
+/** Adds one portfolio item (what the person can do, made with AI or by a human). `image` is an already validated small image. */
 export async function addPortfolio(uid: string, a: PortfolioInput, image?: { mime: string; data: string }): Promise<{ ok: true; id: string } | { ok: false; error: string; why?: string }> {
   const title = clean(a.title, 100), description = clean(a.description, 600), tags = toList(a.tags, 30, 8);
   if (title.length < 3) return { ok: false, error: "bad_title" };
