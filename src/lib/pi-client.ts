@@ -51,3 +51,20 @@ export async function post<T = any>(url: string, body?: unknown): Promise<{ ok: 
 export async function onIncompletePayment(p: { identifier: string }) {
   await post("/api/pi/incomplete", { paymentId: p.identifier }).catch(() => {});
 }
+
+/**
+ * The Pi SDK only allows createPayment after Pi.authenticate ran with the "payments" scope in this page load.
+ * Our own login is a cookie that survives reloads, so re-authenticate quietly (no prompt after the first consent).
+ */
+let authPromise: Promise<boolean> | null = null;
+export function ensurePiAuth(pi: PiSDK): Promise<boolean> {
+  if (!authPromise) {
+    authPromise = pi.authenticate(["username", "payments"], onIncompletePayment)
+      .then(() => true)
+      .catch(() => { authPromise = null; return false; });
+  }
+  return authPromise;
+}
+
+/** Called after the normal login, which already authenticated with the payments scope. */
+export function markPiAuthed() { authPromise = Promise.resolve(true); }

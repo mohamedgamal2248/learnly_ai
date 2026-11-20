@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { translate, type Key, type Lang } from "@/lib/i18n";
-import { onIncompletePayment, post, waitForPi } from "@/lib/pi-client";
+import { markPiAuthed, onIncompletePayment, post, waitForPi } from "@/lib/pi-client";
 
 export type User = { id: string; username: string; role: "user" | "teacher" | "admin"; credits: number; earned: number; paid: boolean };
 
@@ -99,6 +99,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLoggingIn(true);
     try {
       const auth = await pi.authenticate(["username", "payments"], onIncompletePayment);
+      markPiAuthed();
       const r = await post("/api/auth/pi", { accessToken: auth.accessToken });
       if (!r.ok) throw new Error(r.data?.error);
       setUser(r.data.user);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "./AppProvider";
 import { IClose, IRefresh } from "./Icons";
-import { post, waitForPi } from "@/lib/pi-client";
+import { ensurePiAuth, post, waitForPi } from "@/lib/pi-client";
 
 type Quote = { pack: string; credits: number; usd: number; pi: number; rate: number; exp: number; token: string };
 
@@ -26,7 +26,11 @@ export function BuyModal() {
       setQuotes(d.quotes); setRate(d.rate);
     } catch { setErr(t("priceErr")); }
   }
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load();
+    // Get the Pi SDK ready for payments while the learner picks a pack.
+    waitForPi().then((pi) => { if (pi) ensurePiAuth(pi); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Quotes expire after 10 minutes; refresh quietly so the shown price is always payable.
   useEffect(() => {
@@ -43,6 +47,7 @@ export function BuyModal() {
     const pi = await waitForPi();
     if (!pi) { toast(t("openInPi")); return; }
     setBusy(true);
+    if (!(await ensurePiAuth(pi))) { setBusy(false); setErr(t("payErr")); return; }
     pi.createPayment(
       { amount: q.pi, memo: `Learnly AI · ${q.credits} credits`, metadata: { pack: q.pack, q: q.token } },
       {
