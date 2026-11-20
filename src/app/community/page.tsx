@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RichText } from "@/components/Web";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { post } from "@/lib/pi-client";
@@ -27,7 +28,7 @@ function useAgo() {
 function Badge({ role }: { role?: string }) {
   const { t } = useApp();
   if (role === "admin") return <span className="chip v">{t("adminBadge")}</span>;
-  if (role === "teacher") return <span className="chip free">{t("teacherBadge")} ✓</span>;
+  if (role === "teacher") return <span className="chip free">{t("teacherBadge")}</span>;
   return null;
 }
 
@@ -71,9 +72,12 @@ export default function CommunityPage() {
 
   return (
     <div className="grid" style={{ maxWidth: 760, margin: "0 auto" }}>
-      <div className="card">
-        <h1 style={{ fontSize: 20 }}>{t("commTitle")} <span className="chip free">{t("free")}</span></h1>
-        <p className="muted small">{t("commSub")}</p>
+      <div className="hero-card">
+        <div className="hero-ico" aria-hidden="true">💬</div>
+        <div>
+          <h1>{t("commTitle")} <span className="chip free">{t("free")}</span></h1>
+          <p>{t("commSub")}</p>
+        </div>
       </div>
       <div className="chips">
         {(["all", ...GROUPS] as string[]).map((g) => (
@@ -170,7 +174,7 @@ function PostCard({ p, ago, showGroup, onRemoved }: { p: Post; ago: (s: string) 
           <div className="hint">{ago(p.created_at)}{showGroup && p.group_key ? ` · ${t(`g_${p.group_key}` as Key)}` : ""}</div>
         </div>
       </div>
-      <p className="post-body">{p.body}</p>
+      <RichText className="post-body" text={p.body} />
       <div className="post-actions">
         <button onClick={like} aria-pressed={liked} style={liked ? { color: "var(--primary)", fontWeight: 600 } : undefined}>
           {t("useful")}{likes > 0 ? ` · ${likes}` : ""}
@@ -189,7 +193,7 @@ function PostCard({ p, ago, showGroup, onRemoved }: { p: Post; ago: (s: string) 
                 <b className="ltr small">@{r.username}</b><Badge role={r.role} /><span className="hint">{ago(r.created_at)}</span>
                 {r.mine && <button className="link" style={{ marginInlineStart: "auto", fontSize: 12 }} onClick={() => remove(r.id, true)}>{t("del")}</button>}
               </div>
-              <p className="post-body small">{r.body}</p>
+              <RichText className="post-body small" text={r.body} />
             </div>
           ))}
           <form onSubmit={reply} style={{ display: "flex", gap: 8 }}>

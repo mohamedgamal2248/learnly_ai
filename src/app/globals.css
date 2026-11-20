@@ -302,3 +302,42 @@ main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+
+/* ---------- polish: hero cards, link cards, lessons ---------- */
+.hero-card { display: flex; gap: 14px; align-items: center; padding: 18px; border-radius: 16px; color: #fff;
+  background: linear-gradient(135deg, #1877F2 0%, #0B5AC2 60%, #0A3F8F 100%); box-shadow: var(--shadow); animation: rise .35s both; }
+:root[data-theme="dark"] .hero-card { background: linear-gradient(135deg, #12305E 0%, #0C1F40 100%); border: 1px solid var(--line); }
+.hero-card h1 { font-size: 20px; margin: 0; color: #fff; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.hero-card p { margin: 4px 0 0; font-size: 14px; opacity: .9; }
+.hero-sub { font-size: 13px; opacity: .85; }
+.hero-card .chip.free { background: rgba(255,255,255,.2); color: #fff; }
+.hero-ico { flex: none; width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.18); display: grid; place-items: center; font-size: 26px; }
+.ring { --p: 0; flex: none; width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(#fff calc(var(--p) * 1%), rgba(255,255,255,.22) 0); transition: background .4s; }
+.ring span { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: #0B5AC2; font-size: 13px; font-weight: 700; }
+:root[data-theme="dark"] .ring span { background: #0F244A; }
+
+.link-cards { display: grid; gap: 6px; margin-top: 8px; }
+.link-card { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface-2); color: var(--fg); text-decoration: none; min-width: 0; transition: border-color .15s, transform .15s; }
+.link-card:hover { border-color: var(--primary); transform: translateY(-1px); }
+.lc-t { display: grid; min-width: 0; flex: 1; font-size: 13.5px; }
+.lc-t b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-t span { color: var(--muted); font-size: 12px; text-align: start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-go { color: var(--muted); flex: none; }
+[dir="rtl"] .lc-go { transform: scaleX(-1); }
+
+.lesson { display: grid; gap: 12px; border-inline-start: 4px solid var(--primary); transition: box-shadow .2s, transform .2s; }
+.lesson:hover { transform: translateY(-1px); }
+.lesson-1 { border-inline-start-color: #E4405F; } .lesson-2 { border-inline-start-color: #2ABBA7; } .lesson-3 { border-inline-start-color: #F5A623; }
+.lesson.done { border-inline-start-color: #31A24C; }
+.lesson-head { all: unset; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+.lesson-head:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 8px; }
+.lesson-ico { flex: none; width: 46px; height: 46px; border-radius: 12px; background: var(--primary-soft); display: grid; place-items: center; font-size: 22px; }
+.lesson-tt { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.lesson-tt h2 { margin: 0; font-size: 16.5px; }
+.lesson-n { font-size: 12px; color: var(--primary); font-weight: 600; }
+.lesson-chev { color: var(--muted); font-size: 20px; transition: transform .2s; }
+.lesson.open .lesson-chev { transform: rotate(180deg); }
+.post { transition: transform .15s; }
+@media (prefers-reduced-motion: reduce) { .lesson, .link-card, .post, .hero-card { transition: none; animation: none; } }

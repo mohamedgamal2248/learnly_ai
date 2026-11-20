@@ -8,6 +8,7 @@ import { IClip, IClose, IDownload, IPlus, ISend, IStop } from "@/components/Icon
 import { botText, loadBots, type BotInfo } from "@/lib/bots";
 import { downloadFile, hasFileSpec, rememberSpec, saveFileSpec } from "@/lib/local-files";
 import type { Key } from "@/lib/i18n";
+import { domainOf, Favicon } from "@/components/Web";
 
 type FileRef = { id: string; format: "pdf" | "docx" | "pptx" | "xlsx" | "link"; title: string; url?: string };
 type Source = { url: string; title: string };
@@ -29,16 +30,6 @@ async function shrinkImage(file: File): Promise<string> {
     g.drawImage(img, 0, 0, c.width, c.height);
     return c.toDataURL("image/jpeg", 0.8);
   } finally { URL.revokeObjectURL(src); }
-}
-
-const domainOf = (url: string) => url.replace(/^https?:\/\/(www\.)?/, "").split(/[/?#]/)[0];
-
-function Favicon({ url }: { url: string }) {
-  const d = domainOf(url);
-  const [bad, setBad] = useState(false);
-  return bad
-    ? <span className="fav fav-txt">{d.slice(0, 1).toUpperCase()}</span>
-    : <img className="fav" src={`https://icons.duckduckgo.com/ip3/${d}.ico`} alt="" loading="lazy" onError={() => setBad(true)} />;
 }
 
 /** ChatGPT-style sources: overlapping site logos; tap to see the list. */

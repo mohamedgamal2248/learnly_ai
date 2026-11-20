@@ -3,6 +3,7 @@ export type Lang = "ar" | "en";
 const ar = {
   attach: "إرفاق صورة أو ملف", attachHint: "صور، PDF، Word، PowerPoint، Excel — قراءة الملف بتستهلك كريدت حسب الجزء اللي بيتقري منه", reading: "بيقرا الملف", imageLbl: "صورة", uploading: "بيرفع…", errFileBig: "الملف أكبر من ٤ ميجا", errFileType: "نوع الملف ده مش مدعوم", errScanned: "الـPDF ده صور متصوّرة (سكان) من غير نص — صوّر الصفحات وابعتها كصور", errExtract: "معرفناش نقرا الملف ده", errAttLimit: "وصلت لحد المرفقات النهارده", maxAtt: "أقصى حاجة ٢ صور و٣ ملفات في الرسالة",
   bWeb: "البحث في الإنترنت", bWebHint: "البوت يقدر يدوّر على معلومات حديثة ويعرض المصادر. كل بحث بيتخصم من المتعلّم (حوالي ١٠ كريدت).", searching: "بيدوّر في الإنترنت", sources: "المصادر",
+  lessonN: "الدرس {n}", lessonMeta: "{p} نقاط · {q} أسئلة",
   copy: "نسخ", copied: "اتنسخ ✓", regen: "رد تاني", edit: "تعديل", scrollDown: "انزل لآخر الرسايل", qQuiz: "اختبرني على ده", qSimpler: "اشرحها أبسط", qSummary: "لخّصها في نقاط", qPdf: "اعملها ملف PDF",
   replyLang: "لغة الشرح", rlAuto: "تلقائي", rlAr: "عربي", rlEn: "English", rlHint: "البوت هيشرح باللغة دي، والكلمات اللي بتتعلمها هتفضل بلغتها.",
   bReplyLang: "لغة الشرح الافتراضية للمتعلّمين", preparing: "بيجهّز التنزيل…", dlError: "التنزيل ما اشتغلش. جرّب تاني.",
@@ -93,6 +94,7 @@ const ar = {
 const en: typeof ar = {
   attach: "Attach image or file", attachHint: "Images, PDF, Word, PowerPoint, Excel — reading a file costs credits for the parts that get read", reading: "Reading the file", imageLbl: "Image", uploading: "Uploading…", errFileBig: "File is larger than 4 MB", errFileType: "This file type isn't supported", errScanned: "This PDF is scanned images with no text — photograph the pages and send them as images", errExtract: "We couldn't read this file", errAttLimit: "You reached today's attachment limit", maxAtt: "Up to 2 images and 3 files per message",
   bWeb: "Web search", bWebHint: "The bot can look up recent information and show its sources. Each search is charged to the learner (about 10 credits).", searching: "Searching the web", sources: "Sources",
+  lessonN: "Lesson {n}", lessonMeta: "{p} points · {q} questions",
   copy: "Copy", copied: "Copied ✓", regen: "Regenerate", edit: "Edit", scrollDown: "Jump to latest", qQuiz: "Quiz me on this", qSimpler: "Explain it simpler", qSummary: "Summarize in bullets", qPdf: "Make it a PDF",
   replyLang: "Explanation language", rlAuto: "Auto", rlAr: "عربي", rlEn: "English", rlHint: "The bot explains in this language; the words you're learning stay in their own language.",
   bReplyLang: "Default explanation language for learners", preparing: "Preparing download…", dlError: "The download didn't start. Try again.",

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LinkCard } from "@/components/Web";
 import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 
@@ -120,6 +121,8 @@ const LESSONS: Record<"ar" | "en", Lesson[]> = {
   ],
 };
 
+const ICONS: Record<string, string> = { wallet: "🔐", scams: "🚨", browser: "🧭", build: "🛠️" };
+
 function loadDone(): string[] {
   try { return JSON.parse(localStorage.getItem("ln-academy") || "[]"); } catch { return []; }
 }
@@ -140,23 +143,28 @@ export default function AcademyPage() {
 
   return (
     <div className="grid" style={{ maxWidth: 760, margin: "0 auto" }}>
-      <div className="card" style={{ display: "grid", gap: 8 }}>
-        <h1 style={{ fontSize: 20 }}>{t("acTitle")} <span className="chip free">{t("free")}</span></h1>
-        <p className="muted small">{t("acSub")}</p>
-        <div className="budget"><i style={{ width: `${pct}%` }} /></div>
-        <span className="hint num">{done.length === lessons.length ? t("allDone") : t("acDone", { n: done.length, t: lessons.length })}</span>
+      <div className="hero-card">
+        <div className="ring" style={{ ["--p" as string]: pct }} aria-label={`${pct}%`}><span className="num">{pct}%</span></div>
+        <div style={{ display: "grid", gap: 4 }}>
+          <h1>{t("acTitle")} <span className="chip free">{t("free")}</span></h1>
+          <p>{t("acSub")}</p>
+          <span className="hero-sub num">{done.length === lessons.length ? t("allDone") : t("acDone", { n: done.length, t: lessons.length })}</span>
+        </div>
       </div>
       <div className="grid stagger">
         {lessons.map((l, i) => {
           const isDone = done.includes(l.id);
           const isOpen = open === l.id;
           return (
-            <section key={l.id} className="card lesson" style={{ display: "grid", gap: 10 }}>
-              <button onClick={() => setOpen(isOpen ? null : l.id)} aria-expanded={isOpen}
-                style={{ all: "unset", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="avatar" style={{ width: 32, height: 32, fontSize: 14 }}>{isDone ? "✓" : i + 1}</span>
-                <h2 style={{ margin: 0, flex: 1 }}>{l.title}</h2>
-                {isDone && <span className="chip free">{t("completed")}</span>}
+            <section key={l.id} className={`card lesson lesson-${i % 4}${isDone ? " done" : ""}${isOpen ? " open" : ""}`}>
+              <button className="lesson-head" onClick={() => setOpen(isOpen ? null : l.id)} aria-expanded={isOpen}>
+                <span className="lesson-ico" aria-hidden="true">{ICONS[l.id] || "📘"}</span>
+                <span className="lesson-tt">
+                  <span className="lesson-n num">{t("lessonN", { n: i + 1 })}</span>
+                  <h2>{l.title}</h2>
+                  <span className="hint">{t("lessonMeta", { p: l.points.length, q: l.quiz.length })}</span>
+                </span>
+                {isDone ? <span className="chip free">{t("completed")}</span> : <span className="lesson-chev" aria-hidden="true">⌄</span>}
               </button>
               {isOpen && (
                 <div className="grid" style={{ gap: 12, animation: "rise .25s both" }}>
@@ -165,8 +173,8 @@ export default function AcademyPage() {
                   <div className="row-actions">
                     {!isDone && <button className="btn ok sm" onClick={() => markDone(l.id)}>{t("markDone")}</button>}
                     <Link className="btn sm" href={`/chat?q=${encodeURIComponent(`${l.title}: `)}`}>{t("askLesson")}</Link>
-                    <a className="btn ghost sm ltr" href={l.link} target="_blank" rel="noopener noreferrer">{t("readMore")}</a>
                   </div>
+                  <LinkCard url={l.link} title={t("readMore")} />
                 </div>
               )}
             </section>
