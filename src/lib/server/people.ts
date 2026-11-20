@@ -1,6 +1,7 @@
 import "server-only";
 import { rpc } from "./db";
 import { moderate } from "./moderation";
+import { hasContactInfo } from "./contact";
 
 const clean = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim().slice(0, max) : "");
 export const toList = (v: unknown, max: number, n: number): string[] =>
@@ -47,6 +48,7 @@ export async function createDeal(uid: string, a: DealInput): Promise<{ ok: true;
   const price = Math.round(Number(a.price) * 1e4) / 1e4;
   if (!DELIVERIES.includes(a.delivery as string)) return { ok: false, error: "bad_delivery" };
   if (!(price >= 0.05 && price <= 50)) return { ok: false, error: "bad_price" };
+  if (hasContactInfo(`${title}\n${brief}`)) return { ok: false, error: "contact_info" };
   const m = await moderate(`${title}\n${brief}`);
   if (!m.ok) return { ok: false, error: "blocked", why: m.why };
   const r = await rpc<{ ok: boolean; reason?: string; id?: string }>("ln_deal_create", {
@@ -60,9 +62,33 @@ export async function dealMessage(uid: string, deal: string, body: unknown, pric
   const p = price === undefined || price === null || price === "" ? null : Math.round(Number(price) * 1e4) / 1e4;
   if (p !== null && !(p >= 0.05 && p <= 50)) return { ok: false, error: "bad_price" };
   if (text) {
+    if (hasContactInfo(text)) return { ok: false, error: "contact_info" };
     const m = await moderate(text);
     if (!m.ok) return { ok: false, error: "blocked", why: m.why };
   }
   const r = await rpc<{ ok: boolean; reason?: string }>("ln_deal_msg", { p_user: uid, p_deal: deal, p_body: text, p_price: p });
   return r.ok ? { ok: true } : { ok: false, error: r.reason || "closed" };
+}
+
+export type ServiceInput = { title?: unknown; description?: unknown; category?: unknown; delivery?: unknown; price?: unknown; days?: unknown };
+
+/** Publishes a fixed-price service: a buyer can order it in one click. */
+export async function saveService(uid: string, a: ServiceInput): Promise<{ ok: true; id: string } | { ok: false; error: string; why?: string }> {
+  const title = clean(a.title, 100), description = clean(a.description, 600), category = clean(a.category, 40);
+  const price = Math.round(Number(a.price) * 1e4) / 1e4, days = Math.floor(Number(a.days)) || 3;
+  if (!DELIVERIES.includes(a.delivery as string)) return { ok: false, error: "bad_delivery" };
+  if (!(price >= 0.05 && price <= 50)) return { ok: false, error: "bad_price" };
+  const m = await moderate(`${title}\n${description}\n${category}`);
+  if (!m.ok) return { ok: false, error: "blocked", why: m.why };
+  const r = await rpc<{ ok: boolean; reason?: string; id?: string }>("ln_service_save", { p_user: uid, p_title: title, p_desc: description, p_category: category, p_delivery: a.delivery, p_price: price, p_days: days });
+  return r.ok ? { ok: true, id: r.id as string } : { ok: false, error: r.reason || "bad_request" };
+}
+
+/** One-click order of a service. The price is held from the buyer's balance and a task is assigned to the seller. */
+export async function orderService(uid: string, serviceId: string, brief: unknown, tokenId: string | null): Promise<{ ok: true; task_id: string; deal_id: string; price: number; days: number } | { ok: false; error: string; extra?: Record<string, unknown> }> {
+  const b = clean(brief, 1000);
+  if (hasContactInfo(b)) return { ok: false, error: "contact_info" };
+  if (b) { const m = await moderate(b); if (!m.ok) return { ok: false, error: "blocked", extra: { why: m.why } }; }
+  const r = await rpc<{ ok: boolean; reason?: string; task_id?: string; deal_id?: string; price?: number; days?: number; balance?: number; cap?: number; spent?: number }>("ln_service_order", { p_user: uid, p_service: serviceId, p_brief: b, p_token: tokenId });
+  return r.ok ? { ok: true, task_id: r.task_id as string, deal_id: r.deal_id as string, price: Number(r.price), days: Number(r.days) } : { ok: false, error: r.reason || "bad_request", extra: { balance: r.balance, cap: r.cap, spent: r.spent } };
 }

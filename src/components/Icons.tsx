@@ -32,6 +32,8 @@ export const IBook = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="
 export const IChatB = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /><path d="M8 10h8M8 13h5" /></svg>;
 export const IPerson = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><circle cx="12" cy="8.5" r="3.6" /><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5" /></svg>;
 
+export const IBell = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z" /><path d="M10 21h4" /></svg>;
+
 export function Logo({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 72 72" aria-hidden="true">

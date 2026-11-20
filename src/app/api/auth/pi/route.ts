@@ -18,5 +18,7 @@ export async function POST(req: Request) {
   const isAdmin = env.adminUsernames.includes(me.username.toLowerCase());
   const u = await rpc<DbUser>("ln_upsert_user", { p_uid: me.uid, p_username: me.username, p_admin: isAdmin });
   if (u.banned) return fail("banned", 403);
+  // An invite link (?ref=username) gives the new user and the inviter fee-free tasks.
+  if (typeof body?.ref === "string" && body.ref.length <= 60) await rpc("ln_referral_set", { p_user: u.id, p_ref: body.ref }).catch(() => {});
   return json({ user: u }, { headers: { "Set-Cookie": sessionCookie({ uid: u.id, pu: u.pi_uid, n: u.username, r: u.role }) } });
 }

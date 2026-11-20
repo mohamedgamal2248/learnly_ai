@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
 import { UI_LANGS } from "@/lib/i18n";
 import { BuyModal } from "./BuyModal";
-import { ITask, IChatB, IClose, IDashboard, IHome, IMenu, IMoon, IPerson, ISun, IUsers, IWallet } from "./Icons";
+import { IBell, ITask, IChatB, IClose, IDashboard, IHome, IMenu, IMoon, IPerson, ISun, IUsers, IWallet } from "./Icons";
 
 import { BRAND } from "@/lib/brand";
 import { Brand } from "./Brand";
@@ -26,8 +26,14 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const [bal, setBal] = useState<number | null>(null);
   const [unread, setUnread] = useState(0);
+  const [notifs, setNotifs] = useState(0);
   useEffect(() => {
-    if (!user) { setBal(null); setUnread(0); return; }
+    // An invite link (?ref=name) is remembered until the person signs in.
+    try { const r = new URLSearchParams(location.search).get("ref"); if (r && /^[\w.-]{2,60}$/.test(r)) localStorage.setItem("hl-ref", r); } catch {}
+  }, [path]);
+  useEffect(() => {
+    if (!user) { setBal(null); setUnread(0); setNotifs(0); return; }
+    fetch("/api/notifs?unread=1", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => d && setNotifs(Number(d.unread) || 0)).catch(() => {});
     fetch("/api/earnings", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => d && setBal(Number(d.balance))).catch(() => {});
     fetch("/api/deals?unread=1", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d) => d && setUnread(Number(d.unread) || 0)).catch(() => {});
   }, [user?.id, path]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -37,6 +43,7 @@ export function Shell({ children }: { children: ReactNode }) {
     { href: "/tasks", label: t("nTasks"), icon: <ITask /> },
     { href: "/people", label: t("nPeople"), icon: <IUsers /> },
     { href: "/deals", label: t("nDeals"), icon: <IChatB />, badge: unread },
+    { href: "/notifications", label: t("nNotifs"), icon: <IBell />, badge: notifs },
     { href: "/wallet", label: t("nWallet"), icon: <IWallet /> },
     { href: user ? `/u?name=${encodeURIComponent(user.username)}` : "/profile", label: t("nProfile"), icon: <IPerson />, match: "/u" },
   ];
@@ -52,6 +59,11 @@ export function Shell({ children }: { children: ReactNode }) {
           </button>
           <Link className="brand" href="/" aria-label={BRAND}><Brand /></Link>
           <div className="spacer" />
+          {user && (
+            <Link className="icon-btn bell" href="/notifications" aria-label={t("nNotifs")}>
+              <IBell />{notifs > 0 && <span className="bell-dot num">{notifs > 9 ? "9+" : notifs}</span>}
+            </Link>
+          )}
           {user ? (
             <Link className="credit-btn" href="/wallet" aria-label={t("nWallet")}>
               <IWallet width={16} height={16} strokeWidth={2.2} />

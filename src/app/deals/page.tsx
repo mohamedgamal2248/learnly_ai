@@ -79,7 +79,7 @@ function Thread({ id }: { id: string }) {
     const r = await post("/api/deals", { action: "msg", id, body, price: p });
     setBusy(false);
     if (r.ok) { setBody(""); setPrice(""); load(); }
-    else toast(r.data?.error === "bad_price" ? t("tkBadReward") : r.data?.error === "blocked" ? `${t("tkBlocked")}${r.data?.why ? `: ${r.data.why}` : ""}` : t("errGeneric"));
+    else toast(r.data?.error === "contact_info" ? t("contactInfo") : r.data?.error === "blocked_user" ? t("blockedUser") : r.data?.error === "bad_price" ? t("tkBadReward") : r.data?.error === "blocked" ? `${t("tkBlocked")}${r.data?.why ? `: ${r.data.why}` : ""}` : t("errGeneric"));
   }
   async function accept() {
     setBusy(true);

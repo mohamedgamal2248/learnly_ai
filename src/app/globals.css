@@ -497,3 +497,15 @@ a.card .chip { text-decoration: none; }
 /* HireLoop wordmark: the H is underlined in the site blue */
 .brand-word { unicode-bidi: isolate; letter-spacing: -.2px; }
 .brand-h { border-bottom: 3px solid var(--primary); padding-bottom: 1px; }
+
+/* Notifications */
+.bell { position: relative; }
+.bell-dot { position: absolute; top: -3px; inset-inline-end: -3px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #E4405F; color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.notif { display: grid; gap: 2px; }
+.notif.new { box-shadow: inset 3px 0 0 var(--primary); }
+.badge-chip { background: var(--primary-soft); color: var(--primary); }
+.stage-bar { display: flex; gap: 4px; }
+.stage-bar i { flex: 1; height: 6px; border-radius: 3px; background: var(--line, #CED0D4); }
+.stage-bar i.on { background: var(--primary); }
+a.notif, a.notif:hover { text-decoration: none; color: inherit; }
+a.notif .hint { text-decoration: none; }

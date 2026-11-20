@@ -5,8 +5,14 @@ import { useApp } from "./AppProvider";
 
 export type Person = {
   username: string; headline: string; skills: string[]; uses_ai: "ai" | "manual" | "both"; available: boolean; rate_from: number | null;
-  stats: { done: number; avg: number | null; rated: number }; works: string[];
+  stats: { done: number; avg: number | null; rated: number }; works: string[]; badges?: string[]; services?: { title: string; price: number }[];
 };
+
+export function Badges({ list }: { list?: string[] }) {
+  const { t } = useApp();
+  if (!list?.length) return null;
+  return <>{list.map((b) => <span key={b} className="chip badge-chip">{t(`bd_${b}` as never)}</span>)}</>;
+}
 
 export function Rating({ avg, n }: { avg: number | null; n?: number }) {
   if (!avg) return null;
@@ -28,11 +34,13 @@ export function PersonCard({ p }: { p: Person }) {
       </div>
       <div className="chips">
         <span className="chip v">{t(`uses_${p.uses_ai}` as never)}</span>
+        <Badges list={p.badges} />
         <Rating avg={p.stats.avg} n={p.stats.rated} />
         <span className="chip num">{p.stats.done > 0 ? t("ppDone", { n: p.stats.done }) : t("ppNew")}</span>
         {p.rate_from ? <span className="chip num">{t("ppFrom", { n: `${Number(p.rate_from)} π` })}</span> : null}
       </div>
       {p.skills.length > 0 && <div className="chips">{p.skills.slice(0, 5).map((s) => <span key={s} className="chip">{s}</span>)}</div>}
+      {p.services && p.services.length > 0 && <span className="hint">{p.services.map((x) => `${x.title} · ${Number(x.price)} π`).join("  |  ")}</span>}
       {p.works.length > 0 && <span className="hint" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.works.join(" · ")}</span>}
     </Link>
   );

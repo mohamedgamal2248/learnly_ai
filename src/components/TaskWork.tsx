@@ -10,6 +10,7 @@ type Detail = {
   id: string; category: string; delivery: string; title: string; brief: string; input_text: string; lang: string; reward: number; net_reward: number;
   status: string; role: string; reject_note: string | null; claimed_at: string | null;
   revision_note: string | null; revisions: number; files: TaskFile[];
+  stages: { title: string; pct: number }[] | null; stage_idx: number; subtasks: { id: string; title: string; status: string; reward: number }[];
 };
 const pi = (n: number | string) => `${Number(n).toLocaleString("en-US", { maximumFractionDigits: 4 })} π`;
 
@@ -104,6 +105,8 @@ export function TaskWork({ id, brief, onChange }: { id: string; brief?: string; 
         </div>
       )}
       <TaskFiles files={d.files.filter((f) => f.role === "input")} label={t("tkFiles")} />
+      {d.stages && <div className="notice">{t("stCurrent", { a: d.stage_idx + 1, b: d.stages.length, name: d.stages[d.stage_idx]?.title ?? "", pct: d.stages[d.stage_idx]?.pct ?? 100 })}</div>}
+      {d.role === "worker" && d.subtasks?.length > 0 && <span className="hint">{t("subTitle")}: {d.subtasks.map((c) => `${c.title} (${t(`tkS_${c.status}` as Key)})`).join("، ")}</span>}
       {d.reject_note && <div className="notice warn">{t("tkRejectedBefore")}: {d.reject_note}</div>}
       {d.status === "claimed" && d.role === "worker" && d.revision_note && <div className="notice warn">{t("tkRevisionAsked", { n: d.revisions })}: {d.revision_note}</div>}
       <span className="chip num ltr" style={{ justifySelf: "start" }}>{t("tkYouGet")} {pi(d.net_reward)}</span>

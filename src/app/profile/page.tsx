@@ -8,6 +8,7 @@ import { post } from "@/lib/pi-client";
 type Mine = {
   username: string; has_profile: boolean; headline: string; bio: string; skills: string[]; uses_ai: "ai" | "manual" | "both"; available: boolean; rate_from: number | null; visible: boolean;
   portfolio: { id: string; title: string; description: string; made_with: "ai" | "manual" | "both"; tags: string[]; has_image: boolean }[];
+  services: { id: string; title: string; description: string; category: string; delivery: string; price: number; days: number }[];
 };
 const toNum = (v: string) => Number(v.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[٫,]/g, "."));
 
@@ -82,6 +83,21 @@ export default function ProfilePage() {
         <button className="btn primary" style={{ justifySelf: "start" }} disabled={busy}>{busy ? t("preparing") : t("epSave")}</button>
       </form>
 
+      <div className="sec-h"><h2>{t("epServices")}</h2></div>
+      <p className="hint">{t("epServicesHint")}</p>
+      <AddService onDone={load} full={(m?.services.length ?? 0) >= 6} />
+      <div className="grid">
+        {m?.services.map((x) => (
+          <div key={x.id} className="card" style={{ display: "grid", gap: 4 }}>
+            <div className="chips"><span className="chip free num ltr">{Number(x.price)} π</span><span className="chip">{t(`delivery_${x.delivery}` as never)}</span><span className="chip num">{t("svDays", { n: x.days })}</span></div>
+            <b>{x.title}</b>
+            <button className="btn danger sm" style={{ justifySelf: "start" }} onClick={async () => { await fetch(`/api/services?id=${x.id}`, { method: "DELETE", credentials: "include" }); load(); }}>{t("epRemove")}</button>
+          </div>
+        ))}
+      </div>
+
+      <Invite username={user.username} />
+
       <div className="sec-h"><h2>{t("epPortfolio")}</h2></div>
       <p className="hint">{t("epPortfolioHint")}</p>
       <AddWork onDone={load} full={(m?.portfolio.length ?? 0) >= 12} />
@@ -137,5 +153,57 @@ function AddWork({ onDone, full }: { onDone: () => void; full: boolean }) {
         <button type="button" className="btn" onClick={() => setOpen(false)}>{t("cancel")}</button>
       </div>
     </form>
+  );
+}
+
+function AddService({ onDone, full }: { onDone: () => void; full: boolean }) {
+  const { t, toast } = useApp();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [category, setCategory] = useState("");
+  const [delivery, setDelivery] = useState("file");
+  const [price, setPrice] = useState("1");
+  const [days, setDays] = useState("3");
+  const [busy, setBusy] = useState(false);
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const r = await post("/api/services", { title, description: desc, category, delivery, price: toNum(price), days: toNum(days) });
+    setBusy(false);
+    if (r.ok) { toast(t("epWorkAdded")); setTitle(""); setDesc(""); setOpen(false); onDone(); }
+    else toast(r.data?.error === "blocked" ? `${t("tkBlocked")}${r.data?.why ? `: ${r.data.why}` : ""}` : r.data?.error === "too_many" ? t("epLimit") : r.data?.error === "bad_price" ? t("tkBadReward") : t("errGeneric"));
+  }
+  if (full) return <div className="notice">{t("epLimit")}</div>;
+  if (!open) return <button className="btn primary" style={{ justifySelf: "start" }} onClick={() => setOpen(true)}>{t("epAddService")}</button>;
+  return (
+    <form className="card" onSubmit={add} style={{ display: "grid", gap: 10, animation: "rise .25s both" }}>
+      <label className="field"><span>{t("svTitle")}</span><input className="input" value={title} maxLength={100} placeholder={t("svTitlePh")} onChange={(e) => setTitle(e.target.value)} /></label>
+      <label className="field"><span>{t("svDesc")}</span><textarea className="textarea" value={desc} maxLength={600} onChange={(e) => setDesc(e.target.value)} /></label>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <label className="field"><span>{t("tkKind")}</span><input className="input" value={category} maxLength={40} onChange={(e) => setCategory(e.target.value)} /></label>
+        <label className="field"><span>{t("tkDelivery")}</span>
+          <select className="select" value={delivery} onChange={(e) => setDelivery(e.target.value)}>{["text", "pdf", "ppt", "image", "file"].map((d) => <option key={d} value={d}>{t(`delivery_${d}` as never)}</option>)}</select></label>
+        <label className="field"><span>{t("svPrice")}</span><input className="input ltr" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} /></label>
+        <label className="field"><span>{t("svDaysLbl")}</span><input className="input ltr" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} /></label>
+      </div>
+      <div className="row-actions">
+        <button className="btn primary" disabled={busy || title.trim().length < 3 || category.trim().length < 2}>{busy ? t("preparing") : t("epWorkAdd")}</button>
+        <button type="button" className="btn" onClick={() => setOpen(false)}>{t("cancel")}</button>
+      </div>
+    </form>
+  );
+}
+
+/** Invite link: the new user and the inviter both get 3 tasks without the site fee. */
+function Invite({ username }: { username: string }) {
+  const { t, toast } = useApp();
+  const url = typeof location !== "undefined" ? `${location.origin}/?ref=${encodeURIComponent(username)}` : "";
+  return (
+    <div className="card" style={{ display: "grid", gap: 8 }}>
+      <b>{t("invTitle")}</b>
+      <p className="hint">{t("invHint")}</p>
+      <div className="copy-row"><code className="ltr">{url}</code><button className="btn sm" onClick={async () => { try { await navigator.clipboard.writeText(url); toast(t("copied")); } catch { toast(t("errGeneric")); } }}>{t("copy")}</button></div>
+    </div>
   );
 }

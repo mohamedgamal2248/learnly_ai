@@ -19,9 +19,10 @@ const pi = (n: number | string) => `${Number(n).toLocaleString("en-US", { maximu
 const toNum = (v: string) => Number(v.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[٫,]/g, "."));
 
 type Row = { id: string; category: string; delivery: string; title: string; status: string; reward: number; net_reward: number; has_result: boolean; reject_note: string | null; paid_pi: number | null; created_at: string;
+  stages?: number; stage_idx?: number; worker?: string | null; parent_id?: string | null;
   draft?: boolean; source?: string; revision_note?: string | null; revisions?: number; rating?: number | null; can_dispute?: boolean; in_dispute?: boolean };
 type Stats = { done: number; avg: number | null; rated: number; rejected: number };
-type Detail = Row & { brief: string; input_text: string; role: string; result: { text?: string; file?: any } | null; files: TaskFile[]; worker_stats: Stats | null };
+type Detail = Row & { stages_def?: unknown; brief: string; input_text: string; role: string; result: { text?: string; file?: any } | null; files: TaskFile[]; worker_stats: Stats | null };
 const CHIP: Record<string, string> = { open: "v", claimed: "warn", submitted: "warn", approved: "free", cancelled: "bad", rejected: "bad" };
 
 export default function TasksPage() {
@@ -119,10 +120,42 @@ function Mine() {
       </div>
       {top && <TopUp onDone={(b) => { setTop(false); if (b !== undefined) setBalance(b); load(); }} />}
       {form && <NewTask balance={balance ?? 0} onClose={() => setForm(false)} onDone={() => { setForm(false); load(); toast(t("tkPosted")); }} />}
+      <Recurring />
       {!rows ? <div className="skeleton" style={{ height: 100 }} /> : !rows.length ? <div className="card empty">{t("tkNoTasks")}</div> : (
         <div className="grid stagger">{rows.map((r) => <TaskCard key={r.id} r={r} lang={lang} onChange={load} />)}</div>
       )}
     </>
+  );
+}
+
+function StageBar({ n, i, done }: { n: number; i: number; done: boolean }) {
+  const { t } = useApp();
+  return (
+    <div className="grid" style={{ gap: 3 }}>
+      <div className="stage-bar" aria-hidden="true">{Array.from({ length: n }, (_, k) => <i key={k} className={k < i || done ? "on" : ""} />)}</div>
+      <span className="hint num">{t("stProgress", { a: done ? n : Math.min(i + 1, n), b: n })}</span>
+    </div>
+  );
+}
+
+/** Tasks that repeat on a schedule (every day / week / month) until stopped. */
+function Recurring() {
+  const { t, lang, toast } = useApp();
+  const [list, setList] = useState<{ id: string; title: string; reward: number; every_days: number; next_at: string }[]>([]);
+  const load = useCallback(async () => { const r = await fetch("/api/tasks/recurring", { credentials: "include", cache: "no-store" }); if (r.ok) setList((await r.json()).list); }, []);
+  useEffect(() => { load(); }, [load]);
+  if (!list.length) return null;
+  return (
+    <div className="card" style={{ display: "grid", gap: 6 }}>
+      <b>{t("rcTitle")}</b>
+      {list.map((x) => (
+        <div key={x.id} className="earn-row">
+          <span className="small">{x.title}</span>
+          <span className="hint num">{pi(x.reward)} · {t("rcEvery", { n: x.every_days })} · {new Date(x.next_at).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}</span>
+          <button className="btn danger sm" style={{ marginInlineStart: "auto" }} onClick={async () => { const r = await post("/api/tasks/recurring", { id: x.id }); if (r.ok) load(); else toast(t("errGeneric")); }}>{t("rcStop")}</button>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -139,18 +172,26 @@ function NewTask({ balance, onClose, onDone }: { balance: number; onClose: () =>
   const [out, setOut] = useState<"ar" | "en">(lang === "en" ? "en" : "ar");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const [staged, setStaged] = useState(false);
+  const [stages, setStages] = useState<{ title: string; percent: string }[]>([{ title: "", percent: "40" }, { title: "", percent: "60" }]);
+  const [repeat, setRepeat] = useState("0");
   const r = toNum(reward) || 0;
+  const pctSum = stages.reduce((a, x) => a + (toNum(x.percent) || 0), 0);
+  const stagesOk = !staged || (stages.every((x) => x.title.trim()) && Math.abs(pctSum - 100) < 0.01);
+  const maxReward = staged ? 200 : 50;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const fields = { category, delivery, title, brief, input_text: input, reward: String(r), lang: out };
-    let payload: FormData | Record<string, unknown> = { ...fields, reward: r };
+    const stageList = staged ? stages.map((x) => ({ title: x.title.trim(), percent: toNum(x.percent) })) : undefined;
+    const fields: Record<string, string> = { category, delivery, title, brief, input_text: input, reward: String(r), lang: out, repeat_days: repeat };
+    if (stageList) fields.stages = JSON.stringify(stageList);
+    let payload: FormData | Record<string, unknown> = { ...fields, reward: r, stages: stageList, repeat_days: Number(repeat) };
     if (files.length) { const fd = new FormData(); Object.entries(fields).forEach(([k, v]) => fd.append(k, v)); files.forEach((f) => fd.append("files", f)); payload = fd; }
     const x = await post("/api/tasks", payload);
     setBusy(false);
     if (x.ok) { onDone(); return; }
     const err = x.data?.error;
-    toast(["file_type", "file_too_big", "too_many_files", "empty_file"].includes(err) ? t("tkFileBad") : err === "not_enough" ? t("tkNotEnough") : err === "bad_reward" ? t("tkBadReward") : err === "bad_category" ? t("tkNeedCategory") : err === "too_many" ? t("tkTooMany") : err === "blocked" ? `${t("tkBlocked")}${x.data?.why ? `: ${x.data.why}` : ""}` : t("errGeneric"));
+    toast(["file_type", "file_too_big", "too_many_files", "empty_file"].includes(err) ? t("tkFileBad") : err === "not_enough" ? t("tkNotEnough") : err === "bad_stages" ? t("stBad") : err === "bad_reward" ? t("tkBadReward") : err === "bad_category" ? t("tkNeedCategory") : err === "too_many" ? t("tkTooMany") : err === "blocked" ? `${t("tkBlocked")}${x.data?.why ? `: ${x.data.why}` : ""}` : t("errGeneric"));
   }
   return (
     <form className="card" onSubmit={submit} style={{ display: "grid", gap: 10, animation: "rise .25s both" }}>
@@ -171,9 +212,31 @@ function NewTask({ balance, onClose, onDone }: { balance: number; onClose: () =>
         <label className="field"><span>{t("tkLang")}</span>
           <select className="select" value={out} onChange={(e) => setOut(e.target.value as "ar" | "en")}><option value="ar">{t("rlAr")}</option><option value="en">{t("rlEn")}</option></select></label>
       </div>
+      <label className="plan-task"><input type="checkbox" checked={staged} onChange={(e) => setStaged(e.target.checked)} /><span>{t("stToggle")}<br /><span className="hint">{t("stHint")}</span></span></label>
+      {staged && (
+        <div className="grid" style={{ gap: 6 }}>
+          {stages.map((x, i) => (
+            <div key={i} className="earn-form">
+              <input className="input" value={x.title} maxLength={60} placeholder={t("stTitlePh", { n: i + 1 })} onChange={(e) => setStages(stages.map((y, j) => (j === i ? { ...y, title: e.target.value } : y)))} />
+              <input className="input ltr" style={{ maxWidth: 80 }} inputMode="decimal" value={x.percent} onChange={(e) => setStages(stages.map((y, j) => (j === i ? { ...y, percent: e.target.value } : y)))} aria-label="%" />
+              <span className="num earn-pi">%</span>
+            </div>
+          ))}
+          <div className="row-actions">
+            {stages.length < 4 && <button type="button" className="btn sm" onClick={() => setStages([...stages, { title: "", percent: "0" }])}>{t("stAdd")}</button>}
+            {stages.length > 2 && <button type="button" className="btn sm" onClick={() => setStages(stages.slice(0, -1))}>{t("remove")}</button>}
+            <span className={`hint num${Math.abs(pctSum - 100) < 0.01 ? "" : " bad"}`}>{pctSum}% / 100%</span>
+          </div>
+        </div>
+      )}
+      <label className="field"><span>{t("rcLabel")}</span>
+        <select className="select" value={repeat} onChange={(e) => setRepeat(e.target.value)}>
+          <option value="0">{t("rcOnce")}</option><option value="1">{t("rcDaily")}</option><option value="7">{t("rcWeekly")}</option><option value="30">{t("rcMonthly")}</option>
+        </select></label>
+      {repeat !== "0" && <p className="hint">{t("rcHint")}</p>}
       <p className="hint">{t("tkRewardHint", { net: 100 - FEE, fee: FEE })} {r > balance && <b style={{ color: "var(--danger, #E4405F)" }}>{t("tkNotEnough")}</b>}</p>
       <div className="row-actions">
-        <button className="btn primary" disabled={busy || title.trim().length < 3 || category.trim().length < 2 || !(r >= 0.05) || r > balance}>{busy ? t("preparing") : t("tkPost")}</button>
+        <button className="btn primary" disabled={busy || title.trim().length < 3 || category.trim().length < 2 || !(r >= 0.05 && r <= maxReward) || r > balance || !stagesOk}>{busy ? t("preparing") : t("tkPost")}</button>
         <button type="button" className="btn" onClick={onClose}>{t("cancel")}</button>
       </div>
     </form>
@@ -242,6 +305,7 @@ function TaskCard({ r, lang, onChange }: { r: Row; lang: string; onChange: () =>
             <span className="chip num ltr">{pi(r.reward)}</span>
           </span>
           <h2 style={{ fontSize: 15.5 }}>{r.title}</h2>
+          {!!r.stages && <StageBar n={r.stages} i={r.stage_idx ?? 0} done={r.status === "approved"} />}
           {r.revision_note && r.status === "claimed" && <span className="hint">{t("tkRevisionAsked", { n: r.revisions ?? 1 })}: {r.revision_note}</span>}
           {r.reject_note && r.status === "open" && <span className="hint">{t("tkRejectedBefore")}: {r.reject_note}</span>}
         </span>
@@ -282,6 +346,7 @@ function TaskCard({ r, lang, onChange }: { r: Row; lang: string; onChange: () =>
               {d.status === "approved" && (
                 <div className="grid" style={{ gap: 4 }}>
                   <span className="hint">{t("tkDone")}</span>
+                  {r.worker && <Link className="btn sm" style={{ justifySelf: "start" }} href={`/u?name=${encodeURIComponent(r.worker)}&again=1&title=${encodeURIComponent(r.title)}&category=${encodeURIComponent(r.category)}&delivery=${r.delivery}&price=${Number(r.reward)}`}>{t("hireAgain", { name: r.worker })}</Link>}
                   {d.worker_stats && (
                     <div className="stars" role="group" aria-label={t("tkRate")}>
                       <span className="hint">{d.rating ? t("tkYourRating") : t("tkRate")}</span>
@@ -473,6 +538,7 @@ function Work() {
                   <span className="chip num ltr">{r.status === "approved" && r.paid_pi ? pi(r.paid_pi) : pi(r.net_reward)}</span>
                 </span>
                 <h2 style={{ fontSize: 15.5 }}>{r.title}</h2>
+                {!!r.stages && <StageBar n={r.stages} i={r.stage_idx ?? 0} done={r.status === "approved"} />}
                 {r.revision_note && r.status === "claimed" && <span className="hint">{t("tkRevisionAsked", { n: r.revisions ?? 1 })}: {r.revision_note}</span>}
                 {r.rating ? <span className="hint num">{"★".repeat(r.rating)}</span> : null}
               </span>

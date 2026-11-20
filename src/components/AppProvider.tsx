@@ -124,7 +124,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const auth = await pi.authenticate(["username", "payments"], onIncompletePayment);
       markPiAuthed();
-      const r = await post("/api/auth/pi", { accessToken: auth.accessToken });
+      let ref: string | undefined;
+      try { ref = localStorage.getItem("hl-ref") || undefined; } catch {}
+      const r = await post("/api/auth/pi", { accessToken: auth.accessToken, ref });
       if (!r.ok) throw new Error(r.data?.error);
       setUser(r.data.user);
       toast(translate(ui, "loggedIn", { name: r.data.user.username }));

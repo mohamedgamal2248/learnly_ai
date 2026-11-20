@@ -38,6 +38,7 @@ const L = {
     noData: "مفيش بيانات لسه.",
     forbidden: "الصفحة دي للأدمن بس.",
     title: "صفحة الأدمن",
+    tRep: "البلاغات", rpNone: "مفيش بلاغات", rpBan: "احظر المستخدم", rpDismiss: "تجاهل", rpCount: "{n} بلاغ عليه", rpBy: "من",
     tMarket: "نظرة عامة",
     tTasks: "المهام",
     tDisp: "النزاعات",
@@ -136,6 +137,7 @@ const L = {
     noData: "No data yet.",
     forbidden: "This page is for admins only.",
     title: "Admin",
+    tRep: "Reports", rpNone: "No reports", rpBan: "Ban the user", rpDismiss: "Dismiss", rpCount: "{n} reports on them", rpBy: "by",
     tMarket: "Overview",
     tTasks: "Tasks",
     tDisp: "Disputes",
@@ -204,7 +206,7 @@ const L = {
   },
 };
 type LKey = keyof typeof L.ar;
-type Tab = "market" | "tasks" | "disp" | "users" | "wd" | "set";
+type Tab = "market" | "tasks" | "disp" | "rep" | "users" | "wd" | "set";
 type Tr = (k: LKey, v?: Record<string, string | number>) => string;
 
 export default function AdminPage() {
@@ -219,7 +221,7 @@ export default function AdminPage() {
   if (!ready) return <div className="skeleton" style={{ height: 160 }} />;
   if (user?.role !== "admin") return <div className="card empty">{tr("forbidden")}</div>;
 
-  const tabs: [Tab, LKey][] = [["market", "tMarket"], ["tasks", "tTasks"], ["disp", "tDisp"], ["users", "tUsers"], ["wd", "tWd"], ["set", "tSet"]];
+  const tabs: [Tab, LKey][] = [["market", "tMarket"], ["tasks", "tTasks"], ["disp", "tDisp"], ["rep", "tRep"], ["users", "tUsers"], ["wd", "tWd"], ["set", "tSet"]];
   return (
     <div className="grid">
       <div className="card"><h1 style={{ fontSize: 20 }}>{tr("title")}</h1></div>
@@ -232,6 +234,7 @@ export default function AdminPage() {
         {tab === "market" && <MarketTab tr={tr} />}
         {tab === "tasks" && <TasksTab tr={tr} />}
         {tab === "disp" && <DisputesTab tr={tr} />}
+        {tab === "rep" && <ReportsTab tr={tr} />}
         {tab === "users" && <UsersTab tr={tr} />}
         {tab === "wd" && <WithdrawalsTab tr={tr} />}
         {tab === "set" && <SettingsTab tr={tr} />}
@@ -337,6 +340,33 @@ function TasksTab({ tr }: { tr: Tr }) {
           <b style={{ fontSize: 15 }}>{t.title}</b>
           <span className="hint ltr">@{t.requester}{t.worker ? ` → @${t.worker}` : ""}{t.rating ? ` · ${"★".repeat(t.rating)}` : ""}</span>
           {["open", "claimed", "submitted"].includes(t.status) && <button className="btn danger sm" style={{ justifySelf: "start" }} onClick={() => cancel(t.id)}>{tr("tkCancel")}</button>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type Rep = { id: string; kind: string; ref: string | null; reason: string; reporter: string; target: string; target_id: string; banned: boolean; count: number; at: string };
+function ReportsTab({ tr }: { tr: Tr }) {
+  const { toast } = useApp();
+  const [list, setList] = useState<Rep[] | null>(null);
+  const load = useCallback(async () => { const r = await fetch("/api/admin/reports", { credentials: "include", cache: "no-store" }); setList(r.ok ? (await r.json()).list : []); }, []);
+  useEffect(() => { load(); }, [load]);
+  async function close(id: string, status: string) { const r = await post("/api/admin/reports", { id, status }); toast(r.ok ? tr("done") : tr("err")); load(); }
+  async function ban(x: Rep) { const r = await post("/api/admin/decide", { kind: "ban", id: x.target_id, banned: true }); if (r.ok) close(x.id, "done"); else toast(tr("err")); }
+  if (!list) return <div className="skeleton" style={{ height: 120 }} />;
+  if (!list.length) return <div className="card empty">{tr("rpNone")}</div>;
+  return (
+    <div className="grid">
+      {list.map((x) => (
+        <div key={x.id} className="card" style={{ display: "grid", gap: 6 }}>
+          <div className="chips" style={{ flexWrap: "wrap" }}><b className="ltr">@{x.target}</b><span className="chip">{x.kind}</span><span className="chip bad num">{tr("rpCount", { n: x.count })}</span>{x.banned && <span className="chip bad">{tr("banned")}</span>}</div>
+          <p className="small post-body">{x.reason}</p>
+          <span className="hint ltr">{tr("rpBy")} @{x.reporter}</span>
+          <div className="row-actions">
+            {!x.banned && <button className="btn danger sm" onClick={() => ban(x)}>{tr("rpBan")}</button>}
+            <button className="btn sm" onClick={() => close(x.id, "dismissed")}>{tr("rpDismiss")}</button>
+          </div>
         </div>
       ))}
     </div>
