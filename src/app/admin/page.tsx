@@ -32,7 +32,7 @@ type BotRow = {
 const L = {
   ar: {
     title: "صفحة الأدمن", forbidden: "الصفحة دي للأدمن بس.",
-    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات",
+    tFin: "المالية", tUsers: "المستخدمين", tBots: "البوتات", tReq: "الطلبات", tRep: "البلاغات", tSet: "الإعدادات", tWd: "السحب", wdNone: "مفيش طلبات سحب", wdApprove: "ابعت Pi", wdReject: "ارفض", wdRetry: "كمّل الإرسال", wdNoWallet: "لازم تضيف PI_WALLET_SEED (مفتاح محفظة التطبيق السري) في Vercel عشان الإرسال يشتغل.", wdSent: "اتبعت ✓", wdStatus_pending: "مستني", wdStatus_sending: "بيتبعت", wdStatus_sent: "اتبعت", wdStatus_rejected: "مرفوض", wdStatus_failed: "فشل", lMinWd: "أقل سحب (كريدت)",
     revenue: "الإيرادات", revenueSub: "اللي المستخدمين دفعوه بالباي ({n} عملية)",
     aiCost: "اتصرف على الـAI (Meta)", aiCostSub: "التكلفة الحقيقية لكل الرسايل لحد دلوقتي",
     gross: "الكاش بعد تكلفة الـAI", grossSub: "الإيرادات ناقص تكلفة الـAI",
@@ -59,7 +59,7 @@ const L = {
   },
   en: {
     title: "Admin", forbidden: "This page is for admins only.",
-    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings",
+    tFin: "Finance", tUsers: "Users", tBots: "Bots", tReq: "Requests", tRep: "Reports", tSet: "Settings", tWd: "Withdrawals", wdNone: "No withdrawal requests", wdApprove: "Send Pi", wdReject: "Reject", wdRetry: "Finish sending", wdNoWallet: "Add PI_WALLET_SEED (the app wallet secret seed) in Vercel to enable sending.", wdSent: "Sent ✓", wdStatus_pending: "Pending", wdStatus_sending: "Sending", wdStatus_sent: "Sent", wdStatus_rejected: "Rejected", wdStatus_failed: "Failed", lMinWd: "Minimum withdrawal (credits)",
     revenue: "Revenue", revenueSub: "What users paid in Pi ({n} payments)",
     aiCost: "Spent on AI (Meta)", aiCostSub: "Real cost of every message so far",
     gross: "Cash after AI cost", grossSub: "Revenue minus AI cost",
@@ -86,7 +86,7 @@ const L = {
   },
 };
 type LKey = keyof typeof L.ar;
-type Tab = "fin" | "users" | "bots" | "req" | "rep" | "set";
+type Tab = "fin" | "users" | "bots" | "req" | "wd" | "rep" | "set";
 
 export default function AdminPage() {
   const { user, ready, lang } = useApp();
@@ -100,7 +100,7 @@ export default function AdminPage() {
   if (!ready) return <div className="skeleton" style={{ height: 160 }} />;
   if (user?.role !== "admin") return <div className="card empty">{tr("forbidden")}</div>;
 
-  const tabs: [Tab, LKey][] = [["fin", "tFin"], ["users", "tUsers"], ["bots", "tBots"], ["req", "tReq"], ["rep", "tRep"], ["set", "tSet"]];
+  const tabs: [Tab, LKey][] = [["fin", "tFin"], ["users", "tUsers"], ["bots", "tBots"], ["req", "tReq"], ["wd", "tWd"], ["rep", "tRep"], ["set", "tSet"]];
   return (
     <div className="grid">
       <div className="card"><h1 style={{ fontSize: 20 }}>{tr("title")}</h1></div>
@@ -114,6 +114,7 @@ export default function AdminPage() {
         {tab === "users" && <UsersTab tr={tr} />}
         {tab === "bots" && <BotsTab tr={tr} only={null} />}
         {tab === "req" && <RequestsTab tr={tr} />}
+        {tab === "wd" && <WithdrawalsTab tr={tr} />}
         {tab === "rep" && <ReportsTab tr={tr} />}
         {tab === "set" && <SettingsTab tr={tr} />}
       </div>
@@ -382,6 +383,50 @@ function RequestsTab({ tr }: { tr: Tr }) {
   );
 }
 
+type Wd = { id: string; username: string; credits: number; pi: number; status: string; payment_id: string | null; txid: string | null; note: string | null; at: string };
+function WithdrawalsTab({ tr }: { tr: Tr }) {
+  const { toast } = useApp();
+  const [d, setD] = useState<{ list: Wd[]; ready: boolean } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const r = await fetch("/api/admin/withdrawals", { credentials: "include" });
+    setD(r.ok ? await r.json() : { list: [], ready: false });
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  async function act(id: string, action: "approve" | "reject") {
+    setBusy(id);
+    const r = await post("/api/admin/withdrawals", { id, action });
+    setBusy(null);
+    toast(r.ok ? (action === "approve" ? tr("wdSent") : tr("done")) : `${tr("err")}${r.data?.detail ? `: ${r.data.detail}` : ""}`);
+    load();
+  }
+  if (!d) return <div className="skeleton" style={{ height: 120 }} />;
+  return (
+    <div className="grid">
+      {!d.ready && <div className="notice warn">{tr("wdNoWallet")}</div>}
+      {!d.list.length && <div className="card empty">{tr("wdNone")}</div>}
+      {d.list.map((w) => (
+        <div key={w.id} className="card" style={{ display: "grid", gap: 6 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <b className="ltr">@{w.username}</b>
+            <span className="chip num">{w.credits.toLocaleString()} cr → {Number(w.pi).toFixed(4)} π</span>
+            <span className={`chip ${w.status === "sent" ? "free" : w.status === "failed" || w.status === "rejected" ? "bad" : "warn"}`}>{tr(`wdStatus_${w.status}` as LKey)}</span>
+            <span className="hint num" style={{ marginInlineStart: "auto" }}>{new Date(w.at).toLocaleString()}</span>
+          </div>
+          {w.txid && <span className="hint ltr" style={{ overflowWrap: "anywhere" }}>tx: {w.txid}</span>}
+          {w.note && <span className="hint" style={{ overflowWrap: "anywhere" }}>{w.note}</span>}
+          {(w.status === "pending" || (w.status === "sending" && w.txid)) && (
+            <div className="row-actions">
+              <button className="btn primary sm" disabled={!d.ready || busy === w.id} onClick={() => act(w.id, "approve")}>{w.status === "pending" ? tr("wdApprove") : tr("wdRetry")}</button>
+              {w.status === "pending" && <button className="btn danger sm" disabled={busy === w.id} onClick={() => act(w.id, "reject")}>{tr("wdReject")}</button>}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ReportsTab({ tr }: { tr: Tr }) {
   const { toast } = useApp();
   const { o, load } = useOverview();
@@ -410,7 +455,7 @@ function ReportsTab({ tr }: { tr: Tr }) {
 const LIMIT_FIELDS: [string, LKey, number][] = [
   ["markup", "lMarkup", 0.5], ["welcome_credits", "lWelcome", 10], ["free_daily_msgs", "lFreeMsgs", 1],
   ["daily_budget_usd", "lBudget", 0.5], ["max_reserve", "lReserve", 10], ["file_fee", "lFileFee", 1],
-  ["max_per_minute", "lPerMin", 1], ["daily_credit_cap", "lDayCap", 100],
+  ["max_per_minute", "lPerMin", 1], ["daily_credit_cap", "lDayCap", 100], ["min_withdraw", "lMinWd", 100],
 ];
 
 function SettingsTab({ tr }: { tr: Tr }) {

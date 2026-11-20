@@ -14,6 +14,10 @@ export const env = {
   get piApiKey() { return need("PI_API_KEY"); },
   get metaApiKey() { return need("META_API_KEY"); },
   get metaModel() { return process.env.META_MODEL || "muse-ember-1.0"; },
+  /** The app wallet's secret seed (starts with "S"). Only needed for creator withdrawals (app-to-user payments). */
+  get piWalletSeed() { return process.env.PI_WALLET_SEED || ""; },
+  /** "testnet" (default) or "mainnet". */
+  get piNetwork() { return process.env.PI_NETWORK === "mainnet" ? "mainnet" : "testnet"; },
   get adminUsernames() {
     return (process.env.ADMIN_USERNAMES || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   },

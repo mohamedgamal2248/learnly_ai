@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Earnings } from "@/components/Earnings";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { post } from "@/lib/pi-client";
@@ -75,7 +76,6 @@ export default function TeachPage() {
           <div className="card" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
             <div>
               <h1 style={{ fontSize: 20 }}>{t("teachTitle")}</h1>
-              <p className="muted small">{t("earned")}: <b className="num">{data.earned.toLocaleString(lang === "ar" ? "ar-EG" : "en-US")}</b> {t("credits")}</p>
               <p className="hint">{t("earnedNote")}</p>
             </div>
             <div className="row-actions">
@@ -83,6 +83,7 @@ export default function TeachPage() {
               <button className="btn" onClick={() => setDraft({ ...EMPTY, files: [] })}>{t("buildManual")}</button>
             </div>
           </div>
+          <Earnings />
           <div className="sec-h"><h2>{t("myBots")}</h2></div>
           {data.bots.length === 0 ? (
             <div className="card empty">{t("noMyBots")}</div>
