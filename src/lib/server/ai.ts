@@ -10,6 +10,8 @@ export type ChatMessage =
   | { role: "assistant"; content: string | null; tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[] }
   | { role: "tool"; tool_call_id: string; content: string };
 
+export type Effort = "minimal" | "low" | "medium" | "high";
+
 export type StreamEvent =
   | { type: "text"; text: string }
   | { type: "tool_start"; name: string }
@@ -21,6 +23,7 @@ export async function* streamChat(opts: {
   maxTokens: number;
   cacheKey: string;
   signal?: AbortSignal;
+  effort?: Effort;
 }): AsyncGenerator<StreamEvent> {
   const res = await fetch(URL, {
     method: "POST",
@@ -37,7 +40,7 @@ export async function* streamChat(opts: {
       stream_options: { include_usage: true },
       max_completion_tokens: opts.maxTokens,
       // Ember defaults to "max" reasoning, which is slow and billed as output. Tutoring needs little.
-      reasoning_effort: "low",
+      reasoning_effort: opts.effort || "low",
       // Automatic prefix caching: same system prompt + tools first, then history. Stable key per bot.
       prompt_cache_key: opts.cacheKey,
       prompt_cache_retention: "24h",
@@ -94,7 +97,7 @@ export async function* streamChat(opts: {
 }
 
 /** One-shot call that waits for the whole reply. Used for short helper jobs (bot drafts, translation). */
-export async function completeChat(opts: { messages: ChatMessage[]; tools?: unknown[]; maxTokens: number; cacheKey: string }) {
+export async function completeChat(opts: { messages: ChatMessage[]; tools?: unknown[]; maxTokens: number; cacheKey: string; effort?: Effort }) {
   let text = "";
   let toolCalls: ToolCall[] = [];
   let usage = { input: 0, cached: 0, output: 0 };
