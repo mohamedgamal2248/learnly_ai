@@ -4,17 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
+import { UI_LANGS } from "@/lib/i18n";
 import { BuyModal } from "./BuyModal";
 import { IBot, IClose, IGear, IHome, IMenu, IMoon, IPlus, IShield, ISun, IUsers, ICap } from "./Icons";
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { t, lang, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
+  const { t, lang, ui, setLang, theme, toggleTheme, user, ready, login, logout, loggingIn, openBuy, buyOpen } = useApp();
   const [open, setOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const path = usePathname();
 
-  useEffect(() => { setOpen(false); }, [path]);
+  useEffect(() => { setOpen(false); setLangOpen(false); }, [path]);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); setLangOpen(false); } };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, []);
@@ -43,9 +45,26 @@ export function Shell({ children }: { children: ReactNode }) {
             <span className="lbl">{t("credits")}</span>
             <span className="bal num">{credits}</span>
           </button>
-          <button className="lang" onClick={() => setLang(lang === "ar" ? "en" : "ar")} aria-label="Language">
-            {lang === "ar" ? "EN" : "AR"}
-          </button>
+          <div className="lang-wrap">
+            <button className="lang" onClick={() => setLangOpen((v) => !v)} aria-label="Language" aria-expanded={langOpen} aria-haspopup="listbox">
+              {ui.toUpperCase()}
+            </button>
+            {langOpen && (
+              <>
+                <div className="lang-scrim" onClick={() => setLangOpen(false)} />
+                <ul className="lang-menu" role="listbox" aria-label="Language">
+                  {UI_LANGS.map((l) => (
+                    <li key={l.code}>
+                      <button role="option" aria-selected={ui === l.code} className={ui === l.code ? "on" : ""}
+                        onClick={() => { setLang(l.code); setLangOpen(false); }}>
+                        <span>{l.name}</span><span className="code">{l.code.toUpperCase()}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
         </div>
       </header>
 

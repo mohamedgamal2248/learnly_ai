@@ -1,4 +1,16 @@
+/** Content language: Arabic or English (bots, lessons and legal texts exist in these two). */
 export type Lang = "ar" | "en";
+/** Interface language. Beyond Arabic and English, the UI is AI-translated once and cached on the server. */
+export type UiLang = Lang | "es" | "fr" | "id" | "vi" | "tl" | "hi" | "ko" | "zh";
+export const UI_LANGS: { code: UiLang; name: string; ai?: string }[] = [
+  { code: "ar", name: "العربية" }, { code: "en", name: "English" },
+  { code: "es", name: "Español", ai: "Spanish" }, { code: "fr", name: "Français", ai: "French" },
+  { code: "id", name: "Bahasa Indonesia", ai: "Indonesian" }, { code: "vi", name: "Tiếng Việt", ai: "Vietnamese" },
+  { code: "tl", name: "Filipino", ai: "Filipino (Tagalog)" }, { code: "hi", name: "हिन्दी", ai: "Hindi" },
+  { code: "ko", name: "한국어", ai: "Korean" }, { code: "zh", name: "中文", ai: "Simplified Chinese" },
+];
+export const isUiLang = (v: unknown): v is UiLang => UI_LANGS.some((l) => l.code === v);
+export const baseLang = (ui: UiLang): Lang => (ui === "ar" ? "ar" : "en");
 
 const ar = {
   attach: "إرفاق صورة أو ملف", attachHint: "صور، PDF، Word، PowerPoint، Excel — قراءة الملف بتستهلك كريدت حسب الجزء اللي بيتقري منه", reading: "بيقرا الملف", imageLbl: "صورة", uploading: "بيرفع…", errFileBig: "الملف أكبر من ٤ ميجا", errFileType: "نوع الملف ده مش مدعوم", errScanned: "الـPDF ده صور متصوّرة (سكان) من غير نص — صوّر الصفحات وابعتها كصور", errExtract: "معرفناش نقرا الملف ده", errAttLimit: "وصلت لحد المرفقات النهارده", maxAtt: "أقصى حاجة ٢ صور و٣ ملفات في الرسالة",
@@ -185,8 +197,13 @@ const en: typeof ar = {
 export const DICT = { ar, en };
 export type Key = keyof typeof ar;
 
-export function translate(lang: Lang, key: Key, vars?: Record<string, string | number>) {
-  let s: string = DICT[lang][key] ?? DICT.ar[key] ?? key;
+/** AI-translated dictionaries loaded at runtime (es, fr, …). */
+const EXTRA: Partial<Record<UiLang, Partial<Record<Key, string>>>> = {};
+export function registerDict(lang: UiLang, dict: Partial<Record<Key, string>>) { EXTRA[lang] = dict; }
+export const hasDict = (lang: UiLang) => lang === "ar" || lang === "en" || !!EXTRA[lang];
+
+export function translate(lang: UiLang, key: Key, vars?: Record<string, string | number>) {
+  let s: string = (lang === "ar" || lang === "en" ? DICT[lang][key] : EXTRA[lang]?.[key] ?? DICT.en[key]) ?? DICT.ar[key] ?? key;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
   return s;
 }
