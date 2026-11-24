@@ -17,7 +17,7 @@ const privacy: Doc = {
       "Anonymous usage analytics (Vercel Analytics) without advertising cookies.",
     ] },
     { h: "How we use it", p: ["To run the lessons, keep your progress, charge plans and credits, prevent abuse, review teacher applications, and improve the app. We never sell your data or use it for ads."] },
-    { h: "Service providers", p: ["Pi Network (sign-in and payments), Meta Model API (the AI tutor), Supabase (database), Vercel (hosting), and OKX (a public price feed for Pi, no personal data is sent). They receive only what the service needs."] },
+    { h: "Service providers", p: ["Pi Network (sign-in and payments), Meta Model API (the AI tutor), Supabase (database), Vercel (hosting). They receive only what the service needs."] },
     { h: "Retention", p: ["Your account and learning data stay until you ask us to delete them. Payment records are kept for accounting."] },
     { h: "Your rights", p: ["You can ask for a copy of your data or for your account to be deleted by contacting the admins through the app."] },
     { h: "Security", p: ["Secret keys live on the server only, traffic is encrypted, and the database is only reachable through protected functions. Anyone asking for your passphrase in our name is a scammer."] },
@@ -31,7 +31,7 @@ const terms: Doc = {
     { h: "Agreement", p: ["By using Learnly AI you agree to these terms and to Pi Network's terms. You must be 18 or older."] },
     { h: "Free lessons, plans and credits", p: [
       "Some lessons are free. Plus and Pro open more lessons and the AI tutor.",
-      "Plans are priced in US dollars and paid in whole Pi, rounded up, at the live OKX PI/USDT price shown when you buy. A plan lasts 30 days and does not renew automatically. Buying it again adds 30 days.",
+      "Plans and credit packs are paid in whole Pi, at the price shown when you buy. The price in Pi can change from time to time. A plan lasts 30 days and does not renew automatically. Buying it again adds 30 days.",
       "AI credits are used inside the app only. They are not money or an investment and cannot be turned back into Pi. Each AI request uses a fixed number of credits shown in the app, and a daily limit applies. If the AI fails to answer, the credits are returned.",
       "Blockchain payments are final. If a technical problem charged you without giving the service, contact us and we will fix it.",
     ] },

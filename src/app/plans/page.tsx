@@ -72,12 +72,12 @@ export default function Plans() {
   return (
     <div className="stack">
       <section><span className="eyebrow">Plans</span><h1 style={{ fontSize: 24 }}>Unlock every lesson and the AI tutor</h1>
-        <p className="muted small" style={{ marginTop: 4 }}>Paid in whole Pi, priced in dollars at the live OKX rate{q ? <>: <b className="num">1 π = ${q.rate.toFixed(4)}</b></> : ""}. Plans last 30 days and do not renew by themselves.</p></section>
+        <p className="muted small" style={{ marginTop: 4 }}>Plans last 30 days and do not renew by themselves.</p></section>
       {err && <div className="note bad">{err}</div>}
       {active && <div className="note ok">Your <b>{active === "pro" ? "Pro" : "Plus"}</b> plan is active until {until}. Buying a plan again adds 30 more days.</div>}
 
       <section className="lc">
-        <div className="row"><b className="big grow">Free</b><span className="chip">$0</span></div>
+        <div className="row"><b className="big grow">Free</b><span className="chip num">0 π</span></div>
         <ul className="plan-list">{FEATURES.free.map((f) => <li key={f}><ICheck width={16} height={16} />{f}</li>)}</ul>
       </section>
 
@@ -86,7 +86,7 @@ export default function Plans() {
         return (
           <section key={id} className={`lc${id === "pro" ? " hl" : ""}`} style={{ display: "grid", gap: 8 }}>
             <div className="row"><b className="big grow">{id === "pro" ? "Pro" : "Plus"}</b>{id === "pro" && <span className="chip v">Most complete</span>}</div>
-            {p ? <div><span className="big num" style={{ fontSize: 30 }}>{p.pi} π</span> <span className="muted small num">≈ ${p.usd} · {p.days} days</span></div> : <div className="skeleton" style={{ height: 40 }} />}
+            {p ? <div><span className="big num" style={{ fontSize: 30 }}>{p.pi} π</span> <span className="muted small num">for {p.days} days</span></div> : <div className="skeleton" style={{ height: 40 }} />}
             <ul className="plan-list">{FEATURES[id].map((f) => <li key={f}><ICheck width={16} height={16} />{f}</li>)}
               {p && <li><IBolt width={16} height={16} style={{ color: "var(--accent)" }} /><span className="num">{p.credits}</span> AI credits every purchase</li>}</ul>
             <button className={`btn lg ${id === "pro" ? "primary" : ""}`} disabled={!p || busy !== null} onClick={() => p && buy(p)}>
@@ -102,7 +102,7 @@ export default function Plans() {
         {(q?.packs || []).map((p) => (
           <div key={p.id} className="lc row">
             <div className="ic-sq warm" style={{ width: 46, height: 46, borderRadius: 14 }}><IBolt width={22} height={22} /></div>
-            <div className="grow"><b className="num">{p.credits} credits</b><div className="muted small num">≈ ${p.usd}</div></div>
+            <div className="grow"><b className="num">{p.credits} credits</b></div>
             <button className="btn primary" disabled={!active || busy !== null} onClick={() => buy(p)}>{busy === `pack${p.id}` ? "…" : `${p.pi} π`}</button>
           </div>
         ))}

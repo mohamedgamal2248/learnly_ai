@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
+import { Portal } from "./Portal";
 import { useLearn, NATIVES } from "./LearnProvider";
 import { IBolt, ICap, ICourses, IHome, IPerson, ISparkle, IClose, ICheck } from "./Icons";
 import { BRAND } from "@/lib/brand";
@@ -71,6 +72,7 @@ export function Shell({ children }: { children: ReactNode }) {
       )}
 
       {pick && (
+        <Portal>
         <div className="modal-wrap" onClick={(e) => { if (e.target === e.currentTarget) setPick(false); }}>
           <div className="modal" role="dialog" aria-modal="true" aria-label="Language of explanations">
             <div style={{ display: "flex", alignItems: "center" }}>
@@ -87,6 +89,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </>
   );

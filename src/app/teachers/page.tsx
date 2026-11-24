@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { Portal } from "@/components/Portal";
 import { ICap, ICheck, IGlobe, IBolt } from "@/components/Icons";
 
 type AppStatus = { status: "pending" | "approved" | "rejected"; reason: string | null } | null;
@@ -56,6 +57,7 @@ export default function Teachers() {
       </section>
 
       {open && (
+        <Portal>
         <div className="modal-wrap" onClick={(e) => { if (e.target === e.currentTarget && !busy) setOpen(false); }}>
           <form className="modal" onSubmit={submit} style={{ maxHeight: "92dvh", overflow: "auto" }}>
             <h2 style={{ fontSize: 19 }}>Apply to teach</h2>
@@ -69,6 +71,7 @@ export default function Teachers() {
             <button className="btn primary lg" disabled={busy}>{busy ? "Sending…" : "Send application"}</button>
           </form>
         </div>
+        </Portal>
       )}
     </div>
   );

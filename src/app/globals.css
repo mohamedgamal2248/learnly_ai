@@ -102,8 +102,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* ---------- layout ---------- */
 main { max-width: 1180px; margin: 0 auto; padding-block: 16px 48px;
   padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
-.page { animation: pageIn .32s var(--ease) both; }
-@keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* The page fades in only; nothing keeps a transform or stacking context after it ends, so fixed sheets stay above the bottom bar. */
+.page { animation: pageIn .16s ease-out backwards; }
+@keyframes pageIn { from { opacity: 0; } }
 .card { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 16px; min-width: 0; }
 .grid { display: grid; gap: 12px; }
 .cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
@@ -598,3 +599,18 @@ main.focus { padding-bottom: 32px; }
 .speak-big:active { transform: scale(.94); }
 .plan-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
 .plan-list li { display: flex; gap: 8px; align-items: flex-start; } .plan-list svg { flex: none; margin-top: 3px; color: var(--ok); }
+
+/* ---- motion polish ---- */
+.lc, .opt, .btn, .pill, .chip, .bn, .bn-ic, .prog i { transition: transform .14s var(--ease), background-color .18s, border-color .18s, box-shadow .18s, opacity .18s, width .35s var(--ease); }
+.opt:active:not(:disabled), .lc.tap:active { transform: scale(.985); }
+.opt.ok { animation: pop .28s var(--ease); }
+.opt.bad { animation: shake .3s; }
+@keyframes pop { 50% { transform: scale(1.03); } }
+@keyframes shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+.q-in { animation: qIn .22s var(--ease) both; }
+@keyframes qIn { from { opacity: 0; transform: translateY(8px); } }
+.modal-wrap { animation: fade .16s ease-out both; }
+.modal { animation: sheet .24s var(--ease) both; }
+@keyframes sheet { from { transform: translateY(24px); opacity: 0; } }
+.sticky-foot { position: sticky; bottom: calc(-18px - env(safe-area-inset-bottom, 0px)); margin: 0 -16px calc(-18px - env(safe-area-inset-bottom, 0px)); padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--surface) 78%, transparent); display: grid; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { .q-in, .opt.ok, .opt.bad { animation: none; } }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { Portal } from "@/components/Portal";
 import { useLearn } from "@/components/LearnProvider";
 import { Onboarding } from "@/components/Onboarding";
 import { IBolt, ICheck, ICourses, IFlame, ILock, IPlus, IRotate, ISparkle, IClose, IGlobe } from "@/components/Icons";
@@ -144,6 +145,7 @@ export default function Today() {
 
       <button className="fab" onClick={() => setMenu(true)} aria-label="Quick actions"><IPlus width={28} height={28} strokeWidth={2.6} /></button>
       {menu && (
+        <Portal>
         <div className="modal-wrap" onClick={(e) => { if (e.target === e.currentTarget) setMenu(false); }}>
           <div className="modal" role="dialog" aria-modal="true" aria-label="Quick actions">
             <div className="row"><h2 style={{ flex: 1, fontSize: 18 }}>Quick actions</h2><button className="icon-btn" aria-label="Close" onClick={() => setMenu(false)}><IClose width={18} height={18} /></button></div>
@@ -154,6 +156,7 @@ export default function Today() {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

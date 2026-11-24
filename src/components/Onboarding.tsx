@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useApp } from "./AppProvider";
+import { Portal } from "./Portal";
 import { NATIVES, useLearn, type Native } from "./LearnProvider";
-import { ICheck } from "./Icons";
+import { ICheck, IClose } from "./Icons";
 import { post } from "@/lib/pi-client";
 
 const LEVELS = [
@@ -30,9 +31,9 @@ export function Onboarding() {
     setBusy(false);
   }
   return (
-    <div className="modal-wrap">
+    <Portal><div className="modal-wrap">
       <div className="modal" role="dialog" aria-modal="true" aria-label="Set up your learning" style={{ maxHeight: "92dvh", overflow: "auto" }}>
-        <h2 style={{ fontSize: 20 }}>Welcome, {user.username}</h2>
+        <div className="row"><h2 style={{ fontSize: 20, flex: 1 }}>Welcome, {user.username}</h2><button className="icon-btn" aria-label="Skip" onClick={save} disabled={busy}><IClose width={18} height={18} /></button></div>
         <p className="muted small">Three quick choices. You can change them later in Me.</p>
         <b className="small">1. Explain things in</b>
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -53,8 +54,8 @@ export function Onboarding() {
         <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
           {[1, 2, 3].map((g) => <button key={g} className={`opt${goal === g ? " sel" : ""}`} onClick={() => setGoal(g)} style={{ justifyContent: "center" }}>{g} lesson{g > 1 ? "s" : ""}</button>)}
         </div>
-        <button className="btn primary lg" onClick={save} disabled={busy}>{busy ? "Saving…" : "Start learning"}</button>
+        <div className="sticky-foot"><button className="btn primary lg" onClick={save} disabled={busy}>{busy ? "Saving…" : "Start learning"}</button><button className="btn ghost" onClick={save} disabled={busy} style={{ width: "100%" }}>Skip for now</button></div>
       </div>
-    </div>
+    </div></Portal>
   );
 }

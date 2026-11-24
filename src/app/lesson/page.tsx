@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/components/AppProvider";
+import { Portal } from "@/components/Portal";
 import { useLearn } from "@/components/LearnProvider";
 import { Tutor } from "@/components/Tutor";
 import { ICheck, IClose, ILock, ISparkle, ISpeaker } from "@/components/Icons";
@@ -33,7 +34,7 @@ function Question({ ex, onDone }: { ex: Ex; onDone: (ok: boolean) => void }) {
     const sentence = built.map((i) => ex.words[i]).join(" ");
     const check = () => setChecked(sentence === ex.answer);
     return (
-      <div className="stack">
+      <div className="stack q-in">
         <b>Put the words in order</b>
         <div className="lc native" style={{ boxShadow: "none", background: "var(--primary-soft)" }}>{ex.hint}</div>
         <div className="lc" style={{ minHeight: 64, display: "flex", flexWrap: "wrap", gap: 8, alignContent: "flex-start" }} dir="ltr">
@@ -55,7 +56,7 @@ function Question({ ex, onDone }: { ex: Ex; onDone: (ok: boolean) => void }) {
   const pick = ex;
   const answered = sel !== null;
   return (
-    <div className="stack">
+    <div className="stack q-in">
       {pick.t === "fill" ? (
         <>
           <b>Choose the missing word</b>
@@ -180,12 +181,14 @@ function LessonInner() {
       )}
 
       {help && (
+        <Portal>
         <div className="modal-wrap" onClick={(e) => { if (e.target === e.currentTarget) setHelp(false); }}>
           <div className="modal" role="dialog" aria-modal="true" aria-label="AI help" style={{ maxHeight: "88dvh", overflow: "auto" }}>
             <div className="row"><h2 style={{ flex: 1, fontSize: 18 }}>Ask the AI about this lesson</h2><button className="icon-btn" aria-label="Close" onClick={() => setHelp(false)}><IClose width={18} height={18} /></button></div>
             <Tutor lessonId={lesson.id} compact />
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );
