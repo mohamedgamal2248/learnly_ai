@@ -92,5 +92,5 @@ function SiteLang() {
 
 function Links() {
   const { tt } = useApp();
-  return <div className="muted small" style={{ textAlign: "center" }}><Link href="/privacy" className="md-link">{tt("Privacy")}</Link> · <Link href="/terms" className="md-link">{tt("Terms")}</Link> · <Link href="/credits" className="md-link">{tt("Credits")}</Link></div>;
+  return <div className="muted small" style={{ textAlign: "center" }}><Link href="/privacy" className="md-link">{tt("Privacy")}</Link> · <Link href="/terms" className="md-link">{tt("Terms")}</Link></div>;
 }

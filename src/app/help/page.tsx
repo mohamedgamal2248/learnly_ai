@@ -23,7 +23,7 @@ export default function Help() {
       {FAQ.map(([q, a]) => (
         <details key={q} className="lc faq"><summary><b>{tt(q)}</b></summary><p className="muted" style={{ marginTop: 8 }}>{tt(a)}</p></details>
       ))}
-      <p className="small muted" style={{ textAlign: "center" }}><Link className="md-link" href="/credits">{tt("Credits")}</Link> · <Link className="md-link" href="/privacy">{tt("Privacy")}</Link> · <Link className="md-link" href="/terms">{tt("Terms")}</Link></p>
+      <p className="small muted" style={{ textAlign: "center" }}><Link className="md-link" href="/privacy">{tt("Privacy")}</Link> · <Link className="md-link" href="/terms">{tt("Terms")}</Link></p>
     </div>
   );
 }

@@ -171,11 +171,9 @@ function LessonInner() {
                 <div dir="ltr" className="small row" style={{ marginTop: 6, gap: 6 }}><span className="grow"><TapText text={w.ex} onWord={setWordSheet} /></span><button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => playAudio(w.exAu, w.ex)} aria-label={tt("Listen")}><ISpeaker width={14} height={14} /></button></div>
                 <div className="muted small native" dir={dirN}>{w.exTr}</div>
                 <button type="button" className="hint md-link" style={{ border: 0, background: "none", cursor: "pointer", padding: 0 }} onClick={() => setReport({ word: w.en })}>⚑ {tt("Report a mistake")}</button>
-                {w.tatoeba && <a className="hint md-link" style={{ marginInlineStart: 10 }} href={`https://tatoeba.org/sentences/show/${w.tatoeba}`} target="_blank" rel="noreferrer">Tatoeba #{w.tatoeba}</a>}
               </div>
             ))}
           </div>
-          <p className="hint" style={{ textAlign: "center" }}>{tt("Words from the CEFR-J list. Some sentences from Tatoeba (CC BY 2.0 FR).")} <Link className="md-link" href="/credits">{tt("Credits")}</Link></p>
           <button className="btn primary lg" onClick={() => { started.current = Date.now(); setStage("practice"); }}>{tt("Start practice")}</button>
         </>
       )}
