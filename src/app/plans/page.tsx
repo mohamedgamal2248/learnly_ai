@@ -50,7 +50,7 @@ export default function Plans() {
       {
         onReadyForServerApproval: async (paymentId) => {
           const r = await post("/api/pi/approve", { paymentId });
-          if (!r.ok) { setBusy(null); setErr(r.data?.error === "quote_expired" ? "The price changed. Please try again." : r.data?.error === "plan_required" ? "Get a plan first, then add credits." : "Payment could not start."); load(); }
+          if (!r.ok) { setBusy(null); setErr(r.data?.error === "quote_expired" ? "The price changed. Please try again." : r.data?.error === "plan_required" ? "Get a plan first, then add credits." : r.data?.error === "higher_plan_active" ? "You already have a higher plan active." : "Payment could not start."); load(); }
         },
         onReadyForServerCompletion: async (paymentId, txid) => {
           const r = await post("/api/pi/complete", { paymentId, txid });
@@ -89,7 +89,7 @@ export default function Plans() {
             {p ? <div><span className="big num" style={{ fontSize: 30 }}>{p.pi} π</span> <span className="muted small num">for {p.days} days</span></div> : <div className="skeleton" style={{ height: 40 }} />}
             <ul className="plan-list">{FEATURES[id].map((f) => <li key={f}><ICheck width={16} height={16} />{f}</li>)}
               {p && <li><IBolt width={16} height={16} style={{ color: "var(--accent)" }} /><span className="num">{p.credits}</span> AI credits every purchase</li>}</ul>
-            <button className={`btn lg ${id === "pro" ? "primary" : ""}`} disabled={!p || busy !== null} onClick={() => p && buy(p)}>
+            <button className={`btn lg ${id === "pro" ? "primary" : ""}`} disabled={!p || busy !== null || (id === "plus" && active === "pro")} onClick={() => p && buy(p)}>
               {!user ? (loggingIn ? "Signing in…" : "Sign in with Pi") : busy === `plan${id}` ? "Waiting for Pi…" : active === id ? `Extend ${id === "pro" ? "Pro" : "Plus"}` : `Get ${id === "pro" ? "Pro" : "Plus"}`}
             </button>
           </section>

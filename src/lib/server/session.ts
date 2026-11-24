@@ -43,7 +43,10 @@ function readCookie(req: Request, name: string) {
 }
 
 export function getSession(req: Request): Session | null {
-  return verify<Session>(readCookie(req, COOKIE));
+  const s = verify<Session>(readCookie(req, COOKIE));
+  // Other signed tokens (price quotes, download links) share the secret; only a real login payload is accepted here.
+  if (!s || typeof s.uid !== "string" || typeof s.pu !== "string" || (s as unknown as { t?: unknown }).t !== undefined) return null;
+  return s;
 }
 
 export function sessionCookie(s: Omit<Session, "exp">) {

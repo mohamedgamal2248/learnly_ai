@@ -11,6 +11,17 @@ const nextConfig: NextConfig = {
     const market = process.env.SHOW_MARKET === "1" ? [] : ["/tasks", "/people", "/deals", "/wallet", "/notifications", "/profile", "/u", "/docs"];
     return [...legacy, ...market].map((source) => ({ source, destination: "/", permanent: false }));
   },
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        // Only our own pages and Pi's browser/sandbox may frame the app (clickjacking protection that keeps Pi Browser working).
+        { key: "Content-Security-Policy", value: "frame-ancestors 'self' https://*.pinet.com https://*.minepi.com" },
+      ],
+    }];
+  },
   serverExternalPackages: ["exceljs", "docx", "pdf-lib", "@pdf-lib/fontkit", "unpdf"],
 };
 

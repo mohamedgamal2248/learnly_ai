@@ -21,23 +21,26 @@ export async function getCatalog(fresh = false): Promise<Catalog> {
 }
 export function forgetCatalog() { catCache = null; }
 
-export type Quote = { kind: "plan" | "pack"; id: string; credits: number; usd: number; pi: number; rate: number; exp: number };
+export type Quote = { t: "q"; kind: "plan" | "pack"; id: string; credits: number; usd: number; pi: number; rate: number; exp: number };
 
 let priceCache: { at: number; rate: number; ok: boolean } | null = null;
+
+/** A price outside this range is a data error or an attack, never a real Pi price. */
+const sane = (r: number) => Number.isFinite(r) && r >= 0.001 && r <= 50;
 
 async function okx(): Promise<number> {
   const res = await fetch("https://www.okx.com/api/v5/market/ticker?instId=PI-USDT", { cache: "no-store", signal: AbortSignal.timeout(4000) });
   if (!res.ok) throw new Error(`okx_${res.status}`);
   const data = await res.json();
   const rate = parseFloat(data?.data?.[0]?.last);
-  if (!(rate > 0)) throw new Error("okx_bad_price");
+  if (!sane(rate)) throw new Error("okx_bad_price");
   return rate;
 }
 async function gate(): Promise<number> {
   const res = await fetch("https://api.gateio.ws/api/v4/spot/tickers?currency_pair=PI_USDT", { cache: "no-store", signal: AbortSignal.timeout(4000) });
   if (!res.ok) throw new Error(`gate_${res.status}`);
   const rate = parseFloat((await res.json())?.[0]?.last);
-  if (!(rate > 0)) throw new Error("gate_bad_price");
+  if (!sane(rate)) throw new Error("gate_bad_price");
   return rate;
 }
 
@@ -62,8 +65,8 @@ export function makeQuotes(rate: number, cat: Catalog) {
   const exp = Date.now() + 10 * 60_000;
   const mk = (q: Quote) => ({ ...q, token: sign(q) });
   return {
-    plans: Object.entries(cat.plans).map(([id, p]) => ({ ...mk({ kind: "plan", id, credits: p.credits, usd: p.usd, pi: piFor(p.usd, rate), rate, exp }), name: p.name, days: p.days })),
-    packs: cat.packs.map((p) => mk({ kind: "pack", id: p.id, credits: p.credits, usd: p.usd, pi: piFor(p.usd, rate), rate, exp })),
+    plans: Object.entries(cat.plans).map(([id, p]) => ({ ...mk({ t: "q", kind: "plan", id, credits: p.credits, usd: p.usd, pi: piFor(p.usd, rate), rate, exp }), name: p.name, days: p.days })),
+    packs: cat.packs.map((p) => mk({ t: "q", kind: "pack", id: p.id, credits: p.credits, usd: p.usd, pi: piFor(p.usd, rate), rate, exp })),
   };
 }
 
@@ -71,7 +74,9 @@ export function readQuote(token: unknown): Quote | null {
   if (typeof token !== "string") return null;
   const q = verify<Quote>(token);
   // Quotes are shown for 10 minutes; allow 10 more for a slow wallet confirmation.
-  if (!q || q.exp + 10 * 60_000 < Date.now()) return null;
+  if (!q || q.t !== "q" || (q.kind !== "plan" && q.kind !== "pack") || typeof q.id !== "string") return null;
+  if (!Number.isFinite(q.pi) || q.pi < 1 || !Number.isFinite(q.usd) || !Number.isInteger(q.credits) || q.credits < 0) return null;
+  if (q.exp + 10 * 60_000 < Date.now()) return null;
   return q;
 }
 

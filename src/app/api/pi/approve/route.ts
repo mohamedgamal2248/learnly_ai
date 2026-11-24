@@ -1,5 +1,5 @@
 import { rpc } from "@/lib/server/db";
-import { fail, json, requireSession } from "@/lib/server/http";
+import { fail, json, rateLimited, requireSession } from "@/lib/server/http";
 import { piPayment } from "@/lib/server/pi";
 import { piUsdRate, readQuote } from "@/lib/server/pricing";
 import type { CourseRaw } from "@/lib/server/courses";
@@ -15,12 +15,16 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const s = requireSession(req);
   if (s instanceof Response) return s;
+  if (rateLimited(`pay:${s.uid}`, 15, 60_000)) return fail("slow_down", 429);
   const { paymentId } = await req.json().catch(() => ({}));
-  if (typeof paymentId !== "string") return fail("bad_request");
+  if (typeof paymentId !== "string" || paymentId.length > 100) return fail("bad_request");
   const p = await piPayment.get(paymentId);
   if (p.user_uid !== s.pu) return fail("wrong_user", 403);
+  if (p.status.cancelled || p.status.user_cancelled) return fail("payment_cancelled", 400);
 
   const courseId = p.metadata?.course;
+  // Top-ups and course sales belong to features that are switched off.
+  if ((p.metadata?.deposit === true || typeof courseId === "string") && process.env.SHOW_MARKET !== "1" && process.env.SHOW_LEGACY !== "1") return fail("unavailable", 400);
   if (p.metadata?.deposit === true) {
     // Top-up of the Pi balance (for posting tasks): any amount in range, credited only after the payment completes.
     const amt = Number(p.amount);
@@ -43,7 +47,8 @@ export async function POST(req: Request) {
     try {
       await rpc("ln_en_pay_start", { p_payment: paymentId, p_user: s.uid, p_pi: q.pi, p_usd: q.usd, p_item: `${q.kind}:${q.id}`, p_credits: q.credits });
     } catch (e: any) {
-      return fail(String(e.message).includes("plan_required") ? "plan_required" : "server_error", 400);
+      const m = String(e.message);
+      return fail(m.includes("plan_required") ? "plan_required" : m.includes("higher_plan_active") ? "higher_plan_active" : "server_error", 400);
     }
   }
   if (!p.status.developer_approved) await piPayment.approve(paymentId);
