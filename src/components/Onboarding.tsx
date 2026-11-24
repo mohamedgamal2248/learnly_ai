@@ -48,6 +48,7 @@ export function Onboarding() {
             </button>
           ))}
         </div>
+        <a className="small md-link" href="/placement" style={{ justifySelf: "start" }}>Not sure? Take the 3-minute level test</a>
         <b className="small">3. Daily goal</b>
         <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
           {[1, 2, 3].map((g) => <button key={g} className={`opt${goal === g ? " sel" : ""}`} onClick={() => setGoal(g)} style={{ justifyContent: "center" }}>{g} lesson{g > 1 ? "s" : ""}</button>)}

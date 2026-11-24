@@ -47,6 +47,7 @@ export default function Me() {
         <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
           {["A1", "A2", "B1"].map((l) => <button key={l} className={`opt${st?.profile.level === l ? " sel" : ""}`} style={{ justifyContent: "center" }} onClick={() => level(l)}>{l}</button>)}
         </div>
+        <Link href="/placement" className="small md-link">Not sure? Take the level test</Link>
         <b>Daily goal</b>
         <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
           {[1, 2, 3].map((g) => <button key={g} className={`opt${st?.profile.goal === g ? " sel" : ""}`} style={{ justifyContent: "center" }} onClick={() => goal(g)}>{g} lesson{g > 1 ? "s" : ""}</button>)}

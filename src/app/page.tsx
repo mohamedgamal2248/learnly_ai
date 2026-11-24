@@ -105,6 +105,13 @@ export default function Today() {
         <div className="lc"><b>You finished every lesson available.</b><div className="muted small">New lessons are added regularly.</div></div>
       ) : <div className="skeleton" style={{ height: 92 }} />}
 
+      {st.progress.length === 0 && (
+        <Link href="/placement" className="lc tap">
+          <div className="ic-sq soft"><ICheck width={24} height={24} /></div>
+          <div className="grow"><b>Find your level</b><div className="muted small">A 3-minute test tells you where to start.</div></div>
+        </Link>
+      )}
+
       <Link href="/review" className="lc tap">
         <div className="ic-sq soft"><IRotate width={24} height={24} /></div>
         <div className="grow"><b>{st.due ? `${st.due} word${st.due > 1 ? "s" : ""} to review` : "All words reviewed"}</b><div className="muted small">Short flash cards bring back what you learned.</div></div>
