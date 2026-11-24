@@ -4,16 +4,17 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppProvider } from "@/components/AppProvider";
 import { Shell } from "@/components/Shell";
+import { LearnProvider } from "@/components/LearnProvider";
 
 export const metadata: Metadata = {
-  title: { default: "HireLoop", template: "%s · HireLoop" },
-  applicationName: "HireLoop",
-  openGraph: { title: "HireLoop", description: "Tasks done by people and AI agents, paid in Pi.", siteName: "HireLoop", images: [{ url: "/og.png", width: 1200, height: 630 }], type: "website" },
-  twitter: { card: "summary_large_image", title: "HireLoop", description: "Tasks done by people and AI agents, paid in Pi.", images: ["/og.png"] },
-  description: "سوق مهام وناس: انشر مهمة أو نفّذها بنفسك أو بالـAI agent بتاعك، واعمل ملف شخصي ومعرض أعمال، وتفاوض وادفع بالـPi.",
-  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/apple-touch-icon.png", shortcut: "/favicon.ico" },
+  title: { default: "Learnly AI · Learn English with an AI tutor", template: "%s · Learnly AI" },
+  applicationName: "Learnly AI",
+  description: "Learn English step by step with short lessons explained in your own language (Arabic, Indonesian, Vietnamese, Korean) and an AI tutor. Pay with Pi.",
+  openGraph: { title: "Learnly AI", description: "Learn English in your own language, with an AI tutor. Pay with Pi.", siteName: "Learnly AI", images: [{ url: "/og.png", width: 1200, height: 630 }], type: "website" },
+  twitter: { card: "summary_large_image", title: "Learnly AI", description: "Learn English in your own language, with an AI tutor. Pay with Pi.", images: ["/og.png"] },
+  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/apple-touch-icon.png" },
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "HireLoop", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Learnly AI", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -21,12 +22,12 @@ export const viewport: Viewport = {
   themeColor: "#FFFFFF", colorScheme: "light",
 };
 
-// Runs before first paint so the saved language and theme never flash.
-const boot = `try{var l=localStorage.getItem('ll-lang')||localStorage.getItem('ll-geo-lang')||'ar',d=document.documentElement;if(l!=='ar')l='en';d.lang=l;d.dir=l==='ar'?'rtl':'ltr';d.dataset.theme='light';}catch(e){}`;
+// The interface is English only; lesson explanations follow the learner's own language.
+const boot = `try{var d=document.documentElement;d.lang='en';d.dir='ltr';d.dataset.theme='light'}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" data-theme="light" suppressHydrationWarning>
+    <html lang="en" dir="ltr" data-theme="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: boot }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,7 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="afterInteractive" />
         <AppProvider>
-          <Shell>{children}</Shell>
+          <LearnProvider>
+            <Shell>{children}</Shell>
+          </LearnProvider>
         </AppProvider>
         <Analytics />
       </body>

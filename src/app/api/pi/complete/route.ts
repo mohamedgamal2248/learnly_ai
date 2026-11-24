@@ -15,6 +15,6 @@ export async function POST(req: Request) {
   const p = await piPayment.get(paymentId);
   if (!p.transaction?.txid || p.transaction.txid !== txid) return fail("tx_mismatch", 400);
   if (!p.status.developer_completed) await piPayment.complete(paymentId, txid);
-  const r = await rpc<{ ok: boolean; credits?: number; added?: number }>("ln_payment_complete", { p_payment: paymentId, p_txid: txid });
+  const r = await rpc<{ ok: boolean; credits?: number; added?: number; plan?: string; until?: string }>("ln_payment_complete2", { p_payment: paymentId, p_txid: txid });
   return json(r);
 }

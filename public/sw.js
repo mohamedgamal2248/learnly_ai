@@ -1,4 +1,4 @@
-/* HireLoop service worker: fast repeat visits and an offline fallback. Never caches API calls. */
+/* Learnly AI service worker: fast repeat visits and an offline fallback. Never caches API calls. */
 const VERSION = "ln-v1";
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;

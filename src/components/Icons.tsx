@@ -94,3 +94,8 @@ export function IconTile({ children, size = 46, tone = "blue", glass = false }: 
     </span>
   );
 }
+
+export const IBolt = (p: P) => <svg {...base(p)}><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z" /></svg>;
+export const IPlay = (p: P) => <svg {...base(p)}><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>;
+export const ISpeaker = (p: P) => <svg {...base(p)}><path d="M4 9.5v5h4l5 4v-13l-5 4z" /><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11" /></svg>;
+export const IGlobe = (p: P) => <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" /></svg>;

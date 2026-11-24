@@ -28,7 +28,7 @@ export const useApp = () => {
 function store(k: string, v: string) { try { localStorage.setItem(k, v); } catch {} }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [ui, setUi] = useState<UiLang>("ar");
+  const [ui, setUi] = useState<UiLang>("en");
   const [dictVer, setDictVer] = useState(0);
   const lang = baseLang(ui);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -42,9 +42,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // The inline script in <head> already applied the saved language and theme before paint.
   useEffect(() => {
     const root = document.documentElement;
-    const l = isUiLang(root.lang) ? root.lang : "ar";
-    setUi(l);
-    if (!hasDict(l)) loadDict(l);
+    setUi("en");
+    root.lang = "en"; root.dir = "ltr";
     // Installable app + faster repeat visits (production only).
     if ("serviceWorker" in navigator && location.hostname !== "localhost") navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
@@ -75,20 +74,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // A choice made with the EN/AR button is remembered on this device.
-  const setLang = useCallback((l: UiLang) => { applyLang(l); store("ll-lang", l); }, [applyLang]);
-
-  // First visit: guess the language from the visitor's country (once per device, not saved as a choice).
-  useEffect(() => {
-    let saved: string | null = null, guessed: string | null = null;
-    try { saved = localStorage.getItem("ll-lang"); guessed = localStorage.getItem("ll-geo-lang"); } catch {}
-    if (saved) return;
-    if (isUiLang(guessed)) { applyLang(guessed); return; }
-    fetch("/api/geo").then((r) => r.json()).then((d) => {
-      const l: UiLang = isUiLang(d.lang) ? d.lang : "en";
-      store("ll-geo-lang", l);
-      applyLang(l);
-    }).catch(() => {});
-  }, [applyLang]);
+  const setLang = useCallback((l: UiLang) => { void l; }, []);
 
   // Dark mode was removed: the site is always light.
   const toggleTheme = useCallback(() => { setTheme("light"); }, []);

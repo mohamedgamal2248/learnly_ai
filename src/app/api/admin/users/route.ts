@@ -9,5 +9,5 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const q = (u.searchParams.get("q") || "").trim().slice(0, 60) || null;
   const page = Math.max(0, parseInt(u.searchParams.get("page") || "0", 10) || 0);
-  return json(await rpc("ln_admin_users2", { p_search: q, p_limit: 30, p_offset: page * 30 }));
+  return json(await rpc("ln_en_admin_users", { p_search: q, p_limit: 30, p_offset: page * 30 }));
 }

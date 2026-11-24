@@ -2,36 +2,69 @@ import "server-only";
 import { sign, verify } from "./session";
 import type { Limits } from "./db";
 
-/** Credit packs. Priced in USD internally, always sold in Pi at the live OKX rate. */
-export const PACKS = [
-  { id: "s", credits: 1000, usd: 1 },
-  { id: "m", credits: 5500, usd: 5 },
-  { id: "l", credits: 12000, usd: 10 },
-] as const;
+import { rpc } from "./db";
 
-export type Quote = { pack: string; credits: number; usd: number; pi: number; rate: number; exp: number };
+/** The shop: subscription plans and AI credit packs, priced in USD and always sold in whole Pi at the live OKX rate. */
+export type Catalog = {
+  plans: Record<string, { name: string; usd: number; days: number; credits: number }>;
+  packs: { id: string; usd: number; credits: number }[];
+  costs: Record<string, number>;
+  ai_daily_cap: number;
+};
 
-let priceCache: { at: number; rate: number } | null = null;
+let catCache: { at: number; value: Catalog } | null = null;
+export async function getCatalog(fresh = false): Promise<Catalog> {
+  if (!fresh && catCache && Date.now() - catCache.at < 60_000) return catCache.value;
+  const value = await rpc<Catalog>("ln_en_catalog");
+  catCache = { at: Date.now(), value };
+  return value;
+}
+export function forgetCatalog() { catCache = null; }
 
-/** PI/USDT last price from OKX. Cached 30s per instance so a busy buy page doesn't hammer OKX. */
-export async function piUsdRate(): Promise<number> {
-  if (priceCache && Date.now() - priceCache.at < 30_000) return priceCache.rate;
-  const res = await fetch("https://www.okx.com/api/v5/market/ticker?instId=PI-USDT", { cache: "no-store" });
+export type Quote = { kind: "plan" | "pack"; id: string; credits: number; usd: number; pi: number; rate: number; exp: number };
+
+let priceCache: { at: number; rate: number; ok: boolean } | null = null;
+
+async function okx(): Promise<number> {
+  const res = await fetch("https://www.okx.com/api/v5/market/ticker?instId=PI-USDT", { cache: "no-store", signal: AbortSignal.timeout(4000) });
   if (!res.ok) throw new Error(`okx_${res.status}`);
   const data = await res.json();
   const rate = parseFloat(data?.data?.[0]?.last);
   if (!(rate > 0)) throw new Error("okx_bad_price");
-  priceCache = { at: Date.now(), rate };
+  return rate;
+}
+async function gate(): Promise<number> {
+  const res = await fetch("https://api.gateio.ws/api/v4/spot/tickers?currency_pair=PI_USDT", { cache: "no-store", signal: AbortSignal.timeout(4000) });
+  if (!res.ok) throw new Error(`gate_${res.status}`);
+  const rate = parseFloat((await res.json())?.[0]?.last);
+  if (!(rate > 0)) throw new Error("gate_bad_price");
   return rate;
 }
 
-export function makeQuotes(rate: number) {
+/** PI/USDT last price from OKX (Gate.io only if OKX is down). Cached 30s per instance; an hour-old price is still used if both fail. */
+export async function piUsdRate(): Promise<number> {
+  if (priceCache && Date.now() - priceCache.at < 30_000) return priceCache.rate;
+  try {
+    let rate: number;
+    try { rate = await okx(); } catch { rate = await gate(); }
+    priceCache = { at: Date.now(), rate, ok: true };
+    return rate;
+  } catch (e) {
+    if (priceCache && Date.now() - priceCache.at < 3600_000) return priceCache.rate;
+    throw e;
+  }
+}
+
+/** Whole Pi, always rounded up: 5.5 becomes 6. */
+export const piFor = (usd: number, rate: number) => Math.max(1, Math.ceil(usd / rate - 1e-9));
+
+export function makeQuotes(rate: number, cat: Catalog) {
   const exp = Date.now() + 10 * 60_000;
-  return PACKS.map((p) => {
-    const pi = Math.ceil((p.usd / rate) * 10_000) / 10_000;
-    const q: Quote = { pack: p.id, credits: p.credits, usd: p.usd, pi, rate, exp };
-    return { ...q, token: sign(q) };
-  });
+  const mk = (q: Quote) => ({ ...q, token: sign(q) });
+  return {
+    plans: Object.entries(cat.plans).map(([id, p]) => ({ ...mk({ kind: "plan", id, credits: p.credits, usd: p.usd, pi: piFor(p.usd, rate), rate, exp }), name: p.name, days: p.days })),
+    packs: cat.packs.map((p) => mk({ kind: "pack", id: p.id, credits: p.credits, usd: p.usd, pi: piFor(p.usd, rate), rate, exp })),
+  };
 }
 
 export function readQuote(token: unknown): Quote | null {

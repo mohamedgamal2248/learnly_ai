@@ -1,6 +1,7 @@
 import { BRAND } from "@/lib/brand";
 
-/** The wordmark: only the H carries the blue underline. Always left-to-right, even on Arabic pages. */
+/** The wordmark: "Learnly" in ink and "AI" in the site's blue. Always left-to-right. */
 export function Brand() {
-  return <span className="brand-word" dir="ltr"><span className="brand-h">{BRAND.slice(0, 1)}</span>{BRAND.slice(1)}</span>;
+  const [a, b] = BRAND.split(" ");
+  return <span className="brand-word" dir="ltr">{a}{" "}<span className="brand-ai">{b}</span></span>;
 }

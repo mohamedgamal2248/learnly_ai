@@ -16,5 +16,5 @@ export async function POST(req: Request) {
   const txid = p.transaction?.txid;
   if (!rec || !txid) return json({ ok: false, reason: "not_ours_or_unpaid" });
   if (!p.status.developer_completed) await piPayment.complete(paymentId, txid);
-  return json(await rpc("ln_payment_complete", { p_payment: paymentId, p_txid: txid }));
+  return json(await rpc("ln_payment_complete2", { p_payment: paymentId, p_txid: txid }));
 }
