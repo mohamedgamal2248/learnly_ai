@@ -4,6 +4,7 @@ import { streamChat } from "@/lib/server/ai";
 import { getCatalog } from "@/lib/server/pricing";
 import { getLesson } from "@/lib/server/learn";
 import { loadState } from "@/lib/server/learn/api";
+import { isNative, type Native } from "@/lib/server/learn/types";
 import { buildMessages, lessonContext, systemFor, type Mode } from "@/lib/server/learn/tutor";
 
 export const runtime = "nodejs";
@@ -33,7 +34,8 @@ export async function POST(req: Request) {
   if (!spend.ok) return fail(spend.reason || "no_credits", 402, { credits: spend.credits ?? st.credits });
 
   const lesson = typeof b?.lessonId === "string" ? getLesson(b.lessonId) : null;
-  const native = st.profile.native;
+  // Answers come in the language of the site when it is one of the four learner languages, otherwise in the learner's own language.
+  const native: Native = isNative(b?.ui) ? b.ui : st.profile.native;
   const ctx = lesson ? lessonContext({ title: lesson.title, level: lesson.level, tip: lesson.intro[native], words: lesson.words.map((w) => ({ en: w.en, tr: w.tr[native], ex: w.ex })) }) : "";
   const history = Array.isArray(b?.history)
     ? b.history.filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string").slice(-6)

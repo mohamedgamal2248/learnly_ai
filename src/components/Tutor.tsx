@@ -16,7 +16,7 @@ const MODES: { id: Mode; label: string; ph: string; hint: string }[] = [
 
 /** The AI tutor: an Ask / Practise / Correct chat. Needs a paid plan; every request uses a few credits. */
 /** Shows a tutor answer as tidy lines: no markdown symbols, lists with bullets, each line takes its own direction. */
-function Rich({ text }: { text: string }) {
+function Rich({ text, dir }: { text: string; dir: "rtl" | "ltr" }) {
   const lines = text.replace(/\*+/g, "").replace(/^#{1,6}\s+/gm, "").replace(/`+/g, "").split("\n");
   return (
     <>
@@ -25,14 +25,14 @@ function Rich({ text }: { text: string }) {
         if (!t) return <div key={i} style={{ height: 8 }} />;
         const bullet = /^([-•–]|\d+[.)])\s+/.test(t);
         const body = t.replace(/^([-•–])\s+/, "");
-        return <div key={i} dir="auto" className={`rl${bullet ? " li" : ""}${/:$/.test(t) ? " hd" : ""}`}>{bullet && /^[-•–]/.test(t) ? "• " : ""}{body}</div>;
+        return <div key={i} dir={dir} className={`rl${bullet ? " li" : ""}${/:$/.test(t) ? " hd" : ""}`}>{bullet && /^[-•–]/.test(t) ? "• " : ""}{body}</div>;
       })}
     </>
   );
 }
 
 export function Tutor({ lessonId, lessonTitle, compact = false }: { lessonId?: string; lessonTitle?: string; compact?: boolean }) {
-  const { user, login, loggingIn, tt } = useApp();
+  const { user, login, loggingIn, tt, uiLang, dir } = useApp();
   const { st, plan, setCredits } = useLearn();
   const [mode, setMode] = useState<Mode>("explain");
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -67,7 +67,7 @@ export function Tutor({ lessonId, lessonTitle, compact = false }: { lessonId?: s
     const history = msgs.slice(-6);
     setMsgs((x) => [...x, { role: "user", content: t }, { role: "assistant", content: "" }]);
     try {
-      const r = await fetch("/api/en/ai", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, text: t, lessonId, history }) });
+      const r = await fetch("/api/en/ai", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, text: t, lessonId, history, ui: uiLang }) });
       if (!r.ok || !r.body) {
         const d = await r.json().catch(() => ({}));
         setMsgs((x) => x.slice(0, -2)); setText(t);
@@ -109,13 +109,13 @@ export function Tutor({ lessonId, lessonTitle, compact = false }: { lessonId?: s
       )}
       <div className="chat">
         {msgs.map((x, i) => (
-          <div key={i} className={`bubble ${x.role}`} dir={x.role === "assistant" ? undefined : "auto"}>{x.content ? (x.role === "assistant" ? <Rich text={x.content} /> : x.content) : <span className="dots"><i /><i /><i /></span>}</div>
+          <div key={i} className={`bubble ${x.role}`} dir={dir}>{x.content ? (x.role === "assistant" ? <Rich text={x.content} dir={dir} /> : x.content) : <span className="dots"><i /><i /><i /></span>}</div>
         ))}
         <div ref={end} />
       </div>
       {err && <div className="note bad">{err} {err === tt("You are out of AI credits. Add a pack to keep going.") && <Link href="/plans" className="md-link">{tt("Add credits")}</Link>}</div>}
       <div className="composer">
-        <textarea className="textarea" rows={2} value={text} placeholder={tt(m.ph)} dir="auto" maxLength={1200} onChange={(e) => setText(e.target.value)}
+        <textarea className="textarea" rows={2} value={text} placeholder={tt(m.ph)} dir={dir} maxLength={1200} onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }} />
         <button className="btn primary" onClick={send} disabled={busy || text.trim().length < 2} aria-label={tt("Send")}><ISend width={18} height={18} className="flip" /></button>
       </div>
