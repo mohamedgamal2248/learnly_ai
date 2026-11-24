@@ -1,16 +1,22 @@
 import { fail, json, requireUser } from "@/lib/server/http";
 import { rpc } from "@/lib/server/db";
-import { forgetCatalog } from "@/lib/server/pricing";
+import { forgetCatalog, getCatalog, RATES } from "@/lib/server/pricing";
 
 export const runtime = "nodejs";
+
+const num = (v: unknown, min: number, max: number) => { const n = Number(v); return Number.isFinite(n) && n >= min && n <= max ? n : null; };
 
 export async function GET(req: Request) {
   const a = await requireUser(req, ["admin"]);
   if (a instanceof Response) return a;
+  const url = new URL(req.url);
+  if (url.searchParams.get("view") === "ai") {
+    const days = Math.round(num(url.searchParams.get("days"), 1, 365) ?? 30);
+    const [ai, catalog] = await Promise.all([rpc<Record<string, unknown>>("ln_en_admin_ai", { p_days: days }), getCatalog(true)]);
+    return json({ ...ai, catalog, rates: RATES });
+  }
   return json(await rpc("ln_en_admin_overview"));
 }
-
-const num = (v: unknown, min: number, max: number) => { const n = Number(v); return Number.isFinite(n) && n >= min && n <= max ? n : null; };
 
 /** kind "catalog": prices, credits, AI costs and the daily cap. kind "grant": give a plan and/or credits to a user. */
 export async function POST(req: Request) {

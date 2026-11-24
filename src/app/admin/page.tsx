@@ -9,7 +9,7 @@ type Catalog = { plans: Record<string, { usd: number; days: number; credits: num
 type AppRow = { id: string; username: string; display_name: string; subjects: string; bio: string; years: number; doc_name: string; status: string; reason: string | null; created_at: string };
 type UserRow = { id: string; username: string; role: string; banned: boolean; credits: number; plan: string | null; plan_until: string | null; xp: number | null; streak: number };
 
-const TABS = ["Overview", "Plans & AI", "Teachers", "Reports", "Users"] as const;
+const TABS = ["Overview", "Plans & AI", "AI cost", "Teachers", "Reports", "Users"] as const;
 
 async function get<T>(url: string): Promise<T | null> { try { const r = await fetch(url, { credentials: "include", cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }
 
@@ -87,6 +87,95 @@ function PlansTab({ o, reload }: { o: Overview | null; reload: () => void }) {
           <label className="field"><span>Credits (+/-)</span><input className="input" type="number" value={g.credits} onChange={(e) => setG({ ...g, credits: num(e.target.value) })} /></label>
         </div>
         <button className="btn" onClick={grant} disabled={!g.username.trim()}>Grant</button>
+      </section>
+    </div>
+  );
+}
+
+type KindRow = { kind: string; n: number; failed: number; avg_in: number | null; avg_cached: number | null; avg_out: number | null; avg_cost: number; max_cost: number; total_cost: number };
+type RecentRow = { created_at: string; kind: string; input_tokens: number; cached_tokens: number; output_tokens: number; cost_usd: number; ok: boolean; username: string | null };
+type AiData = { by_kind: KindRow[]; recent: RecentRow[]; total_cost: number; calls: number; catalog: Catalog; rates: { low: { input: number; cached: number; output: number } } };
+
+const usd = (n: number, d = 4) => `$${n.toFixed(d)}`;
+// Used until real calls have been logged: about 2,500 input tokens (a third cached) and 350 output tokens at the model price.
+const GUESS_COST = (2500 * 0.1 * 0.67 + 2500 * 0.004 * 0.33 + 350 * 0.5) / 1_000_000;
+
+function AiCostTab() {
+  const [d, setD] = useState<AiData | null>(null);
+  const [days, setDays] = useState(30);
+  const [n, setN] = useState(400);
+  const [calcKind, setCalcKind] = useState("explain");
+  const [planId, setPlanId] = useState("pro");
+  useEffect(() => { get<AiData>(`/api/admin/en?view=ai&days=${days}`).then(setD); }, [days]);
+  if (!d) return <div className="skeleton" style={{ height: 200 }} />;
+  const costs = d.catalog.costs;
+  const rows = d.by_kind.filter((k) => k.n > 0);
+  const real = rows.length > 0;
+  // Dollar cost of one credit: what the model costs for a request divided by the credits that request charges.
+  const perKind = (k: string) => { const r = rows.find((x) => x.kind === k); return r ? r.avg_cost : GUESS_COST; };
+  const credOf = (k: string) => Math.max(costs[k] ?? 1, 1);
+  const totalCreds = rows.reduce((a, r) => a + r.n * credOf(r.kind), 0);
+  const perCredit = real && totalCreds ? rows.reduce((a, r) => a + r.avg_cost * r.n, 0) / totalCreds : GUESS_COST;
+  const worstPerCredit = Math.max(...["explain", "chat", "correct", "write"].map((k) => (rows.find((x) => x.kind === k)?.max_cost ?? GUESS_COST * 3) / credOf(k)));
+  const items = [
+    ...Object.entries(d.catalog.plans).map(([id, p]) => ({ name: id === "pro" ? "Pro" : "Plus", usd: p.usd, credits: p.credits })),
+    ...d.catalog.packs.map((p, i) => ({ name: `Pack ${i + 1}`, usd: p.usd, credits: p.credits })),
+  ];
+  const plan = d.catalog.plans[planId];
+  const calcCost = n * perKind(calcKind);
+  const calcCredits = n * credOf(calcKind);
+  const good = (v: number) => ({ color: v >= 0 ? "var(--ok, #16a34a)" : "var(--bad, #dc2626)", fontWeight: 600 });
+  return (
+    <div className="stack">
+      <section className="lc stack">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <b>AI cost</b>
+          <select className="select" style={{ width: "auto" }} value={days} onChange={(e) => setDays(Number(e.target.value))}>{[1, 7, 30, 90].map((x) => <option key={x} value={x}>{x} day{x > 1 ? "s" : ""}</option>)}</select>
+        </div>
+        <p className="hint">Model price (Muse Ember): input {usd(d.rates.low.input, 3)} / 1M tokens, cached input {usd(d.rates.low.cached, 3)} / 1M, output {usd(d.rates.low.output, 2)} / 1M. {d.calls} calls logged, {usd(d.total_cost, 4)} spent. {!real && "No real calls yet, so the numbers below use an estimate (about 2,500 tokens in, 350 out per request). They become exact after the first tutor questions."}</p>
+        {rows.map((r) => (
+          <div key={r.kind} className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 4, fontSize: 13 }}>
+            <b>{r.kind} <span className="muted">({credOf(r.kind)} credit{credOf(r.kind) > 1 ? "s" : ""})</span></b><span className="muted">{r.n} ok · {r.failed} empty</span>
+            <span>avg in {r.avg_in} (cached {r.avg_cached})</span><span>avg out {r.avg_out}</span>
+            <span>avg cost {usd(r.avg_cost)}</span><span>worst {usd(r.max_cost)}</span>
+          </div>
+        ))}
+      </section>
+
+      <section className="lc stack">
+        <b>Do I earn or lose?</b>
+        <p className="hint">Cost if the buyer spends every credit. Expected uses the real average ({usd(perCredit, 5)} per credit), worst case uses the most expensive request seen so far ({usd(worstPerCredit, 5)} per credit). Revenue is the USD price; Pi rounding up adds a little on top.</p>
+        {items.map((it) => {
+          const exp = it.credits * perCredit, worst = it.credits * worstPerCredit;
+          return (
+            <div key={it.name} className="grid" style={{ gridTemplateColumns: "70px 1fr 1fr", gap: 4, fontSize: 13, alignItems: "center" }}>
+              <b>{it.name}</b><span>${it.usd} · {it.credits} credits</span>
+              <span style={good(it.usd - exp)}>profit {usd(it.usd - exp, 2)} ({Math.round(((it.usd - exp) / it.usd) * 100)}%)</span>
+              <span /><span className="muted">AI cost {usd(exp, 3)}</span><span style={good(it.usd - worst)}>worst {usd(it.usd - worst, 2)}</span>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="lc stack">
+        <b>Calculator</b>
+        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <label className="field"><span>Plan</span><select className="select" value={planId} onChange={(e) => setPlanId(e.target.value)}>{Object.keys(d.catalog.plans).map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+          <label className="field"><span>Requests</span><input className="input" type="number" min={1} value={n} onChange={(e) => setN(Number(e.target.value) || 0)} /></label>
+          <label className="field"><span>Type</span><select className="select" value={calcKind} onChange={(e) => setCalcKind(e.target.value)}>{["explain", "chat", "correct", "write"].map((k) => <option key={k} value={k}>{k}</option>)}</select></label>
+        </div>
+        <div className="small">{n} {calcKind} requests use {calcCredits} credits ({plan?.credits} included). AI cost {usd(calcCost, 3)} against ${plan?.usd}: <span style={good((plan?.usd ?? 0) - calcCost)}>{(plan?.usd ?? 0) - calcCost >= 0 ? "profit" : "loss"} {usd(Math.abs((plan?.usd ?? 0) - calcCost), 2)}</span>.</div>
+      </section>
+
+      <section className="lc stack">
+        <b>Latest requests</b>
+        {d.recent.length === 0 && <p className="hint">Nothing logged yet.</p>}
+        {d.recent.map((r, i) => (
+          <div key={i} className="small" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 4, borderTop: "1px solid var(--line, #ffffff14)", paddingTop: 4 }}>
+            <span>{r.kind}{r.ok ? "" : " (empty)"} · {r.username ? `@${r.username}` : "-"} · in {r.input_tokens} (cached {r.cached_tokens}) · out {r.output_tokens}</span>
+            <b className="num">{usd(r.cost_usd, 5)}</b>
+          </div>
+        ))}
       </section>
     </div>
   );
@@ -177,9 +266,10 @@ export default function Admin() {
   return (
     <div className="stack">
       <h1 style={{ fontSize: 22 }}>Admin</h1>
-      <div className="seg" style={{ gridTemplateColumns: "repeat(5,1fr)" }}>{TABS.map((t) => <button key={t} className={tab === t ? "on" : ""} onClick={() => setTab(t)} style={{ fontSize: 13 }}>{t}{t === "Teachers" && o?.teacher_pending ? ` (${o.teacher_pending})` : ""}</button>)}</div>
+      <div className="seg" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>{TABS.map((t) => <button key={t} className={tab === t ? "on" : ""} onClick={() => setTab(t)} style={{ fontSize: 13 }}>{t}{t === "Teachers" && o?.teacher_pending ? ` (${o.teacher_pending})` : ""}</button>)}</div>
       {tab === "Overview" && <OverviewTab o={o} />}
       {tab === "Plans & AI" && <PlansTab o={o} reload={reload} />}
+      {tab === "AI cost" && <AiCostTab />}
       {tab === "Teachers" && <TeachersTab reload={reload} />}
       {tab === "Reports" && <ReportsTab />}
       {tab === "Users" && <UsersTab />}

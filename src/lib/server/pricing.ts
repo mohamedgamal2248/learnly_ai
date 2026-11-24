@@ -84,7 +84,7 @@ export function readQuote(token: unknown): Quote | null {
 /* ---------- Muse Ember cost ---------- */
 
 const TIER_LIMIT = 200_000;
-const RATES = {
+export const RATES = {
   low: { input: 0.10, cached: 0.004, output: 0.50 },
   high: { input: 0.30, cached: 0.012, output: 1.50 },
 };

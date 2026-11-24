@@ -1,7 +1,7 @@
 import { fail, rateLimited, requireSession } from "@/lib/server/http";
 import { rpc } from "@/lib/server/db";
 import { streamChat } from "@/lib/server/ai";
-import { getCatalog } from "@/lib/server/pricing";
+import { getCatalog, usageCost } from "@/lib/server/pricing";
 import { getLesson } from "@/lib/server/learn";
 import { loadState } from "@/lib/server/learn/api";
 import { isNative, type Native } from "@/lib/server/learn/types";
@@ -56,15 +56,17 @@ export async function POST(req: Request) {
       let lastError = "";
       for (const at of attempts) {
         try {
-          let finish: string | null = null; let usage = { input: 0, cached: 0, output: 0 };
+          let finish: string | null = null; let usage = { input: 0, cached: 0, output: 0 }; let got = false;
           for await (const ev of streamChat({ messages, maxTokens: at.max, cacheKey: TUTOR_CACHE_KEY, effort: "minimal", model: TUTOR_MODEL, signal: req.signal })) {
             if (ev.type === "text") {
               // Plain text only: strip any markdown the model still adds.
               const t = ev.text.replace(/\*+/g, "").replace(/^#{1,6}\s+/gm, "").replace(/`+/g, "");
-              if (t) { produced = true; ctrl.enqueue(enc.encode(t)); }
+              if (t) { produced = true; got = true; ctrl.enqueue(enc.encode(t)); }
             } else if (ev.type === "done") { finish = ev.finish; usage = ev.usage; }
           }
           console.log(`[tutor] ${mode} ok=${produced} finish=${finish} in=${usage.input} cached=${usage.cached} out=${usage.output}`);
+          // Every call is recorded with its tokens and cost at the model price, for the admin profit view.
+          await rpc("ln_ai_log_add", { p_user: s.uid, p_kind: key, p_model: TUTOR_MODEL, p_in: usage.input, p_cached: usage.cached, p_out: usage.output, p_cost: usageCost(usage), p_ok: got }).catch(() => {});
           if (produced) break;
           lastError = `empty reply (finish=${finish})`;
         } catch (e) {
