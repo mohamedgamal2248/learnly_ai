@@ -81,12 +81,12 @@ export function Tutor({ lessonId, lessonTitle, compact = false }: { lessonId?: s
         const { value, done } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
-        const show = acc.replace("[[error]]", "");
+        const show = acc.split("[[error]]")[0];
         setMsgs((x) => { const y = x.slice(); y[y.length - 1] = { role: "assistant", content: show }; return y; });
       }
       if (acc.includes("[[error]]")) {
         setMsgs((x) => x.slice(0, -2)); setText(t);
-        setErr(tt("The tutor could not answer. Your credits were returned."));
+        setErr(tt("The tutor could not answer. Your credits were returned.") + (acc.split("[[error]]")[1] ? `  [${acc.split("[[error]]")[1].trim()}]` : ""));
         const s = await fetch("/api/en/state", { credentials: "include", cache: "no-store" }).then((q) => q.json()).catch(() => null);
         if (s?.credits != null) setCredits(s.credits);
       }

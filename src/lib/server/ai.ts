@@ -26,8 +26,10 @@ export async function* streamChat(opts: {
   cacheKey: string;
   signal?: AbortSignal;
   effort?: Effort;
+  /** Defaults to META_MODEL (muse-ember-1.0). */
+  model?: string;
 }): AsyncGenerator<StreamEvent> {
-  const res = await fetch(URL, {
+  const send = (retention: boolean) => fetch(URL, {
     method: "POST",
     signal: opts.signal,
     headers: {
@@ -36,7 +38,7 @@ export async function* streamChat(opts: {
       Accept: "text/event-stream",
     },
     body: JSON.stringify({
-      model: env.metaModel,
+      model: opts.model || env.metaModel,
       messages: opts.messages,
       stream: true,
       stream_options: { include_usage: true },
@@ -45,10 +47,14 @@ export async function* streamChat(opts: {
       reasoning_effort: opts.effort || "low",
       // Automatic prefix caching: same system prompt + tools first, then history. Stable key per bot.
       prompt_cache_key: opts.cacheKey,
-      prompt_cache_retention: "24h",
+      ...(retention ? { prompt_cache_retention: "24h" } : {}),
       ...(opts.tools?.length ? { tools: opts.tools, tool_choice: "auto" } : {}),
     }),
   });
+  let res = await send(true);
+  // Some deployments reject the cache-retention hint: try again without it. Overload / rate limits get one retry too.
+  if (res.status === 400) res = await send(false);
+  else if (res.status === 429 || res.status === 503) { await new Promise((r) => setTimeout(r, 1200)); res = await send(true); }
   if (!res.ok || !res.body) {
     const detail = await res.text().catch(() => "");
     throw new Error(`meta_${res.status}: ${detail.slice(0, 300)}`);

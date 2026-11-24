@@ -5,7 +5,11 @@ import { getCatalog } from "@/lib/server/pricing";
 import { getLesson } from "@/lib/server/learn";
 import { loadState } from "@/lib/server/learn/api";
 import { isNative, type Native } from "@/lib/server/learn/types";
-import { buildMessages, lessonContext, systemFor, type Mode } from "@/lib/server/learn/tutor";
+import { buildMessages, lessonContext, profileBlock, type Mode } from "@/lib/server/learn/tutor";
+
+/** The tutor always runs on Muse Ember, with one stable cache key so every request shares the same cached prompt prefix. */
+const TUTOR_MODEL = "muse-ember-1.0";
+const TUTOR_CACHE_KEY = "learnly-tutor-v1";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -38,31 +42,43 @@ export async function POST(req: Request) {
   const native: Native = isNative(b?.ui) ? b.ui : st.profile.native;
   const ctx = lesson ? lessonContext({ title: lesson.title, level: lesson.level, tip: lesson.intro[native], words: lesson.words.map((w) => ({ en: w.en, tr: w.tr[native], ex: w.ex })) }) : "";
   const history = Array.isArray(b?.history)
-    ? b.history.filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string").slice(-6)
+    ? b.history.filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string" && m.content.trim()).slice(-6)
     : [];
-  const messages = buildMessages(systemFor(mode, native, st.profile.level, ctx), history, text);
+  const messages = buildMessages(profileBlock(mode, native, st.profile.level, ctx), history, text);
 
   const enc = new TextEncoder();
-  let produced = false;
   const body = new ReadableStream({
     async start(ctrl) {
-      try {
-        for await (const ev of streamChat({ messages, maxTokens: mode === "correct" ? 700 : 500, cacheKey: `en-${mode}-${native}`, effort: "low", signal: req.signal })) {
-          if (ev.type === "text") {
-            // Plain text only: strip any markdown the model still adds.
-            const t = ev.text.replace(/\*+/g, "").replace(/^#{1,6}\s+/gm, "").replace(/`+/g, "");
-            if (t) { produced = true; ctrl.enqueue(enc.encode(t)); }
+      let produced = false;
+      // "minimal" reasoning keeps answers fast and cheap. Reasoning tokens count against the output budget, so if the first try
+      // ends with no visible text, one more try with a bigger budget runs before the credits are returned.
+      const attempts = [{ max: 1500 }, { max: 3500 }];
+      let lastError = "";
+      for (const at of attempts) {
+        try {
+          let finish: string | null = null; let usage = { input: 0, cached: 0, output: 0 };
+          for await (const ev of streamChat({ messages, maxTokens: at.max, cacheKey: TUTOR_CACHE_KEY, effort: "minimal", model: TUTOR_MODEL, signal: req.signal })) {
+            if (ev.type === "text") {
+              // Plain text only: strip any markdown the model still adds.
+              const t = ev.text.replace(/\*+/g, "").replace(/^#{1,6}\s+/gm, "").replace(/`+/g, "");
+              if (t) { produced = true; ctrl.enqueue(enc.encode(t)); }
+            } else if (ev.type === "done") { finish = ev.finish; usage = ev.usage; }
           }
+          console.log(`[tutor] ${mode} ok=${produced} finish=${finish} in=${usage.input} cached=${usage.cached} out=${usage.output}`);
+          if (produced) break;
+          lastError = `empty reply (finish=${finish})`;
+        } catch (e) {
+          lastError = e instanceof Error ? e.message : String(e);
+          console.error(`[tutor] ${mode} failed: ${lastError}`);
+          if (produced) break;
         }
-        if (!produced) throw new Error("empty_reply");
-        ctrl.close();
-      } catch {
-        if (!produced) {
-          await rpc("ln_en_refund", { p_user: s.uid, p_cost: cost, p_ref: `fail:${key}` }).catch(() => {});
-          ctrl.enqueue(enc.encode("[[error]]"));
-        }
-        try { ctrl.close(); } catch {}
       }
+      if (!produced) {
+        console.error(`[tutor] giving up: ${lastError}`);
+        await rpc("ln_en_refund", { p_user: s.uid, p_cost: cost, p_ref: `fail:${key}` }).catch(() => {});
+        ctrl.enqueue(enc.encode("[[error]]" + (s.r === "admin" ? ` ${lastError}`.slice(0, 300) : "")));
+      }
+      try { ctrl.close(); } catch {}
     },
   });
   return new Response(body, {
