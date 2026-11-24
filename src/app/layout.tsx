@@ -22,8 +22,8 @@ export const viewport: Viewport = {
   themeColor: "#FFFFFF", colorScheme: "light",
 };
 
-// The interface is English only; lesson explanations follow the learner's own language.
-const boot = `try{var d=document.documentElement;d.lang='en';d.dir='ltr';d.dataset.theme='light'}catch(e){}`;
+// The site language (en, ar, id, vi, ko) and its direction are applied before first paint so nothing flashes.
+const boot = `try{var d=document.documentElement,l=localStorage.getItem('ll-ui');if(['ar','id','vi','ko'].indexOf(l)<0)l='en';d.lang=l;d.dir=l==='ar'?'rtl':'ltr';d.dataset.theme='light'}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

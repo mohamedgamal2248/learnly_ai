@@ -13,7 +13,7 @@ import { Brand } from "./Brand";
 const FOCUS = ["/lesson", "/review"];
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { user, login, loggingIn, ready } = useApp();
+  const { user, login, loggingIn, ready, tt } = useApp();
   const { st, native, setNative, plan } = useLearn();
   const path = usePathname();
   const [pick, setPick] = useState(false);
@@ -27,11 +27,11 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const on = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
   const tabs = [
-    { href: "/", label: "Today", icon: <IHome width={22} height={22} /> },
-    { href: "/learn", label: "Learn", icon: <ICourses width={22} height={22} /> },
+    { href: "/", label: tt("Today"), icon: <IHome width={22} height={22} /> },
+    { href: "/learn", label: tt("Learn"), icon: <ICourses width={22} height={22} /> },
     { href: "/ai", label: "AI", ai: true },
-    { href: "/teachers", label: "Teachers", icon: <ICap width={22} height={22} /> },
-    { href: "/me", label: "Me", icon: <IPerson width={22} height={22} /> },
+    { href: "/teachers", label: tt("Teachers"), icon: <ICap width={22} height={22} /> },
+    { href: "/me", label: tt("Me"), icon: <IPerson width={22} height={22} /> },
   ];
 
   return (
@@ -45,12 +45,12 @@ export function Shell({ children }: { children: ReactNode }) {
             <>
               <Link className="pill credit" href={plan ? "/plans" : "/plans"} aria-label={plan ? "AI credits" : "Upgrade"}>
                 <IBolt width={15} height={15} />
-                <span className="num">{plan ? (st?.credits ?? "…") : "Upgrade"}</span>
+                <span className="num">{plan ? (st?.credits ?? "…") : tt("Upgrade")}</span>
               </Link>
               <Link className="avatar-btn" href="/me" aria-label="Me">{user.username.slice(0, 1).toUpperCase()}</Link>
             </>
           ) : (
-            <button className="btn primary sm" onClick={login} disabled={loggingIn || !ready}>{loggingIn ? "Signing in…" : "Sign in with Pi"}</button>
+            <button className="btn primary sm" onClick={login} disabled={loggingIn || !ready}>{loggingIn ? tt("Signing in…") : tt("Sign in with Pi")}</button>
           )}
         </div>
       </header>
@@ -76,10 +76,10 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="modal-wrap" onClick={(e) => { if (e.target === e.currentTarget) setPick(false); }}>
           <div className="modal" role="dialog" aria-modal="true" aria-label="Language of explanations">
             <div style={{ display: "flex", alignItems: "center" }}>
-              <h2 style={{ flex: 1, fontSize: 18 }}>Explain in my language</h2>
+              <h2 style={{ flex: 1, fontSize: 18 }}>{tt("Explain in my language")}</h2>
               <button className="icon-btn" aria-label="Close" onClick={() => setPick(false)}><IClose width={18} height={18} /></button>
             </div>
-            <p className="muted small">Lessons, meanings and the AI tutor explain in this language. The site stays in English.</p>
+            <p className="muted small">{tt("Lessons, meanings and the AI tutor explain in this language.")}</p>
             <div className="grid" style={{ gap: 8 }}>
               {NATIVES.map((n) => (
                 <button key={n.code} className={`opt${native === n.code ? " sel" : ""}`} onClick={() => { setNative(n.code); setPick(false); }}>

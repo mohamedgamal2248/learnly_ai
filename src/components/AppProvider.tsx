@@ -2,11 +2,14 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { baseLang, hasDict, isUiLang, registerDict, translate, type Key, type Lang, type UiLang } from "@/lib/i18n";
+import { dirOf, isSiteLang, tr, type UiL } from "@/lib/ui-i18n";
 import { markPiAuthed, onIncompletePayment, post, waitForPi } from "@/lib/pi-client";
 
 export type User = { id: string; username: string; role: "user" | "teacher" | "admin"; credits: number; earned: number; paid: boolean };
 
 type Ctx = {
+  /** Language of the site itself (en, ar, id, vi, ko) and its direction. */ uiLang: UiL; setUiLang: (l: UiL) => void; dir: "rtl" | "ltr";
+  /** Translate an English UI text into the site language. */ tt: (s: string, vars?: Record<string, string | number>) => string;
   /** Content language (ar/en). */ lang: Lang;
   /** Interface language (ar, en, es, fr, …). */ ui: UiLang; setLang: (l: UiLang) => void;
   theme: "light" | "dark"; toggleTheme: () => void;
@@ -29,6 +32,7 @@ function store(k: string, v: string) { try { localStorage.setItem(k, v); } catch
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [ui, setUi] = useState<UiLang>("en");
+  const [uiLang, setUiLangState] = useState<UiL>("en");
   const [dictVer, setDictVer] = useState(0);
   const lang = baseLang(ui);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -42,8 +46,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // The inline script in <head> already applied the saved language and theme before paint.
   useEffect(() => {
     const root = document.documentElement;
-    setUi("en");
-    root.lang = "en"; root.dir = "ltr";
+    // The site language was applied before paint (see the script in layout.tsx); read it back, or guess from the visitor's country once.
+    let saved: string | null = null;
+    try { saved = localStorage.getItem("ll-ui"); } catch {}
+    if (isSiteLang(saved)) { setUiLangState(saved); }
+    else {
+      fetch("/api/geo").then((r) => r.json()).then((d) => {
+        const g: UiL = d?.lang === "ar" || d?.lang === "id" || d?.lang === "vi" || d?.lang === "ko" ? d.lang : "en";
+        if (g !== "en") { setUiLangState(g); root.lang = g; root.dir = dirOf(g); }
+      }).catch(() => {});
+    }
     // Installable app + faster repeat visits (production only).
     if ("serviceWorker" in navigator && location.hostname !== "localhost") navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
@@ -79,6 +91,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Dark mode was removed: the site is always light.
   const toggleTheme = useCallback(() => { setTheme("light"); }, []);
 
+  const setUiLang = useCallback((l: UiL) => {
+    setUiLangState(l);
+    try { localStorage.setItem("ll-ui", l); } catch {}
+    document.documentElement.lang = l; document.documentElement.dir = dirOf(l);
+  }, []);
+  const tt = useCallback((s: string, vars?: Record<string, string | number>) => tr(uiLang, s, vars), [uiLang]);
+
   const toast = useCallback((msg: string) => {
     setToastMsg(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -98,7 +117,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async () => {
     const pi = await waitForPi();
-    if (!pi) { toast(translate(ui, "openInPi")); return false; }
+    if (!pi) { toast(tr(uiLang, "Open Learnly AI in Pi Browser to sign in.")); return false; }
     setLoggingIn(true);
     try {
       const auth = await pi.authenticate(["username", "payments"], onIncompletePayment);
@@ -108,28 +127,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const r = await post("/api/auth/pi", { accessToken: auth.accessToken, ref });
       if (!r.ok) throw new Error(r.data?.error);
       setUser(r.data.user);
-      toast(translate(ui, "loggedIn", { name: r.data.user.username }));
+      toast(tr(uiLang, "Welcome, {name}", { name: r.data.user.username }));
       return true;
     } catch {
-      toast(translate(ui, "loginFailed"));
+      toast(tr(uiLang, "Could not sign you in. Try again."));
       return false;
     } finally {
       setLoggingIn(false);
     }
-  }, [ui, toast]);
+  }, [uiLang, toast]);
 
   const logout = useCallback(async () => {
     await post("/api/auth/logout");
     setUser(null);
-    toast(translate(ui, "loggedOut"));
-  }, [ui, toast]);
+    toast(tr(uiLang, "Signed out"));
+  }, [uiLang, toast]);
 
   const setCredits = useCallback((n: number) => setUser((u) => (u ? { ...u, credits: n } : u)), []);
 
   const value = useMemo<Ctx>(() => ({
-    lang, ui, setLang, theme, toggleTheme, t, user, ready, loggingIn, login, logout, refresh, setCredits, toast,
+    uiLang, setUiLang, dir: dirOf(uiLang), tt, lang, ui, setLang, theme, toggleTheme, t, user, ready, loggingIn, login, logout, refresh, setCredits, toast,
     buyOpen, openBuy: () => setBuyOpen(true), closeBuy: () => setBuyOpen(false),
-  }), [lang, ui, setLang, theme, toggleTheme, t, user, ready, loggingIn, login, logout, refresh, setCredits, toast, buyOpen]);
+  }), [uiLang, setUiLang, tt, lang, ui, setLang, theme, toggleTheme, t, user, ready, loggingIn, login, logout, refresh, setCredits, toast, buyOpen]);
 
   return (
     <AppCtx.Provider value={value}>

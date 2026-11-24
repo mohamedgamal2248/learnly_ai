@@ -14,7 +14,7 @@ const MEANING: Record<string, string> = { A1: "Beginner: you are starting with t
 
 /** A short placement test: 15 multiple-choice questions, five per level. */
 export default function Placement() {
-  const { user } = useApp();
+  const { user, tt } = useApp();
   const { refresh } = useLearn();
   const [qs, setQs] = useState<Q[] | null>(null);
   const [i, setI] = useState(0);
@@ -34,22 +34,22 @@ export default function Placement() {
     if (r.ok) { setRes(r.data); if (user) refresh(); } else setErr(true);
   }
 
-  if (err) return <div className="note bad">Something went wrong. <Link className="md-link" href="/placement">Try again</Link></div>;
+  if (err) return <div className="note bad">{tt("Something went wrong.")} <Link className="md-link" href="/placement">{tt("Try again")}</Link></div>;
   if (!qs) return <div className="skeleton" style={{ height: 240 }} />;
 
   if (res) {
     return (
       <div className="stack">
         <section className="lc hl" style={{ textAlign: "center", display: "grid", gap: 8, justifyItems: "center" }}>
-          <span className="eyebrow">Your level</span>
+          <span className="eyebrow">{tt("Your level")}</span>
           <div className="big" style={{ fontSize: 48 }}>{res.level}</div>
-          <p className="muted">{MEANING[res.level]}</p>
+          <p className="muted">{tt(MEANING[res.level])}</p>
           <p className="small muted num">A1: {res.right.A1}/5 · A2: {res.right.A2}/5 · B1: {res.right.B1}/5</p>
-          {user ? <div className="note ok">Saved to your profile.</div> : <div className="note">Sign in with Pi to save your level.</div>}
+          {user ? <div className="note ok">{tt("Saved to your profile.")}</div> : <div className="note">{tt("Sign in with Pi to save your level.")}</div>}
         </section>
-        <Link className="btn primary lg" href={`/lesson?id=${res.start}`}>Start at the first {res.level} lesson</Link>
-        <Link className="btn lg" href="/learn">See all lessons</Link>
-        <p className="hint" style={{ textAlign: "center" }}>This is a quick estimate. You can change your level any time in Me.</p>
+        <Link className="btn primary lg" href={`/lesson?id=${res.start}`}>{tt("Start at the first {level} lesson", { level: res.level })}</Link>
+        <Link className="btn lg" href="/learn">{tt("See all lessons")}</Link>
+        <p className="hint" style={{ textAlign: "center" }}>{tt("This is a quick estimate. You can change your level any time in Me.")}</p>
       </div>
     );
   }
@@ -58,17 +58,17 @@ export default function Placement() {
   return (
     <div className="stack">
       <div className="row">
-        <Link href="/" className="icon-btn" aria-label="Close"><IClose width={18} height={18} /></Link>
+        <Link href="/" className="icon-btn" aria-label={tt("Close")}><IClose width={18} height={18} /></Link>
         <div className="grow"><div className="prog"><i style={{ width: `${(i / qs.length) * 100}%` }} /></div></div>
         <span className="chip num">{i + 1}/{qs.length}</span>
       </div>
-      <b>Choose the correct answer</b>
+      <b>{tt("Choose the correct answer")}</b>
       <div className="lc" dir="ltr" style={{ fontSize: 22, fontWeight: 700 }}>{q.q}</div>
       <div className="grid" style={{ gap: 8 }}>
         {q.options.map((o) => <button key={o} dir="ltr" className={`opt${sel === o ? " sel" : ""}`} onClick={() => setSel(o)}>{o}</button>)}
       </div>
-      <button className="btn primary lg" disabled={sel === null} onClick={next}>{i + 1 === qs.length ? "See my level" : "Next"}</button>
-      <button className="btn ghost" onClick={() => { setSel("(skipped)"); }} style={{ justifySelf: "center" }}>I don&apos;t know</button>
+      <button className="btn primary lg" disabled={sel === null} onClick={next}>{i + 1 === qs.length ? tt("See my level") : tt("Next")}</button>
+      <button className="btn ghost" onClick={() => { setSel("(skipped)"); }} style={{ justifySelf: "center" }}>{tt("I don't know")}</button>
     </div>
   );
 }

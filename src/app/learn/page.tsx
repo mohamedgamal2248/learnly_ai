@@ -9,7 +9,7 @@ import { tierLabel, type Catalog } from "@/lib/learn-client";
 
 /** The lesson path: units of three lessons, with a lock on what the current plan does not include. */
 export default function Learn() {
-  const { user } = useApp();
+  const { user, tt } = useApp();
   const { native, plan, st } = useLearn();
   const [cat, setCat] = useState<Catalog | null>(null);
   useEffect(() => {
@@ -23,10 +23,10 @@ export default function Learn() {
   return (
     <div className="stack">
       <section className="lc">
-        <span className="eyebrow">Your course</span>
-        <div className="big">English from zero to conversation</div>
+        <span className="eyebrow">{tt("Your course")}</span>
+        <div className="big">{tt("English from zero to conversation")}</div>
         <div className="prog" style={{ marginTop: 10 }}><i style={{ width: `${(doneCount / cat.lessons.length) * 100}%` }} /></div>
-        <div className="muted small num" style={{ marginTop: 6 }}>{doneCount} of {cat.lessons.length} lessons finished</div>
+        <div className="muted small num" style={{ marginTop: 6 }}>{tt("{a} of {b} lessons finished", { a: doneCount, b: cat.lessons.length })}</div>
       </section>
       {cat.units.map((u) => {
         const ls = cat.lessons.filter((l) => l.unit === u.id);
@@ -43,7 +43,7 @@ export default function Learn() {
                     {p?.done ? <ICheck width={22} height={22} /> : l.locked ? <ILock width={20} height={20} /> : <b className="num">{l.n}</b>}
                   </div>
                   <div className="grow"><b>{l.title}</b><div className="muted small native">{l.titleTr}</div></div>
-                  <span className={`chip ${l.tier === "free" ? "free" : "warn"}`}>{tierLabel(l.tier)}</span>
+                  <span className={`chip ${l.tier === "free" ? "free" : "warn"}`}>{tt(tierLabel(l.tier))}</span>
                 </Link>
               );
             })}

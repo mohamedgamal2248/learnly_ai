@@ -8,26 +8,27 @@ import { useLearn } from "@/components/LearnProvider";
 import { Onboarding } from "@/components/Onboarding";
 import { IBolt, ICheck, ICourses, IFlame, ILock, IPlus, IRotate, ISparkle, IClose, IGlobe } from "@/components/Icons";
 import { nextStep, todayUtc, type Catalog } from "@/lib/learn-client";
-
-const LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
+import { LOCALE } from "@/lib/ui-i18n";
 
 function Streak() {
   const { st } = useLearn();
+  const { tt, uiLang } = useApp();
+  const wd = new Intl.DateTimeFormat(LOCALE[uiLang], { weekday: "narrow", timeZone: "UTC" });
   const streak = st?.streak ?? 0;
   const active = new Set((st?.week || []).filter((d) => d.xp > 0).map((d) => d.day));
   const today = todayUtc();
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(Date.now() - (6 - i) * 86400000);
     const key = d.toISOString().slice(0, 10);
-    return { key, label: LETTERS[d.getUTCDay()], n: d.getUTCDate(), done: active.has(key), today: key === today };
+    return { key, label: wd.format(d), n: d.getUTCDate(), done: active.has(key), today: key === today };
   });
   return (
     <section className="lc">
       <div className="row">
         <div className="ic-sq warm"><IFlame width={26} height={26} /></div>
         <div className="grow">
-          <div className="big num">{streak} day{streak === 1 ? "" : "s"} in a row</div>
-          <div className="muted small">{st?.today_done ? "Today's lesson is done. Nice!" : streak ? "Finish a lesson today to keep it going." : "Finish a lesson today to start your streak."}</div>
+          <div className="big num">{tt(streak === 1 ? "{n} day in a row" : "{n} days in a row", { n: streak })}</div>
+          <div className="muted small">{tt(st?.today_done ? "Today's lesson is done. Nice!" : streak ? "Finish a lesson today to keep it going." : "Finish a lesson today to start your streak.")}</div>
         </div>
       </div>
       <div className="days">
@@ -42,15 +43,15 @@ function Streak() {
 }
 
 function Welcome() {
-  const { login, loggingIn, ready } = useApp();
+  const { login, loggingIn, ready, tt } = useApp();
   return (
     <>
       <section className="lc hl" style={{ display: "grid", gap: 10 }}>
         <span className="eyebrow">Learnly AI</span>
-        <h1 style={{ fontSize: 26 }}>Learn English in your own language</h1>
-        <p className="muted">Short lessons explained in Arabic, Indonesian, Vietnamese or Korean, with an AI tutor that corrects you and answers your questions. Pay with Pi.</p>
-        <Link className="btn primary lg" href="/lesson?id=a1-01">Try a free lesson</Link>
-        <button className="btn lg" onClick={login} disabled={loggingIn || !ready}>{loggingIn ? "Signing in…" : "Sign in with Pi to save progress"}</button>
+        <h1 style={{ fontSize: 26 }}>{tt("Learn English in your own language")}</h1>
+        <p className="muted">{tt("Short lessons explained in Arabic, Indonesian, Vietnamese or Korean, with an AI tutor that corrects you and answers your questions. Pay with Pi.")}</p>
+        <Link className="btn primary lg" href="/lesson?id=a1-01">{tt("Try a free lesson")}</Link>
+        <button className="btn lg" onClick={login} disabled={loggingIn || !ready}>{loggingIn ? tt("Signing in…") : tt("Sign in with Pi to save progress")}</button>
       </section>
       <section className="stack">
         {[
@@ -58,7 +59,7 @@ function Welcome() {
           [<IGlobe key="b" width={24} height={24} />, "Explained in your language", "Meanings, examples and tips in Arabic, Indonesian, Vietnamese and Korean."],
           [<ISparkle key="c" width={24} height={24} />, "An AI tutor for every lesson", "Ask why, practise a conversation, or get your writing corrected. Included with Plus and Pro."],
         ].map(([ic, t, s], i) => (
-          <div key={i} className="lc tap"><div className="ic-sq soft">{ic as React.ReactNode}</div><div className="grow"><b>{t as string}</b><div className="muted small">{s as string}</div></div></div>
+          <div key={i} className="lc tap"><div className="ic-sq soft">{ic as React.ReactNode}</div><div className="grow"><b>{tt(t as string)}</b><div className="muted small">{tt(s as string)}</div></div></div>
         ))}
       </section>
     </>
@@ -66,7 +67,7 @@ function Welcome() {
 }
 
 export default function Today() {
-  const { user } = useApp();
+  const { user, tt, uiLang } = useApp();
   const { st, native, plan, loaded } = useLearn();
   const [cat, setCat] = useState<Catalog | null>(null);
   const [menu, setMenu] = useState(false);
@@ -81,11 +82,11 @@ export default function Today() {
   const step = cat ? nextStep(cat) : null;
   const freeDone = cat ? cat.lessons.filter((l) => l.tier === "free" && cat.progress.some((p) => p.id === l.id && p.done)).length : 0;
   const freeTotal = cat ? cat.lessons.filter((l) => l.tier === "free").length : 0;
-  const until = st.sub.until ? new Date(st.sub.until).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
+  const until = st.sub.until ? new Date(st.sub.until).toLocaleDateString(LOCALE[uiLang], { day: "numeric", month: "short" }) : "";
   const challenges = [
-    { t: "Finish 1 lesson", done: st.today_done, href: step && !step.locked ? `/lesson?id=${step.lesson.id}` : "/learn" },
-    { t: st.due ? `Review ${st.due} word${st.due > 1 ? "s" : ""}` : "Review your words", done: st.due === 0, href: "/review" },
-    { t: "Ask the AI tutor", done: false, href: plan ? "/ai" : "/plans", lock: !plan },
+    { t: tt("Finish 1 lesson"), done: st.today_done, href: step && !step.locked ? `/lesson?id=${step.lesson.id}` : "/learn" },
+    { t: st.due ? tt(st.due === 1 ? "Review {n} word" : "Review {n} words", { n: st.due }) : tt("Review your words"), done: st.due === 0, href: "/review" },
+    { t: tt("Ask the AI tutor"), done: false, href: plan ? "/ai" : "/plans", lock: !plan },
   ];
 
   return (
@@ -96,45 +97,45 @@ export default function Today() {
       {step ? (
         <Link href={step.locked ? "/plans" : `/lesson?id=${step.lesson.id}`} className="lc tap hl">
           <div className="grow">
-            <span className="eyebrow">{step.locked ? "Next lesson (locked)" : "Your next step"}</span>
+            <span className="eyebrow">{step.locked ? tt("Next lesson (locked)") : tt("Your next step")}</span>
             <div className="big" style={{ fontSize: 19 }}>{step.lesson.title}</div>
             <div className="muted small native">{step.lesson.titleTr} · {step.lesson.level}</div>
           </div>
           <div className={`ic-sq${step.locked ? " warm" : ""}`}>{step.locked ? <ILock width={24} height={24} /> : <IFlame width={26} height={26} />}</div>
         </Link>
       ) : cat ? (
-        <div className="lc"><b>You finished every lesson available.</b><div className="muted small">New lessons are added regularly.</div></div>
+        <div className="lc"><b>{tt("You finished every lesson available.")}</b><div className="muted small">{tt("New lessons are added regularly.")}</div></div>
       ) : <div className="skeleton" style={{ height: 92 }} />}
 
       {st.progress.length === 0 && (
         <Link href="/placement" className="lc tap">
           <div className="ic-sq soft"><ICheck width={24} height={24} /></div>
-          <div className="grow"><b>Find your level</b><div className="muted small">A 3-minute test tells you where to start.</div></div>
+          <div className="grow"><b>{tt("Find your level")}</b><div className="muted small">{tt("A 3-minute test tells you where to start.")}</div></div>
         </Link>
       )}
 
       <Link href="/review" className="lc tap">
         <div className="ic-sq soft"><IRotate width={24} height={24} /></div>
-        <div className="grow"><b>{st.due ? `${st.due} word${st.due > 1 ? "s" : ""} to review` : "All words reviewed"}</b><div className="muted small">Short flash cards bring back what you learned.</div></div>
+        <div className="grow"><b>{st.due ? tt(st.due === 1 ? "{n} word to review" : "{n} words to review", { n: st.due }) : tt("All words reviewed")}</b><div className="muted small">{tt("Short flash cards bring back what you learned.")}</div></div>
       </Link>
 
       {plan ? (
         <Link href="/plans" className="lc tap warm">
           <div className="ic-sq warm"><IBolt width={24} height={24} /></div>
-          <div className="grow"><b className="num">{st.credits} AI credits</b><div className="small" style={{ color: "#8A5A00" }}>{plan === "pro" ? "Pro" : "Plus"} plan until {until}. Tap to add more credits.</div></div>
+          <div className="grow"><b className="num">{tt("{n} AI credits", { n: st.credits })}</b><div className="small" style={{ color: "#8A5A00" }}>{tt("{plan} plan until {date}. Tap to add more credits.", { plan: plan === "pro" ? "Pro" : "Plus", date: until })}</div></div>
         </Link>
       ) : (
         <Link href="/plans" className="lc tap warm">
           <div className="grow">
-            <b>Free lessons: {freeDone}/{freeTotal}</b>
+            <b>{tt("Free lessons: {a}/{b}", { a: freeDone, b: freeTotal })}</b>
             <div className="prog warm" style={{ margin: "8px 0 6px" }}><i style={{ width: `${freeTotal ? (freeDone / freeTotal) * 100 : 0}%` }} /></div>
-            <div className="small" style={{ color: "#8A5A00" }}>Unlock every lesson and the AI tutor with Plus or Pro.</div>
+            <div className="small" style={{ color: "#8A5A00" }}>{tt("Unlock every lesson and the AI tutor with Plus or Pro.")}</div>
           </div>
           <div className="ic-sq warm"><IBolt width={24} height={24} /></div>
         </Link>
       )}
 
-      <div className="sec-h" style={{ margin: "8px 2px 0" }}><h2>Today&apos;s challenges</h2><span className="chip num">{challenges.filter((c) => c.done).length}/{challenges.length}</span></div>
+      <div className="sec-h" style={{ margin: "8px 2px 0" }}><h2>{tt("Today's challenges")}</h2><span className="chip num">{challenges.filter((c) => c.done).length}/{challenges.length}</span></div>
       {challenges.map((c) => (
         <Link key={c.t} href={c.href} className="lc tap" style={{ padding: 14 }}>
           <div className={`ic-sq ${c.done ? "ok" : "soft"}`} style={{ width: 44, height: 44, borderRadius: 14 }}>{c.done ? <ICheck width={22} height={22} /> : c.lock ? <ILock width={20} height={20} /> : <IFlame width={22} height={22} />}</div>
@@ -143,16 +144,16 @@ export default function Today() {
         </Link>
       ))}
 
-      <button className="fab" onClick={() => setMenu(true)} aria-label="Quick actions"><IPlus width={28} height={28} strokeWidth={2.6} /></button>
+      <button className="fab" onClick={() => setMenu(true)} aria-label={tt("Quick actions")}><IPlus width={28} height={28} strokeWidth={2.6} /></button>
       {menu && (
         <Portal>
         <div className="modal-wrap" onClick={(e) => { if (e.target === e.currentTarget) setMenu(false); }}>
-          <div className="modal" role="dialog" aria-modal="true" aria-label="Quick actions">
-            <div className="row"><h2 style={{ flex: 1, fontSize: 18 }}>Quick actions</h2><button className="icon-btn" aria-label="Close" onClick={() => setMenu(false)}><IClose width={18} height={18} /></button></div>
+          <div className="modal" role="dialog" aria-modal="true" aria-label={tt("Quick actions")}>
+            <div className="row"><h2 style={{ flex: 1, fontSize: 18 }}>{tt("Quick actions")}</h2><button className="icon-btn" aria-label={tt("Close")} onClick={() => setMenu(false)}><IClose width={18} height={18} /></button></div>
             <div className="sheet-list">
-              <Link className="opt" href={step && !step.locked ? `/lesson?id=${step.lesson.id}` : "/learn"}><ICourses width={20} height={20} /> Continue learning</Link>
-              <Link className="opt" href="/review"><IRotate width={20} height={20} /> Review words</Link>
-              <Link className="opt" href={plan ? "/ai" : "/plans"}><ISparkle width={20} height={20} /> Ask the AI tutor {!plan && <span className="chip warn" style={{ marginInlineStart: "auto" }}>Plus</span>}</Link>
+              <Link className="opt" href={step && !step.locked ? `/lesson?id=${step.lesson.id}` : "/learn"}><ICourses width={20} height={20} /> {tt("Continue learning")}</Link>
+              <Link className="opt" href="/review"><IRotate width={20} height={20} /> {tt("Review words")}</Link>
+              <Link className="opt" href={plan ? "/ai" : "/plans"}><ISparkle width={20} height={20} /> {tt("Ask the AI tutor")} {!plan && <span className="chip warn" style={{ marginInlineStart: "auto" }}>Plus</span>}</Link>
             </div>
           </div>
         </div>

@@ -15,7 +15,7 @@ const LEVELS = [
 
 /** First-time setup: the language of explanations, the starting level and a daily goal. */
 export function Onboarding() {
-  const { user } = useApp();
+  const { user, tt, setUiLang } = useApp();
   const { st, native, setNative, refresh } = useLearn();
   const [lang, setLang] = useState<Native>(native);
   const [level, setLevel] = useState("A1");
@@ -32,29 +32,29 @@ export function Onboarding() {
   }
   return (
     <Portal><div className="modal-wrap">
-      <div className="modal" role="dialog" aria-modal="true" aria-label="Set up your learning" style={{ maxHeight: "92dvh", overflow: "auto" }}>
-        <div className="row"><h2 style={{ fontSize: 20, flex: 1 }}>Welcome, {user.username}</h2><button className="icon-btn" aria-label="Skip" onClick={save} disabled={busy}><IClose width={18} height={18} /></button></div>
-        <p className="muted small">Three quick choices. You can change them later in Me.</p>
-        <b className="small">1. Explain things in</b>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={tt("Set up your learning")} style={{ maxHeight: "92dvh", overflow: "auto" }}>
+        <div className="row"><h2 style={{ fontSize: 20, flex: 1 }}>{tt("Welcome, {name}", { name: user.username })}</h2><button className="icon-btn" aria-label={tt("Skip for now")} onClick={save} disabled={busy}><IClose width={18} height={18} /></button></div>
+        <p className="muted small">{tt("Three quick choices. You can change them later in Me.")}</p>
+        <b className="small">{tt("1. Explain things in")}</b>
         <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {NATIVES.map((n) => (
-            <button key={n.code} className={`opt${lang === n.code ? " sel" : ""}`} onClick={() => setLang(n.code)}><span dir={n.dir} style={{ flex: 1 }}>{n.label}</span>{lang === n.code && <ICheck width={16} height={16} />}</button>
+            <button key={n.code} className={`opt${lang === n.code ? " sel" : ""}`} onClick={() => { setLang(n.code); setUiLang(n.code); }}><span dir={n.dir} style={{ flex: 1 }}>{n.label}</span>{lang === n.code && <ICheck width={16} height={16} />}</button>
           ))}
         </div>
-        <b className="small">2. Your English today</b>
+        <b className="small">{tt("2. Your English today")}</b>
         <div className="grid" style={{ gap: 8 }}>
           {LEVELS.map((l) => (
             <button key={l.id} className={`opt${level === l.id ? " sel" : ""}`} onClick={() => setLevel(l.id)} style={{ display: "grid", gap: 0 }}>
-              <span>{l.t}</span><span className="hint" style={{ fontWeight: 500 }}>{l.s}</span>
+              <span>{tt(l.t)}</span><span className="hint" style={{ fontWeight: 500 }}>{tt(l.s)}</span>
             </button>
           ))}
         </div>
-        <a className="small md-link" href="/placement" style={{ justifySelf: "start" }}>Not sure? Take the 3-minute level test</a>
-        <b className="small">3. Daily goal</b>
+        <a className="small md-link" href="/placement" style={{ justifySelf: "start" }}>{tt("Not sure? Take the 3-minute level test")}</a>
+        <b className="small">{tt("3. Daily goal")}</b>
         <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-          {[1, 2, 3].map((g) => <button key={g} className={`opt${goal === g ? " sel" : ""}`} onClick={() => setGoal(g)} style={{ justifyContent: "center" }}>{g} lesson{g > 1 ? "s" : ""}</button>)}
+          {[1, 2, 3].map((g) => <button key={g} className={`opt${goal === g ? " sel" : ""}`} onClick={() => setGoal(g)} style={{ justifyContent: "center" }}>{tt(g === 1 ? "{n} lesson" : "{n} lessons", { n: g })}</button>)}
         </div>
-        <div className="sticky-foot"><button className="btn primary lg" onClick={save} disabled={busy}>{busy ? "Saving…" : "Start learning"}</button><button className="btn ghost" onClick={save} disabled={busy} style={{ width: "100%" }}>Skip for now</button></div>
+        <div className="sticky-foot"><button className="btn primary lg" onClick={save} disabled={busy}>{busy ? tt("Saving…") : tt("Start learning")}</button><button className="btn ghost" onClick={save} disabled={busy} style={{ width: "100%" }}>{tt("Skip for now")}</button></div>
       </div>
     </div></Portal>
   );

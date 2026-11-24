@@ -9,7 +9,7 @@ const BY_COUNTRY: Record<string, string> = {
 /** Suggests a starting language from the visitor's country (Vercel adds the header from the IP). */
 export function GET(req: Request) {
   const country = (req.headers.get("x-vercel-ip-country") || "").toUpperCase();
-  const lang = !country || ARABIC.has(country) ? "ar" : BY_COUNTRY[country] || "en";
+  const lang = !country ? "en" : ARABIC.has(country) ? "ar" : BY_COUNTRY[country] || "en";
   return new Response(JSON.stringify({ country, lang }), {
     headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
   });

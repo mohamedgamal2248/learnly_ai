@@ -16,7 +16,7 @@ const MODES: { id: Mode; label: string; ph: string; hint: string }[] = [
 
 /** The AI tutor: an Ask / Practise / Correct chat. Needs a paid plan; every request uses a few credits. */
 export function Tutor({ lessonId, compact = false }: { lessonId?: string; compact?: boolean }) {
-  const { user, login, loggingIn } = useApp();
+  const { user, login, loggingIn, tt } = useApp();
   const { st, plan, setCredits } = useLearn();
   const [mode, setMode] = useState<Mode>("explain");
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -26,12 +26,12 @@ export function Tutor({ lessonId, compact = false }: { lessonId?: string; compac
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs]);
 
-  if (!user) return <div className="lc" style={{ display: "grid", gap: 10 }}><b>Sign in to use the AI tutor</b><button className="btn primary" onClick={login} disabled={loggingIn}>Sign in with Pi</button></div>;
+  if (!user) return <div className="lc" style={{ display: "grid", gap: 10 }}><b>{tt("Sign in to use the AI tutor")}</b><button className="btn primary" onClick={login} disabled={loggingIn}>{tt("Sign in with Pi")}</button></div>;
   if (!plan) {
     return (
       <div className="lc warm" style={{ display: "grid", gap: 10 }}>
-        <div className="row"><div className="ic-sq warm"><ISparkle width={24} height={24} /></div><div className="grow"><b>The AI tutor is part of Plus and Pro</b><div className="small" style={{ color: "#8A5A00" }}>Ask questions in your language, practise conversations and get your writing corrected.</div></div></div>
-        <Link className="btn primary" href="/plans">See plans</Link>
+        <div className="row"><div className="ic-sq warm"><ISparkle width={24} height={24} /></div><div className="grow"><b>{tt("The AI tutor is part of Plus and Pro")}</b><div className="small" style={{ color: "#8A5A00" }}>{tt("Ask questions in your language, practise conversations and get your writing corrected.")}</div></div></div>
+        <Link className="btn primary" href="/plans">{tt("See plans")}</Link>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export function Tutor({ lessonId, compact = false }: { lessonId?: string; compac
       if (!r.ok || !r.body) {
         const d = await r.json().catch(() => ({}));
         setMsgs((x) => x.slice(0, -2)); setText(t);
-        setErr(d.error === "no_credits" ? "You are out of AI credits. Add a pack to keep going." : d.error === "daily_cap" ? "You reached today's AI limit. It resets tomorrow." : d.error === "slow_down" ? "Slow down a little and try again." : d.error === "no_plan" ? "Your plan has ended. Renew it to use the AI tutor." : "Something went wrong. Try again.");
+        setErr(tt(d.error === "no_credits" ? "You are out of AI credits. Add a pack to keep going." : d.error === "daily_cap" ? "You reached today's AI limit. It resets tomorrow." : d.error === "slow_down" ? "Slow down a little and try again." : d.error === "no_plan" ? "Your plan has ended. Renew it to use the AI tutor." : "Something went wrong. Try again."));
         setBusy(false); return;
       }
       const c = Number(r.headers.get("X-Credits"));
@@ -63,24 +63,24 @@ export function Tutor({ lessonId, compact = false }: { lessonId?: string; compac
       }
       if (acc.includes("[[error]]")) {
         setMsgs((x) => x.slice(0, -2)); setText(t);
-        setErr("The tutor could not answer. Your credits were returned.");
+        setErr(tt("The tutor could not answer. Your credits were returned."));
         const s = await fetch("/api/en/state", { credentials: "include", cache: "no-store" }).then((q) => q.json()).catch(() => null);
         if (s?.credits != null) setCredits(s.credits);
       }
-    } catch { setErr("Connection problem. Try again."); }
+    } catch { setErr(tt("Connection problem. Try again.")); }
     setBusy(false);
   }
 
   return (
     <div className="stack" style={compact ? undefined : { minHeight: "60dvh", alignContent: "start" }}>
       <div className="seg" role="tablist">
-        {MODES.map((x) => <button key={x.id} role="tab" aria-selected={mode === x.id} className={mode === x.id ? "on" : ""} onClick={() => setMode(x.id)}>{x.label}</button>)}
+        {MODES.map((x) => <button key={x.id} role="tab" aria-selected={mode === x.id} className={mode === x.id ? "on" : ""} onClick={() => setMode(x.id)}>{tt(x.label)}</button>)}
       </div>
-      <div className="muted small" style={{ marginTop: -4 }}>{m.hint}. <span className="num"><IBolt width={12} height={12} style={{ verticalAlign: -1, color: "var(--accent)" }} /> {st?.credits ?? 0} credits left</span></div>
+      <div className="muted small" style={{ marginTop: -4 }}>{tt(m.hint)}. <span className="num"><IBolt width={12} height={12} style={{ verticalAlign: -1, color: "var(--accent)" }} /> {tt("{n} credits left", { n: st?.credits ?? 0 })}</span></div>
       {msgs.length === 0 && (
         <div className="lc" style={{ background: "var(--primary-soft)", boxShadow: "none" }}>
-          <b>{mode === "explain" ? "What would you like to understand?" : mode === "chat" ? "Let's talk. Start with a greeting!" : "Paste your English and I will correct it."}</b>
-          {mode === "explain" && <div className="chips" style={{ marginTop: 8 }}>{["When do I use \"a\" and \"an\"?", "What is the difference between \"do\" and \"does\"?", "How do I say hello politely?"].map((q) => <button key={q} className="chip v" onClick={() => setText(q)} style={{ border: 0, cursor: "pointer" }}>{q}</button>)}</div>}
+          <b>{tt(mode === "explain" ? "What would you like to understand?" : mode === "chat" ? "Let's talk. Start with a greeting!" : "Paste your English and I will correct it.")}</b>
+          {mode === "explain" && <div className="chips" style={{ marginTop: 8 }}>{["When do I use \"a\" and \"an\"?", "What is the difference between \"do\" and \"does\"?", "How do I say hello politely?"].map((q) => <button key={q} className="chip v" onClick={() => setText(tt(q))} style={{ border: 0, cursor: "pointer" }}>{tt(q)}</button>)}</div>}
         </div>
       )}
       <div className="chat">
@@ -89,13 +89,13 @@ export function Tutor({ lessonId, compact = false }: { lessonId?: string; compac
         ))}
         <div ref={end} />
       </div>
-      {err && <div className="note bad">{err} {err.includes("credits") && <Link href="/plans" className="md-link">Add credits</Link>}</div>}
+      {err && <div className="note bad">{err} {err === tt("You are out of AI credits. Add a pack to keep going.") && <Link href="/plans" className="md-link">{tt("Add credits")}</Link>}</div>}
       <div className="composer">
-        <textarea className="textarea" rows={2} value={text} placeholder={m.ph} dir="auto" maxLength={1200} onChange={(e) => setText(e.target.value)}
+        <textarea className="textarea" rows={2} value={text} placeholder={tt(m.ph)} dir="auto" maxLength={1200} onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }} />
-        <button className="btn primary" onClick={send} disabled={busy || text.trim().length < 2} aria-label="Send"><ISend width={18} height={18} /></button>
+        <button className="btn primary" onClick={send} disabled={busy || text.trim().length < 2} aria-label={tt("Send")}><ISend width={18} height={18} className="flip" /></button>
       </div>
-      <div className="hint" style={{ textAlign: "center" }}>AI can make mistakes. Check important answers.</div>
+      <div className="hint" style={{ textAlign: "center" }}>{tt("AI can make mistakes. Check important answers.")}</div>
     </div>
   );
 }

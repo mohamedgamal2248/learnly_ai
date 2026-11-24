@@ -568,7 +568,7 @@ main.focus { padding-bottom: 32px; }
 .bn-ai.on .bn-ai-dot { transform: scale(1.06); }
 .bn-ai:active .bn-ai-dot { transform: scale(.95); }
 
-.fab { position: fixed; z-index: 29; inset-inline-start: max(14px, calc(50% - 306px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 56px; height: 56px; border-radius: 50%; border: 0;
+.fab { position: fixed; z-index: 29; left: max(14px, calc(50% - 306px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 56px; height: 56px; border-radius: 50%; border: 0;
   background: var(--primary); color: #fff; display: grid; place-items: center; box-shadow: 0 10px 24px -8px rgba(24,119,242,.75); }
 .fab:active { transform: scale(.94); }
 .sheet-list { display: grid; gap: 8px; }
@@ -614,3 +614,4 @@ main.focus { padding-bottom: 32px; }
 @keyframes sheet { from { transform: translateY(24px); opacity: 0; } }
 .sticky-foot { position: sticky; bottom: calc(-18px - env(safe-area-inset-bottom, 0px)); margin: 0 -16px calc(-18px - env(safe-area-inset-bottom, 0px)); padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--surface) 78%, transparent); display: grid; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .q-in, .opt.ok, .opt.bad { animation: none; } }
+[dir="rtl"] .flip { transform: scaleX(-1); }
