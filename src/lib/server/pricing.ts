@@ -10,6 +10,7 @@ export type Catalog = {
   packs: { id: string; usd: number; credits: number }[];
   costs: Record<string, number>;
   ai_daily_cap: number;
+  trial?: { days: number; credits: number };
 };
 
 let catCache: { at: number; value: Catalog } | null = null;

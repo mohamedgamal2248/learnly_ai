@@ -1,10 +1,12 @@
-/* Learnly AI service worker: fast repeat visits and an offline fallback. Never caches API calls. */
-const VERSION = "ln-v1";
+/* Learnly AI service worker: fast repeat visits, lessons you opened stay available offline. */
+const VERSION = "ln-v2";
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
+const DATA = `${VERSION}-data`;
+const OFFLINE_API = /^\/api\/en\/(lesson|catalog)$/;
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(PAGES).then((c) => c.addAll(["/", "/icon.svg"])).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(PAGES).then((c) => c.addAll(["/", "/learn", "/icon.svg"])).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
@@ -15,7 +17,17 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
+  if (url.origin !== location.origin) return;
+
+  // Lessons and the lesson list: network first; when offline, the last copy that was opened (only successful, per-user, on this device).
+  if (OFFLINE_API.test(url.pathname)) {
+    e.respondWith(fetch(req).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(DATA).then((c) => c.put(req, copy)); }
+      return res;
+    }).catch(async () => (await caches.match(req)) || Response.error()));
+    return;
+  }
+  if (url.pathname.startsWith("/api/")) return;
 
   // Hashed build files and icons never change: cache first.
   if (url.pathname.startsWith("/_next/static/") || /\.(png|svg|ico|woff2?)$/.test(url.pathname)) {
@@ -37,3 +49,6 @@ self.addEventListener("fetch", (e) => {
     }).catch(async () => (await caches.match(req)) || (await caches.match("/")) || Response.error()));
   }
 });
+
+// Never keep one person's lessons for the next person on the same phone.
+self.addEventListener("message", (e) => { if (e.data === "clear-data") caches.delete(DATA); });

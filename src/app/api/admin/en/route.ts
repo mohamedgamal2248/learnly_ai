@@ -37,7 +37,9 @@ export async function POST(req: Request) {
     for (const k of ["explain", "chat", "correct", "write"]) { const v = num(c?.costs?.[k], 1, 20); if (v === null) return fail("bad_cost"); costs[k] = Math.round(v); }
     const cap = num(c?.ai_daily_cap, 1, 5000);
     if (cap === null) return fail("bad_cap");
-    const r = await rpc("ln_en_catalog_set", { p_value: { plans, packs, costs, ai_daily_cap: Math.round(cap) } });
+    const td = num(c?.trial?.days, 0, 30), tc = num(c?.trial?.credits, 0, 500);
+    if (td === null || tc === null) return fail("bad_trial");
+    const r = await rpc("ln_en_catalog_set", { p_value: { plans, packs, costs, ai_daily_cap: Math.round(cap), trial: { days: Math.round(td), credits: Math.round(tc) } } });
     forgetCatalog();
     return json(r);
   }

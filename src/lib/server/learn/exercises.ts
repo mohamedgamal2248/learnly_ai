@@ -1,9 +1,10 @@
 import type { Lesson, Native, Word } from "./types";
 
+/** `w` is the lesson word the question is about, so wrong answers can be tracked per word. */
 export type Exercise =
-  | { t: "pick"; q: string; speak?: string; options: string[]; answer: number; dir?: "rtl" }
-  | { t: "fill"; q: string; hint: string; options: string[]; answer: number }
-  | { t: "order"; hint: string; words: string[]; answer: string };
+  | { t: "pick"; w: string; q: string; speak?: string; options: string[]; answer: number; dir?: "rtl" }
+  | { t: "fill"; w: string; q: string; hint: string; options: string[]; answer: number }
+  | { t: "order"; w: string; hint: string; words: string[]; answer: string };
 
 function shuffle<T>(a: T[]): T[] {
   const r = a.slice();
@@ -29,23 +30,23 @@ export function buildExercises(lesson: Lesson, native: Native, pool: Word[]): Ex
   const order = shuffle(words);
 
   // English → meaning (read), then listen → meaning
-  order.slice(0, 3).forEach((w) => out.push({ t: "pick", q: w.en, ...choices(w.tr[native], trPool) }));
-  order.slice(3, 5).forEach((w) => out.push({ t: "pick", q: "listen", speak: w.en, ...choices(w.tr[native], trPool) }));
+  order.slice(0, 3).forEach((w) => out.push({ t: "pick", w: w.en, q: w.en, ...choices(w.tr[native], trPool) }));
+  order.slice(3, 5).forEach((w) => out.push({ t: "pick", w: w.en, q: "listen", speak: w.en, ...choices(w.tr[native], trPool) }));
   // Meaning → English
-  sample(words, 2).forEach((w) => out.push({ t: "pick", q: w.tr[native], dir: native === "ar" ? "rtl" : undefined, ...choices(w.en, enPool) }));
+  sample(words, 2).forEach((w) => out.push({ t: "pick", w: w.en, q: w.tr[native], dir: native === "ar" ? "rtl" : undefined, ...choices(w.en, enPool) }));
   // Fill the blank in the example sentence
   const fillable = words.filter((w) => w.ex.toLowerCase().includes(blankOf(w).toLowerCase()));
   sample(fillable, 2).forEach((w) => {
     const b = blankOf(w);
     const i = w.ex.toLowerCase().indexOf(b.toLowerCase());
     const q = w.ex.slice(0, i) + "___" + w.ex.slice(i + b.length);
-    out.push({ t: "fill", q, hint: w.exTr[native], ...choices(w.ex.slice(i, i + b.length), blankPool) });
+    out.push({ t: "fill", w: w.en, q, hint: w.exTr[native], ...choices(w.ex.slice(i, i + b.length), blankPool) });
   });
   // Put the words of an example sentence in order
   const orderable = words.filter((w) => { const n = w.ex.replace(/[.?!]/g, "").split(/\s+/).length; return n >= 3 && n <= 9; });
   sample(orderable, 1).forEach((w) => {
     const tokens = w.ex.replace(/[.?!]$/, "").split(/\s+/);
-    out.push({ t: "order", hint: w.exTr[native], words: shuffle(tokens), answer: tokens.join(" ") });
+    out.push({ t: "order", w: w.en, hint: w.exTr[native], words: shuffle(tokens), answer: tokens.join(" ") });
   });
   return shuffle(out).slice(0, 10);
 }

@@ -9,13 +9,15 @@ import { useLearn } from "@/components/LearnProvider";
 import { Tutor } from "@/components/Tutor";
 import { ICheck, IClose, ILock, ISparkle, ISpeaker } from "@/components/Icons";
 import { canSpeak, speak } from "@/lib/learn-client";
+import { Confetti, GoalRing, ReportSheet, TapText, WordSheet } from "@/components/LessonBits";
+import { readQueue, saveGuestLesson, starsFor, writeQueue } from "@/lib/guest";
 import { post } from "@/lib/pi-client";
 
 type Word = { en: string; tr: string; ex: string; exTr: string; tatoeba: number | null };
 type Ex =
-  | { t: "pick"; q: string; speak?: string; options: string[]; answer: number; dir?: "rtl" }
-  | { t: "fill"; q: string; hint: string; options: string[]; answer: number }
-  | { t: "order"; hint: string; words: string[]; answer: string };
+  | { t: "pick"; w: string; q: string; speak?: string; options: string[]; answer: number; dir?: "rtl" }
+  | { t: "fill"; w: string; q: string; hint: string; options: string[]; answer: number }
+  | { t: "order"; w: string; hint: string; words: string[]; answer: string };
 type Lesson = { id: string; level: string; title: string; titleTr: string; intro: string; native: string; words: Word[]; exercises: Ex[]; next: string | null; canAi: boolean };
 
 function Speak({ text, big = false }: { text: string; big?: boolean }) {
@@ -98,11 +100,16 @@ function LessonInner() {
   const [stage, setStage] = useState<"intro" | "practice" | "done">("intro");
   const [i, setI] = useState(0);
   const [score, setScore] = useState(0);
-  const [result, setResult] = useState<{ gain: number; xp: number; streak: number } | null>(null);
+  const [result, setResult] = useState<{ gain: number; xp: number; streak: number; freezes?: number; used_freeze?: boolean; goal_reached?: boolean; xp_today?: number; xp_goal?: number } | null>(null);
   const [help, setHelp] = useState(false);
+  const [missed, setMissed] = useState<string[]>([]);
+  const [wordSheet, setWordSheet] = useState<string | null>(null);
+  const [report, setReport] = useState<{ word?: string } | null>(null);
+  const started = useRef(Date.now());
+  const [queued, setQueued] = useState(false);
 
   useEffect(() => {
-    setLesson(null); setLocked(null); setStage("intro"); setI(0); setScore(0); setResult(null);
+    setLesson(null); setLocked(null); setStage("intro"); setI(0); setScore(0); setResult(null); setMissed([]); setQueued(false);
     fetch(`/api/en/lesson?id=${encodeURIComponent(id)}&native=${native}`, { credentials: "include", cache: "no-store" }).then(async (r) => {
       const d = await r.json();
       if (r.status === 402) setLocked(d.title || "");
@@ -111,11 +118,19 @@ function LessonInner() {
   }, [id, native, user?.id, plan]);
 
   const total = lesson?.exercises.length || 0;
-  async function finish(finalScore: number) {
+  async function finish(finalScore: number, missedWords: string[]) {
     setStage("done");
-    if (!user || !lesson) return;
-    const r = await post("/api/en/complete", { lessonId: lesson.id, score: Math.round((finalScore / Math.max(total, 1)) * 10) });
-    if (r.ok) { setResult(r.data); refresh(); }
+    if (!lesson) return;
+    const score10 = Math.round((finalScore / Math.max(total, 1)) * 10);
+    if (!user) { saveGuestLesson(lesson.id, score10); return; }
+    const body = { lessonId: lesson.id, score: score10, missed: missedWords, correct: finalScore, answers: total, seconds: Math.round((Date.now() - started.current) / 1000) };
+    try {
+      const r = await post("/api/en/complete", body);
+      if (r.ok) { setResult(r.data); refresh(); return; }
+      if (r.status < 500 && r.status !== 429) return;
+    } catch {}
+    // No connection: keep the result and send it later.
+    writeQueue([...readQueue(), body]); setQueued(true);
   }
 
   if (locked) {
@@ -154,33 +169,51 @@ function LessonInner() {
             {lesson.words.map((w) => (
               <div key={w.en} className="lc" style={{ padding: 14 }}>
                 <div className="row"><b style={{ fontSize: 18 }} dir="ltr" className="grow">{w.en}</b><span className="native" dir="auto" style={{ fontWeight: 700, color: "var(--primary)" }}>{w.tr}</span><Speak text={w.en} /></div>
-                <div dir="ltr" className="small row" style={{ marginTop: 6, gap: 6 }}><span className="grow">{w.ex}</span><button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => speak(w.ex)} aria-label={tt("Listen")}><ISpeaker width={14} height={14} /></button></div>
+                <div dir="ltr" className="small row" style={{ marginTop: 6, gap: 6 }}><span className="grow"><TapText text={w.ex} onWord={setWordSheet} /></span><button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => speak(w.ex)} aria-label={tt("Listen")}><ISpeaker width={14} height={14} /></button></div>
                 <div className="muted small native" dir={dirN}>{w.exTr}</div>
-                {w.tatoeba && <a className="hint md-link" href={`https://tatoeba.org/sentences/show/${w.tatoeba}`} target="_blank" rel="noreferrer">Tatoeba #{w.tatoeba}</a>}
+                <button type="button" className="hint md-link" style={{ border: 0, background: "none", cursor: "pointer", padding: 0 }} onClick={() => setReport({ word: w.en })}>⚑ {tt("Report a mistake")}</button>
+                {w.tatoeba && <a className="hint md-link" style={{ marginInlineStart: 10 }} href={`https://tatoeba.org/sentences/show/${w.tatoeba}`} target="_blank" rel="noreferrer">Tatoeba #{w.tatoeba}</a>}
               </div>
             ))}
           </div>
           <p className="hint" style={{ textAlign: "center" }}>{tt("Words from the CEFR-J list. Some sentences from Tatoeba (CC BY 2.0 FR).")} <Link className="md-link" href="/credits">{tt("Credits")}</Link></p>
-          <button className="btn primary lg" onClick={() => setStage("practice")}>{tt("Start practice")}</button>
+          <button className="btn primary lg" onClick={() => { started.current = Date.now(); setStage("practice"); }}>{tt("Start practice")}</button>
         </>
       )}
 
       {stage === "practice" && lesson.exercises[i] && (
-        <Question key={i} ex={lesson.exercises[i]} onDone={(ok) => { const s = score + (ok ? 1 : 0); if (ok) setScore(s); if (i + 1 >= total) finish(s); else setI(i + 1); }} />
+        <Question key={i} ex={lesson.exercises[i]} onDone={(ok) => { const s = score + (ok ? 1 : 0); const m = ok ? missed : Array.from(new Set([...missed, lesson.exercises[i].w])); if (!ok) setMissed(m); if (ok) setScore(s); if (i + 1 >= total) finish(s, m); else setI(i + 1); }} />
       )}
 
       {stage === "done" && (
         <section className="lc" style={{ display: "grid", gap: 10, textAlign: "center", justifyItems: "center" }}>
+          {result?.goal_reached && <Confetti />}
           <div className="ic-sq ok" style={{ width: 64, height: 64, borderRadius: 20 }}><ICheck width={34} height={34} /></div>
           <h1 style={{ fontSize: 24 }}>{tt("Lesson complete!")}</h1>
+          <span className="stars big-stars" aria-hidden="true">{[1, 2, 3].map((n) => <i key={n} className={n <= starsFor(true, Math.round((score / Math.max(total, 1)) * 10)) ? "on" : ""}>★</i>)}</span>
           <div className="big num">{tt("{a} / {b} correct", { a: score, b: total })}</div>
-          {result ? <div className="muted"><b className="num">+{result.gain} XP</b> · {tt(result.streak === 1 ? "{n} day in a row" : "{n} days in a row", { n: result.streak })}</div> : user ? <div className="muted small">{tt("Saving…")}</div> : (
-            <div className="note" style={{ textAlign: "start" }}>{tt("Sign in with Pi to save your progress and streak.")} <button className="md-link" style={{ border: 0, background: "none", font: "inherit", cursor: "pointer" }} onClick={login}>{tt("Sign in")}</button></div>
+          {result ? (
+            <>
+              <div className="muted"><b className="num">+{result.gain} XP</b> · {tt(result.streak === 1 ? "{n} day in a row" : "{n} days in a row", { n: result.streak })}</div>
+              {result.xp_goal ? <div className="row" style={{ gap: 12 }}><GoalRing value={result.xp_today ?? 0} goal={result.xp_goal} size={56} /><div style={{ textAlign: "start" }}><b>{result.goal_reached ? tt("Daily goal reached!") : tt("Daily goal")}</b><div className="muted small num">{tt("{a} / {b} XP today", { a: result.xp_today ?? 0, b: result.xp_goal })}</div></div></div> : null}
+              {result.used_freeze && <div className="note ok">{tt("A streak freeze saved your streak yesterday.")}</div>}
+              {missed.length > 0 && <Link className="btn" href="/review?mode=mistakes">{tt("Practise {n} missed words", { n: missed.length })}</Link>}
+            </>
+          ) : user ? <div className="muted small">{queued ? tt("No connection. Your result will be saved when you are online.") : tt("Saving…")}</div> : (
+            <div className="note" style={{ textAlign: "start", display: "grid", gap: 8 }}>
+              <b>{tt("Great start! Sign in to keep your progress.")}</b>
+              <span>{tt("Sign in with Pi to save your progress and streak.")}</span>
+              <button className="btn primary" onClick={login}>{tt("Sign in with Pi")}</button>
+            </div>
           )}
           {lesson.next && <button className="btn primary lg" onClick={() => router.push(`/lesson?id=${lesson.next}`)}>{tt("Next lesson")}</button>}
-          <Link className="btn lg" href="/">{tt("Back to Today")}</Link>
+          <Link className="btn lg" href={user ? "/" : "/learn"}>{user ? tt("Back to Today") : tt("See all lessons")}</Link>
+          <button type="button" className="hint md-link" style={{ border: 0, background: "none", cursor: "pointer" }} onClick={() => setReport({})}>⚑ {tt("Report a mistake")}</button>
         </section>
       )}
+
+      {wordSheet && <WordSheet word={wordSheet} onClose={() => setWordSheet(null)} />}
+      {report && <ReportSheet lessonId={lesson.id} word={report.word} onClose={() => setReport(null)} />}
 
       {help && (
         <Portal>

@@ -50,9 +50,9 @@ export function Onboarding() {
           ))}
         </div>
         <a className="small md-link" href="/placement" style={{ justifySelf: "start" }}>{tt("Not sure? Take the 3-minute level test")}</a>
-        <b className="small">{tt("3. Daily goal")}</b>
+        <b className="small">{tt("3. Daily goal (XP a day)")}</b>
         <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-          {[1, 2, 3].map((g) => <button key={g} className={`opt${goal === g ? " sel" : ""}`} onClick={() => setGoal(g)} style={{ justifyContent: "center" }}>{tt(g === 1 ? "{n} lesson" : "{n} lessons", { n: g })}</button>)}
+          {[1, 2, 3].map((g) => <button key={g} className={`opt${goal === g ? " sel" : ""}`} onClick={() => setGoal(g)} style={{ justifyContent: "center", display: "grid", gap: 0, textAlign: "center" }}><b className="num">{g * 20} XP</b><span className="hint" style={{ fontWeight: 500 }}>{tt(g === 1 ? "Casual" : g === 2 ? "Regular" : "Serious")}</span></button>)}
         </div>
         <div className="sticky-foot"><button className="btn primary lg" onClick={save} disabled={busy}>{busy ? tt("Saving…") : tt("Start learning")}</button><button className="btn ghost" onClick={save} disabled={busy} style={{ width: "100%" }}>{tt("Skip for now")}</button></div>
       </div>

@@ -14,7 +14,10 @@ export async function GET(req: Request) {
   const st = await loadState(s.uid);
   if (!st) return fail("login_required", 401);
   const native = st.profile.native;
-  const due = await rpc<{ word: string; box: number }[]>("ln_en_vocab_due", { p_user: s.uid, p_limit: 10 });
+  const mistakesMode = new URL(req.url).searchParams.get("mode") === "mistakes";
+  const due = mistakesMode
+    ? (await rpc<{ word: string }[]>("ln_en_mistakes", { p_user: s.uid, p_limit: 10 })).map((r) => ({ word: r.word, box: 0 }))
+    : await rpc<{ word: string; box: number }[]>("ln_en_vocab_due", { p_user: s.uid, p_limit: 10 });
   const pool = allWords();
   const cards = due.flatMap((d) => {
     const w = findWord(d.word);

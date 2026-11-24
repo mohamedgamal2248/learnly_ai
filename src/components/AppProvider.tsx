@@ -122,6 +122,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const auth = await pi.authenticate(["username", "payments"], onIncompletePayment);
       markPiAuthed();
+      try { navigator.serviceWorker?.controller?.postMessage("clear-data"); } catch {}
       let ref: string | undefined;
       try { ref = localStorage.getItem("hl-ref") || undefined; } catch {}
       const r = await post("/api/auth/pi", { accessToken: auth.accessToken, ref });
@@ -139,6 +140,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await post("/api/auth/logout");
+    try { navigator.serviceWorker?.controller?.postMessage("clear-data"); } catch {}
     setUser(null);
     toast(tr(uiLang, "Signed out"));
   }, [uiLang, toast]);

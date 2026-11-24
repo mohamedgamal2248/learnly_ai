@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { useLearn } from "@/components/LearnProvider";
 import { ICheck, IClose, ISpeaker } from "@/components/Icons";
@@ -11,7 +12,8 @@ import { post } from "@/lib/pi-client";
 type Card = { word: string; ex: string; exTr: string; options: string[]; answer: number; tr: string };
 
 /** Flash cards for the words that are due today (spaced repetition: right answers come back later, wrong ones tomorrow). */
-export default function Review() {
+function ReviewInner() {
+  const mode = useSearchParams().get("mode") === "mistakes" ? "mistakes" : "due";
   const { user, login, tt } = useApp();
   const { native, refresh } = useLearn();
   const [cards, setCards] = useState<Card[] | null>(null);
@@ -21,8 +23,8 @@ export default function Review() {
 
   useEffect(() => {
     if (!user) return;
-    fetch("/api/en/review", { credentials: "include", cache: "no-store" }).then((r) => r.json()).then((d) => setCards(d.cards || [])).catch(() => setCards([]));
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetch(`/api/en/review${mode === "mistakes" ? "?mode=mistakes" : ""}`, { credentials: "include", cache: "no-store" }).then((r) => r.json()).then((d) => setCards(d.cards || [])).catch(() => setCards([]));
+  }, [user?.id, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!user) return <div className="lc stack"><b>{tt("Sign in to review your words")}</b><button className="btn primary" onClick={login}>{tt("Sign in with Pi")}</button></div>;
   if (!cards) return <div className="skeleton" style={{ height: 260 }} />;
@@ -74,4 +76,8 @@ export default function Review() {
       )}
     </div>
   );
+}
+
+export default function Review() {
+  return <Suspense fallback={<div className="skeleton" style={{ height: 260 }} />}><ReviewInner /></Suspense>;
 }

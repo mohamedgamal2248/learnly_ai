@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { Portal } from "@/components/Portal";
 import { useLearn } from "@/components/LearnProvider";
 import { Onboarding } from "@/components/Onboarding";
-import { IBolt, ICheck, ICourses, IFlame, ILock, IPlus, IRotate, ISparkle, IClose, IGlobe } from "@/components/Icons";
+import { IAward, IBolt, IChart, ICheck, ICourses, IFlame, ILock, IPlus, IRotate, ISparkle, IClose, IGlobe } from "@/components/Icons";
 import { nextStep, todayUtc, type Catalog } from "@/lib/learn-client";
+import { GoalRing } from "@/components/LessonBits";
+import { readGuest } from "@/lib/guest";
 import { LOCALE } from "@/lib/ui-i18n";
 
 function Streak() {
@@ -31,6 +34,13 @@ function Streak() {
           <div className="muted small">{tt(st?.today_done ? "Today's lesson is done. Nice!" : streak ? "Finish a lesson today to keep it going." : "Finish a lesson today to start your streak.")}</div>
         </div>
       </div>
+      {st && st.xp_goal ? (
+        <div className="row" style={{ marginTop: 14, gap: 12 }}>
+          <div style={{ color: "var(--fg)" }}><GoalRing value={st.xp_today} goal={st.xp_goal} /></div>
+          <div className="grow"><b>{tt(st.xp_today >= st.xp_goal ? "Daily goal reached!" : "Daily goal")}</b><div className="muted small num">{tt("{a} / {b} XP today", { a: st.xp_today, b: st.xp_goal })}</div></div>
+          <span className="chip warn" title={tt("A streak freeze saves your streak if you miss one day. You earn one every 7 days in a row.")}>❄ {tt(st.freezes === 1 ? "{n} freeze" : "{n} freezes", { n: st.freezes })}</span>
+        </div>
+      ) : null}
       <div className="days">
         {days.map((d) => (
           <div key={d.key} className={`day${d.done ? " done" : ""}${d.today ? " today" : ""}`}>
@@ -44,6 +54,8 @@ function Streak() {
 
 function Welcome() {
   const { login, loggingIn, ready, tt } = useApp();
+  const [guestDone, setGuestDone] = useState<Record<string, { best: number }>>({});
+  useEffect(() => { setGuestDone(readGuest()); }, []);
   return (
     <>
       <section className="lc hl" style={{ display: "grid", gap: 10 }}>
@@ -51,6 +63,7 @@ function Welcome() {
         <h1 style={{ fontSize: 26 }}>{tt("Learn English in your own language")}</h1>
         <p className="muted">{tt("Short lessons explained in Arabic, Indonesian, Vietnamese or Korean, with an AI tutor that corrects you and answers your questions. Pay with Pi.")}</p>
         <Link className="btn primary lg" href="/lesson?id=a1-01">{tt("Try a free lesson")}</Link>
+        {Object.keys(guestDone).length > 0 && <Link className="btn lg" href="/learn">{tt("Continue your free lessons")}</Link>}
         <button className="btn lg" onClick={login} disabled={loggingIn || !ready}>{loggingIn ? tt("Signing in…") : tt("Sign in with Pi to save progress")}</button>
       </section>
       <section className="stack">
@@ -75,6 +88,14 @@ export default function Today() {
   useEffect(() => {
     fetch(`/api/en/catalog?native=${native}`, { credentials: "include", cache: "no-store" }).then((r) => r.json()).then(setCat).catch(() => {});
   }, [native, user?.id, plan, st?.progress.length]);
+
+  // A brand-new visitor goes straight into the first free lesson; signing in comes after.
+  const router = useRouter();
+  const { ready } = useApp();
+  useEffect(() => {
+    if (!ready || user) return;
+    try { if (!localStorage.getItem("ll-intro") && !Object.keys(readGuest()).length) { localStorage.setItem("ll-intro", "1"); router.replace("/lesson?id=a1-01"); } } catch {}
+  }, [ready, user, router]);
 
   if (!user) return <div className="stack"><Welcome /></div>;
   if (!loaded || !st) return <div className="stack"><div className="skeleton" style={{ height: 150 }} /><div className="skeleton" style={{ height: 90 }} /></div>;
@@ -118,6 +139,12 @@ export default function Today() {
         <div className="ic-sq soft"><IRotate width={24} height={24} /></div>
         <div className="grow"><b>{st.due ? tt(st.due === 1 ? "{n} word to review" : "{n} words to review", { n: st.due }) : tt("All words reviewed")}</b><div className="muted small">{tt("Short flash cards bring back what you learned.")}</div></div>
       </Link>
+
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        <Link href="/stats" className="lc tap mini"><IChart width={22} height={22} /><b>{tt("My stats")}</b></Link>
+        <Link href="/mistakes" className="lc tap mini"><IRotate width={22} height={22} /><b>{tt("My mistakes")}</b>{st.mistakes > 0 && <span className="chip bad num">{st.mistakes}</span>}</Link>
+        <Link href="/ranking" className="lc tap mini"><IAward width={22} height={22} /><b>{tt("Ranking")}</b></Link>
+      </div>
 
       {plan ? (
         <Link href="/plans" className="lc tap warm">

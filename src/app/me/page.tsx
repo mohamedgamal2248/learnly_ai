@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import { NATIVES, useLearn } from "@/components/LearnProvider";
-import { IBolt, ICheck, IFlame, IGlobe, IShield } from "@/components/Icons";
+import { IAward, IBolt, IChart, ICheck, IFlame, IGlobe, IRotate, ISparkle, IShield } from "@/components/Icons";
 import { LOCALE, SITE_LANGS } from "@/lib/ui-i18n";
 import { post } from "@/lib/pi-client";
 
@@ -54,8 +54,15 @@ export default function Me() {
         <Link href="/placement" className="small md-link">{tt("Not sure? Take the level test")}</Link>
         <b>{tt("Daily goal")}</b>
         <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-          {[1, 2, 3].map((g) => <button key={g} className={`opt${st?.profile.goal === g ? " sel" : ""}`} style={{ justifyContent: "center" }} onClick={() => goal(g)}>{tt(g === 1 ? "{n} lesson" : "{n} lessons", { n: g })}</button>)}
+          {[1, 2, 3].map((g) => <button key={g} className={`opt${st?.profile.goal === g ? " sel" : ""}`} style={{ justifyContent: "center", display: "grid", gap: 0, textAlign: "center" }} onClick={() => goal(g)}><b className="num">{g * 20} XP</b><span className="hint" style={{ fontWeight: 500 }}>{tt(g === 1 ? "Casual" : g === 2 ? "Regular" : "Serious")}</span></button>)}
         </div>
+      </section>
+
+      <section className="lc stack">
+        <Link href="/stats" className="row"><IChart width={20} height={20} style={{ color: "var(--primary)" }} /><b className="grow">{tt("My stats")}</b></Link>
+        <Link href="/mistakes" className="row"><IRotate width={20} height={20} style={{ color: "var(--primary)" }} /><b className="grow">{tt("My mistakes")}</b></Link>
+        <Link href="/ranking" className="row"><IAward width={20} height={20} style={{ color: "var(--primary)" }} /><b className="grow">{tt("Ranking")}</b></Link>
+        <Link href="/help" className="row"><ISparkle width={20} height={20} style={{ color: "var(--primary)" }} /><b className="grow">{tt("Help")}</b></Link>
       </section>
 
       {user.role === "admin" && <Link href="/admin" className="lc tap"><div className="ic-sq soft"><IShield width={22} height={22} /></div><b className="grow">{tt("Admin")}</b></Link>}

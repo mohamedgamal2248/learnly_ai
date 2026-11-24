@@ -1445,5 +1445,527 @@ export const TR: Record<string, [string, string, string, string]> = {
   "Pro",
   "Pro",
   "Pro"
+ ],
+ "From the lesson": [
+  "من الدرس",
+  "Dari pelajaran",
+  "Từ bài học",
+  "레슨에서"
+ ],
+ "This word is in a lesson of a paid plan.": [
+  "هذه الكلمة في درس ضمن باقة مدفوعة.",
+  "Kata ini ada di pelajaran paket berbayar.",
+  "Từ này nằm trong bài học của gói trả phí.",
+  "이 단어는 유료 요금제 레슨에 있어요."
+ ],
+ "This word is not in the course yet. Ask the AI tutor for its meaning.": [
+  "هذه الكلمة ليست في الدورة بعد. اسأل مدرّس الذكاء الاصطناعي عن معناها.",
+  "Kata ini belum ada di kursus. Tanyakan artinya ke tutor AI.",
+  "Từ này chưa có trong khóa học. Hãy hỏi gia sư AI về nghĩa của nó.",
+  "이 단어는 아직 코스에 없어요. AI 튜터에게 뜻을 물어보세요."
+ ],
+ "Thank you! We will check it.": [
+  "شكرًا! سنراجع الأمر.",
+  "Terima kasih! Kami akan memeriksanya.",
+  "Cảm ơn bạn! Chúng tôi sẽ kiểm tra.",
+  "감사해요! 확인해 볼게요."
+ ],
+ "Report a mistake": [
+  "أبلغ عن خطأ",
+  "Laporkan kesalahan",
+  "Báo lỗi",
+  "오류 신고"
+ ],
+ "Sign in with Pi to report a mistake.": [
+  "سجّل الدخول عبر Pi للإبلاغ عن خطأ.",
+  "Masuk dengan Pi untuk melaporkan kesalahan.",
+  "Đăng nhập bằng Pi để báo lỗi.",
+  "오류를 신고하려면 Pi로 로그인하세요."
+ ],
+ "What is wrong? (translation, sentence, sound…)": [
+  "ما الخطأ؟ (ترجمة، جملة، صوت…)",
+  "Apa yang salah? (terjemahan, kalimat, suara…)",
+  "Sai ở đâu? (bản dịch, câu, âm thanh…)",
+  "무엇이 잘못됐나요? (번역, 문장, 소리…)"
+ ],
+ "Send report": [
+  "أرسل البلاغ",
+  "Kirim laporan",
+  "Gửi báo cáo",
+  "신고 보내기"
+ ],
+ "You sent many reports today. Try tomorrow.": [
+  "أرسلت بلاغات كثيرة اليوم. حاول غدًا.",
+  "Kamu sudah mengirim banyak laporan hari ini. Coba besok.",
+  "Hôm nay bạn đã gửi nhiều báo cáo. Hãy thử lại ngày mai.",
+  "오늘 신고를 많이 보냈어요. 내일 다시 해 주세요."
+ ],
+ "3. Daily goal (XP a day)": [
+  "٣. الهدف اليومي (نقاط XP في اليوم)",
+  "3. Target harian (XP per hari)",
+  "3. Mục tiêu hằng ngày (XP mỗi ngày)",
+  "3. 하루 목표 (하루 XP)"
+ ],
+ "Casual": [
+  "خفيف",
+  "Santai",
+  "Nhẹ nhàng",
+  "가볍게"
+ ],
+ "Regular": [
+  "منتظم",
+  "Rutin",
+  "Đều đặn",
+  "꾸준히"
+ ],
+ "Serious": [
+  "جاد",
+  "Serius",
+  "Nghiêm túc",
+  "열심히"
+ ],
+ "{a} / {b} XP today": [
+  "{a} / {b} نقطة XP اليوم",
+  "{a} / {b} XP hari ini",
+  "{a} / {b} XP hôm nay",
+  "오늘 {a} / {b} XP"
+ ],
+ "A streak freeze saves your streak if you miss one day. You earn one every 7 days in a row.": [
+  "تجميد السلسلة يحفظ سلسلتك إذا فاتك يوم واحد. تكسب واحدًا كل ٧ أيام متتالية.",
+  "Pembeku rangkaian menjaga rangkaianmu jika kamu melewatkan satu hari. Kamu mendapat satu tiap 7 hari berturut-turut.",
+  "Đóng băng chuỗi giữ chuỗi ngày của bạn nếu lỡ một ngày. Bạn nhận một lần sau mỗi 7 ngày liên tiếp.",
+  "연속 기록 보호권은 하루를 빠뜨려도 기록을 지켜 줘요. 7일 연속마다 하나씩 얻어요."
+ ],
+ "Continue your free lessons": [
+  "تابع دروسك المجانية",
+  "Lanjutkan pelajaran gratismu",
+  "Tiếp tục các bài học miễn phí",
+  "무료 레슨 이어하기"
+ ],
+ "My stats": [
+  "إحصائياتي",
+  "Statistikku",
+  "Thống kê của tôi",
+  "내 통계"
+ ],
+ "My mistakes": [
+  "أخطائي",
+  "Kesalahanku",
+  "Lỗi của tôi",
+  "내 오답"
+ ],
+ "Ranking": [
+  "الترتيب",
+  "Peringkat",
+  "Xếp hạng",
+  "랭킹"
+ ],
+ "Daily goal reached!": [
+  "حققت هدف اليوم!",
+  "Target harian tercapai!",
+  "Đã đạt mục tiêu hôm nay!",
+  "오늘 목표 달성!"
+ ],
+ "{n} freeze": [
+  "{n} تجميد",
+  "{n} pembeku",
+  "{n} lượt đóng băng",
+  "보호권 {n}개"
+ ],
+ "{n} freezes": [
+  "{n} تجميدات",
+  "{n} pembeku",
+  "{n} lượt đóng băng",
+  "보호권 {n}개"
+ ],
+ "Your Plus trial started: {d} days and {c} AI credits.": [
+  "بدأت تجربة Plus: {d} أيام و{c} رصيد ذكاء اصطناعي.",
+  "Percobaan Plus dimulai: {d} hari dan {c} kredit AI.",
+  "Đã bắt đầu dùng thử Plus: {d} ngày và {c} tín dụng AI.",
+  "Plus 체험이 시작됐어요: {d}일, AI 크레딧 {c}개."
+ ],
+ "The free trial is not available for this account.": [
+  "التجربة المجانية غير متاحة لهذا الحساب.",
+  "Percobaan gratis tidak tersedia untuk akun ini.",
+  "Tài khoản này không thể dùng thử miễn phí.",
+  "이 계정은 무료 체험을 이용할 수 없어요."
+ ],
+ "Try Plus free for {d} days": [
+  "جرّب Plus مجانًا لمدة {d} أيام",
+  "Coba Plus gratis selama {d} hari",
+  "Dùng thử Plus miễn phí {d} ngày",
+  "Plus를 {d}일 무료로 체험"
+ ],
+ "Includes {c} AI credits. No payment, once per person.": [
+  "تشمل {c} رصيد ذكاء اصطناعي. بدون دفع، مرة لكل شخص.",
+  "Termasuk {c} kredit AI. Tanpa pembayaran, sekali per orang.",
+  "Gồm {c} tín dụng AI. Không cần thanh toán, mỗi người một lần.",
+  "AI 크레딧 {c}개 포함. 결제 없이, 1인 1회."
+ ],
+ "Start free trial": [
+  "ابدأ التجربة المجانية",
+  "Mulai percobaan gratis",
+  "Bắt đầu dùng thử",
+  "무료 체험 시작"
+ ],
+ "Compare plans": [
+  "قارن بين الباقات",
+  "Bandingkan paket",
+  "So sánh các gói",
+  "요금제 비교"
+ ],
+ "Lessons": [
+  "الدروس",
+  "Pelajaran",
+  "Bài học",
+  "레슨"
+ ],
+ "B1 lessons": [
+  "دروس B1",
+  "Pelajaran B1",
+  "Bài học B1",
+  "B1 레슨"
+ ],
+ "AI credits per purchase": [
+  "رصيد الذكاء الاصطناعي لكل شراء",
+  "Kredit AI per pembelian",
+  "Tín dụng AI mỗi lần mua",
+  "구매당 AI 크레딧"
+ ],
+ "Reviews and mistakes": [
+  "المراجعة والأخطاء",
+  "Ulasan dan kesalahan",
+  "Ôn tập và lỗi sai",
+  "복습과 오답"
+ ],
+ "Price": [
+  "السعر",
+  "Harga",
+  "Giá",
+  "가격"
+ ],
+ "Sign in to see the ranking": [
+  "سجّل الدخول لترى الترتيب",
+  "Masuk untuk melihat peringkat",
+  "Đăng nhập để xem xếp hạng",
+  "랭킹을 보려면 로그인하세요"
+ ],
+ "This week's ranking": [
+  "ترتيب هذا الأسبوع",
+  "Peringkat minggu ini",
+  "Xếp hạng tuần này",
+  "이번 주 랭킹"
+ ],
+ "Ranked by XP. It restarts every Monday.": [
+  "الترتيب حسب نقاط XP ويبدأ من جديد كل اثنين.",
+  "Diurutkan menurut XP. Dimulai ulang setiap Senin.",
+  "Xếp theo XP. Bắt đầu lại vào mỗi thứ Hai.",
+  "XP 순서예요. 매주 월요일에 다시 시작해요."
+ ],
+ "Your rank": [
+  "ترتيبك",
+  "Peringkatmu",
+  "Thứ hạng của bạn",
+  "내 순위"
+ ],
+ "{n} XP this week": [
+  "{n} نقطة XP هذا الأسبوع",
+  "{n} XP minggu ini",
+  "{n} XP tuần này",
+  "이번 주 {n} XP"
+ ],
+ "Nobody has earned XP this week yet. Be the first!": [
+  "لم يكسب أحد نقاطًا هذا الأسبوع بعد. كن الأول!",
+  "Belum ada yang mendapat XP minggu ini. Jadilah yang pertama!",
+  "Tuần này chưa ai có XP. Hãy là người đầu tiên!",
+  "이번 주에는 아직 XP를 얻은 사람이 없어요. 첫 번째가 되세요!"
+ ],
+ "Hide my name from the ranking": [
+  "أخفِ اسمي من الترتيب",
+  "Sembunyikan namaku dari peringkat",
+  "Ẩn tên tôi khỏi xếp hạng",
+  "랭킹에서 내 이름 숨기기"
+ ],
+ "Sign in to see your stats": [
+  "سجّل الدخول لترى إحصائياتك",
+  "Masuk untuk melihat statistikmu",
+  "Đăng nhập để xem thống kê",
+  "통계를 보려면 로그인하세요"
+ ],
+ "Your progress": [
+  "تقدّمك",
+  "Kemajuanmu",
+  "Tiến độ của bạn",
+  "나의 진도"
+ ],
+ "Words learned": [
+  "كلمات تعلّمتها",
+  "Kata dipelajari",
+  "Từ đã học",
+  "배운 단어"
+ ],
+ "{n} well known": [
+  "{n} منها متقنة",
+  "{n} sudah dikuasai",
+  "{n} từ đã thuộc",
+  "{n}개는 잘 알아요"
+ ],
+ "Lessons finished": [
+  "دروس أنهيتها",
+  "Pelajaran selesai",
+  "Bài học đã xong",
+  "끝낸 레슨"
+ ],
+ "Accuracy (30 days)": [
+  "الدقة (٣٠ يومًا)",
+  "Akurasi (30 hari)",
+  "Độ chính xác (30 ngày)",
+  "정확도 (30일)"
+ ],
+ "Time learning": [
+  "وقت التعلّم",
+  "Waktu belajar",
+  "Thời gian học",
+  "학습 시간"
+ ],
+ "{n} min": [
+  "{n} دقيقة",
+  "{n} menit",
+  "{n} phút",
+  "{n}분"
+ ],
+ "Total XP": [
+  "إجمالي XP",
+  "Total XP",
+  "Tổng XP",
+  "총 XP"
+ ],
+ "Best streak": [
+  "أفضل سلسلة",
+  "Rangkaian terbaik",
+  "Chuỗi dài nhất",
+  "최고 연속 기록"
+ ],
+ "{n} days": [
+  "{n} أيام",
+  "{n} hari",
+  "{n} ngày",
+  "{n}일"
+ ],
+ "XP this week": [
+  "نقاط XP هذا الأسبوع",
+  "XP minggu ini",
+  "XP tuần này",
+  "이번 주 XP"
+ ],
+ "Practise {n} missed words": [
+  "تدرّب على {n} كلمات أخطأت فيها",
+  "Latih {n} kata yang salah",
+  "Luyện {n} từ đã sai",
+  "틀린 단어 {n}개 연습"
+ ],
+ "Help": [
+  "مساعدة",
+  "Bantuan",
+  "Trợ giúp",
+  "도움말"
+ ],
+ "Search a lesson or a word": [
+  "ابحث عن درس أو كلمة",
+  "Cari pelajaran atau kata",
+  "Tìm bài học hoặc từ",
+  "레슨이나 단어 검색"
+ ],
+ "No results": [
+  "لا نتائج",
+  "Tidak ada hasil",
+  "Không có kết quả",
+  "결과 없음"
+ ],
+ "Word": [
+  "كلمة",
+  "Kata",
+  "Từ",
+  "단어"
+ ],
+ "Start": [
+  "ابدأ",
+  "Mulai",
+  "Bắt đầu",
+  "시작"
+ ],
+ "Start here": [
+  "ابدأ من هنا",
+  "Mulai dari sini",
+  "Bắt đầu từ đây",
+  "여기서 시작"
+ ],
+ "Sign in to see your mistakes": [
+  "سجّل الدخول لترى أخطاءك",
+  "Masuk untuk melihat kesalahanmu",
+  "Đăng nhập để xem lỗi sai",
+  "오답을 보려면 로그인하세요"
+ ],
+ "Words to practise again": [
+  "كلمات للتدرّب عليها مرة أخرى",
+  "Kata untuk dilatih lagi",
+  "Những từ cần luyện lại",
+  "다시 연습할 단어"
+ ],
+ "Words you got wrong come back after two days. A right answer in practice removes them.": [
+  "الكلمات التي أخطأت فيها تعود بعد يومين. الإجابة الصحيحة في التدريب تزيلها.",
+  "Kata yang salah muncul lagi setelah dua hari. Jawaban benar saat latihan menghapusnya.",
+  "Từ bạn làm sai sẽ quay lại sau hai ngày. Trả lời đúng khi luyện tập sẽ xóa chúng.",
+  "틀린 단어는 이틀 뒤에 다시 나와요. 연습에서 맞히면 목록에서 사라져요."
+ ],
+ "Practise now": [
+  "تدرّب الآن",
+  "Latihan sekarang",
+  "Luyện tập ngay",
+  "지금 연습"
+ ],
+ "No mistakes to practise": [
+  "لا أخطاء للتدرّب عليها",
+  "Tidak ada kesalahan untuk dilatih",
+  "Không có lỗi nào để luyện",
+  "연습할 오답이 없어요"
+ ],
+ "Great! Words you miss in lessons will show up here.": [
+  "رائع! الكلمات التي تخطئ فيها في الدروس ستظهر هنا.",
+  "Bagus! Kata yang salah di pelajaran akan muncul di sini.",
+  "Tuyệt! Những từ bạn sai trong bài học sẽ hiện ở đây.",
+  "잘했어요! 레슨에서 틀린 단어가 여기에 나와요."
+ ],
+ "Missed {n}×": [
+  "أخطأت {n} مرات",
+  "Salah {n}×",
+  "Sai {n} lần",
+  "{n}번 틀림"
+ ],
+ "A streak freeze saved your streak yesterday.": [
+  "أنقذ تجميد السلسلة سلسلتك أمس.",
+  "Pembeku rangkaian menyelamatkan rangkaianmu kemarin.",
+  "Đóng băng chuỗi đã cứu chuỗi ngày của bạn hôm qua.",
+  "어제 연속 기록 보호권이 기록을 지켜 줬어요."
+ ],
+ "No connection. Your result will be saved when you are online.": [
+  "لا يوجد اتصال. ستُحفظ نتيجتك عند عودة الإنترنت.",
+  "Tidak ada koneksi. Hasilmu akan disimpan saat online.",
+  "Không có kết nối. Kết quả sẽ được lưu khi bạn có mạng.",
+  "연결이 없어요. 온라인이 되면 결과가 저장돼요."
+ ],
+ "Great start! Sign in to keep your progress.": [
+  "بداية رائعة! سجّل الدخول لتحتفظ بتقدمك.",
+  "Awal yang bagus! Masuk untuk menyimpan kemajuanmu.",
+  "Khởi đầu tuyệt vời! Đăng nhập để giữ tiến độ.",
+  "좋은 시작이에요! 로그인해서 진도를 저장하세요."
+ ],
+ "How do I start?": [
+  "كيف أبدأ؟",
+  "Bagaimana cara memulai?",
+  "Làm sao để bắt đầu?",
+  "어떻게 시작하나요?"
+ ],
+ "Open Learn and tap the glowing lesson. Read the words, then practise. You can try the first lessons without signing in.": [
+  "افتح «تعلّم» واضغط على الدرس المضيء. اقرأ الكلمات ثم تدرّب. يمكنك تجربة الدروس الأولى بدون تسجيل دخول.",
+  "Buka Belajar dan ketuk pelajaran yang bersinar. Baca kata-katanya, lalu berlatih. Pelajaran pertama bisa dicoba tanpa masuk.",
+  "Mở Học và chạm vào bài đang sáng. Đọc các từ rồi luyện tập. Bạn có thể học thử vài bài đầu mà không cần đăng nhập.",
+  "'학습'을 열고 빛나는 레슨을 누르세요. 단어를 읽고 연습하세요. 첫 레슨들은 로그인 없이 해 볼 수 있어요."
+ ],
+ "What are XP and the daily goal?": [
+  "ما هي نقاط XP والهدف اليومي؟",
+  "Apa itu XP dan target harian?",
+  "XP và mục tiêu hằng ngày là gì?",
+  "XP와 하루 목표는 무엇인가요?"
+ ],
+ "You earn XP for every lesson and every right review. Fill the ring on the Today page to reach your daily goal. You can change the goal in Me.": [
+  "تكسب نقاط XP عن كل درس وكل مراجعة صحيحة. املأ الحلقة في صفحة «اليوم» لتحقق هدفك اليومي. يمكنك تغيير الهدف من صفحة «أنا».",
+  "Kamu mendapat XP dari setiap pelajaran dan ulasan yang benar. Penuhi lingkaran di halaman Hari ini untuk mencapai target harian. Targetnya bisa diubah di Saya.",
+  "Bạn nhận XP từ mỗi bài học và mỗi lần ôn đúng. Làm đầy vòng tròn ở trang Hôm nay để đạt mục tiêu. Có thể đổi mục tiêu trong mục Tôi.",
+  "레슨과 맞힌 복습마다 XP를 얻어요. 오늘 화면의 링을 채우면 하루 목표 달성이에요. 목표는 '나'에서 바꿀 수 있어요."
+ ],
+ "What is a streak freeze?": [
+  "ما هو تجميد السلسلة؟",
+  "Apa itu pembeku rangkaian?",
+  "Đóng băng chuỗi là gì?",
+  "연속 기록 보호권이 뭔가요?"
+ ],
+ "If you miss exactly one day, a freeze keeps your streak alive. You start with one and earn another every 7 days in a row (up to 2).": [
+  "إذا فاتك يوم واحد فقط، يحافظ التجميد على سلسلتك. تبدأ بواحد وتكسب آخر كل ٧ أيام متتالية (حتى ٢).",
+  "Jika kamu melewatkan tepat satu hari, pembeku menjaga rangkaianmu. Kamu mulai dengan satu dan dapat satu lagi tiap 7 hari berturut-turut (maksimal 2).",
+  "Nếu bạn lỡ đúng một ngày, đóng băng sẽ giữ chuỗi ngày. Bạn có sẵn một lượt và nhận thêm sau mỗi 7 ngày liên tiếp (tối đa 2).",
+  "정확히 하루를 빠뜨리면 보호권이 기록을 지켜 줘요. 하나로 시작하고 7일 연속마다 하나씩 얻어요(최대 2개)."
+ ],
+ "What are Plus and Pro?": [
+  "ما هما Plus وPro؟",
+  "Apa itu Plus dan Pro?",
+  "Plus và Pro là gì?",
+  "Plus와 Pro는 무엇인가요?"
+ ],
+ "Plus opens all A1 and A2 lessons and the AI tutor. Pro adds the B1 lessons. Plans last 30 days and are paid in Pi. You can try Plus free once.": [
+  "Plus تفتح كل دروس A1 وA2 ومدرّس الذكاء الاصطناعي. Pro تضيف دروس B1. مدة الباقة ٣٠ يومًا وتُدفع بعملة Pi. يمكنك تجربة Plus مجانًا مرة واحدة.",
+  "Plus membuka semua pelajaran A1 dan A2 serta tutor AI. Pro menambah pelajaran B1. Paket berlaku 30 hari dan dibayar dengan Pi. Plus bisa dicoba gratis sekali.",
+  "Plus mở mọi bài A1, A2 và gia sư AI. Pro thêm các bài B1. Gói kéo dài 30 ngày, trả bằng Pi. Bạn được dùng thử Plus miễn phí một lần.",
+  "Plus는 A1·A2 전체 레슨과 AI 튜터를, Pro는 B1 레슨까지 열어 줘요. 요금제는 30일이며 Pi로 결제해요. Plus는 한 번 무료로 체험할 수 있어요."
+ ],
+ "What are AI credits?": [
+  "ما هو رصيد الذكاء الاصطناعي؟",
+  "Apa itu kredit AI?",
+  "Tín dụng AI là gì?",
+  "AI 크레딧이 뭔가요?"
+ ],
+ "Each question to the AI tutor uses a few credits. Plans include credits, and you can add packs. If the AI cannot answer, the credits come back.": [
+  "كل سؤال لمدرّس الذكاء الاصطناعي يستهلك بضعة أرصدة. الباقات تشمل رصيدًا ويمكنك إضافة باقات. إذا تعذّرت الإجابة يُعاد الرصيد.",
+  "Setiap pertanyaan ke tutor AI memakai beberapa kredit. Paket sudah termasuk kredit dan kamu bisa menambah paket. Jika AI gagal menjawab, kredit dikembalikan.",
+  "Mỗi câu hỏi cho gia sư AI dùng vài tín dụng. Gói đã gồm tín dụng và bạn có thể mua thêm. Nếu AI không trả lời được, tín dụng sẽ được hoàn lại.",
+  "AI 튜터에게 질문할 때마다 크레딧이 조금 들어요. 요금제에 크레딧이 포함되고 팩을 추가할 수 있어요. AI가 답하지 못하면 크레딧이 돌아와요."
+ ],
+ "How do reviews and mistakes work?": [
+  "كيف تعمل المراجعة والأخطاء؟",
+  "Bagaimana ulasan dan kesalahan bekerja?",
+  "Ôn tập và lỗi sai hoạt động thế nào?",
+  "복습과 오답은 어떻게 동작하나요?"
+ ],
+ "Words you learn come back for review after 1, 2, 4, 8 days and so on. Words you answer wrong come back after two days and are also listed in My mistakes.": [
+  "الكلمات التي تتعلمها تعود للمراجعة بعد ١ ثم ٢ ثم ٤ ثم ٨ أيام وهكذا. الكلمات التي تخطئ فيها تعود بعد يومين وتظهر في «أخطائي».",
+  "Kata yang kamu pelajari muncul lagi untuk diulas setelah 1, 2, 4, 8 hari, dan seterusnya. Kata yang salah muncul setelah dua hari dan tercatat di Kesalahanku.",
+  "Từ đã học quay lại để ôn sau 1, 2, 4, 8 ngày... Từ bạn làm sai quay lại sau hai ngày và có trong mục Lỗi của tôi.",
+  "배운 단어는 1일, 2일, 4일, 8일… 간격으로 다시 나와요. 틀린 단어는 이틀 뒤에 나오고 '내 오답'에도 모여요."
+ ],
+ "A translation or sentence looks wrong": [
+  "ترجمة أو جملة تبدو خاطئة",
+  "Terjemahan atau kalimat terlihat salah",
+  "Bản dịch hoặc câu có vẻ sai",
+  "번역이나 문장이 이상해요"
+ ],
+ "Tap the flag \"Report a mistake\" in the lesson. Our team checks every report. Tell us what is wrong and we will fix it.": [
+  "اضغط على العلم «أبلغ عن خطأ» داخل الدرس. يراجع فريقنا كل بلاغ. أخبرنا بالخطأ وسنصلحه.",
+  "Ketuk bendera \"Laporkan kesalahan\" di pelajaran. Tim kami memeriksa setiap laporan. Beri tahu apa yang salah dan kami akan memperbaikinya.",
+  "Chạm vào cờ \"Báo lỗi\" trong bài học. Nhóm chúng tôi kiểm tra mọi báo cáo. Hãy cho biết lỗi gì, chúng tôi sẽ sửa.",
+  "레슨의 \"오류 신고\" 깃발을 누르세요. 팀이 모든 신고를 확인해요. 무엇이 틀렸는지 알려 주시면 고칠게요."
+ ],
+ "Can I learn without internet?": [
+  "هل أتعلم بدون إنترنت؟",
+  "Bisakah belajar tanpa internet?",
+  "Tôi có học được khi không có mạng không?",
+  "인터넷 없이도 배울 수 있나요?"
+ ],
+ "Lessons you opened before stay available offline. Your results are saved when you are online again.": [
+  "الدروس التي فتحتها من قبل تبقى متاحة بدون إنترنت. تُحفظ نتائجك عند عودة الاتصال.",
+  "Pelajaran yang pernah kamu buka tetap tersedia offline. Hasilmu disimpan saat kembali online.",
+  "Các bài bạn đã mở vẫn dùng được khi không có mạng. Kết quả được lưu khi bạn có mạng lại.",
+  "이전에 연 레슨은 오프라인에서도 볼 수 있어요. 결과는 다시 온라인이 되면 저장돼요."
+ ],
+ "My payment did not work": [
+  "لم ينجح الدفع",
+  "Pembayaranku tidak berhasil",
+  "Thanh toán của tôi không thành công",
+  "결제가 안 됐어요"
+ ],
+ "Open Learnly AI from Pi Browser and try again. If Pi charged you and the plan did not start, reopen the app: unfinished payments are completed automatically.": [
+  "افتح Learnly AI من متصفح Pi وحاول مرة أخرى. إذا خصم Pi المبلغ ولم تبدأ الباقة، أعد فتح التطبيق: تُكمَل المدفوعات غير المنتهية تلقائيًا.",
+  "Buka Learnly AI dari Pi Browser dan coba lagi. Jika Pi sudah menagih tetapi paket belum aktif, buka ulang aplikasi: pembayaran yang belum selesai diselesaikan otomatis.",
+  "Mở Learnly AI từ Pi Browser và thử lại. Nếu Pi đã trừ tiền mà gói chưa bắt đầu, hãy mở lại ứng dụng: thanh toán dang dở sẽ tự hoàn tất.",
+  "Pi Browser에서 Learnly AI를 열고 다시 시도하세요. Pi에서 결제됐는데 요금제가 시작되지 않았다면 앱을 다시 열어 주세요. 끝나지 않은 결제는 자동으로 완료돼요."
  ]
 };

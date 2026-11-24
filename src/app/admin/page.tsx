@@ -5,11 +5,11 @@ import { useApp } from "@/components/AppProvider";
 import { post } from "@/lib/pi-client";
 
 type Overview = { learners: number; onboarded: number; plus: number; pro: number; revenue_usd: number; revenue_pi: number; lessons_done: number; ai_credits_30d: number; ai_calls_30d: number; teacher_pending: number; catalog: Catalog };
-type Catalog = { plans: Record<string, { usd: number; days: number; credits: number }>; packs: { id: string; usd: number; credits: number }[]; costs: Record<string, number>; ai_daily_cap: number };
+type Catalog = { plans: Record<string, { usd: number; days: number; credits: number }>; packs: { id: string; usd: number; credits: number }[]; costs: Record<string, number>; ai_daily_cap: number; trial?: { days: number; credits: number } };
 type AppRow = { id: string; username: string; display_name: string; subjects: string; bio: string; years: number; doc_name: string; status: string; reason: string | null; created_at: string };
 type UserRow = { id: string; username: string; role: string; banned: boolean; credits: number; plan: string | null; plan_until: string | null; xp: number | null; streak: number };
 
-const TABS = ["Overview", "Plans & AI", "Teachers", "Users"] as const;
+const TABS = ["Overview", "Plans & AI", "Teachers", "Reports", "Users"] as const;
 
 async function get<T>(url: string): Promise<T | null> { try { const r = await fetch(url, { credentials: "include", cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }
 
@@ -70,6 +70,11 @@ function PlansTab({ o, reload }: { o: Overview | null; reload: () => void }) {
           {(["explain", "chat", "correct", "write"] as const).map((k) => <label key={k} className="field"><span>{k}</span><input className="input" type="number" min={1} max={20} value={c.costs[k]} onChange={(e) => setC({ ...c, costs: { ...c.costs, [k]: num(e.target.value) } })} /></label>)}
         </div>
         <label className="field"><span>Daily AI limit per learner (credits)</span><input className="input" type="number" min={1} value={c.ai_daily_cap} onChange={(e) => setC({ ...c, ai_daily_cap: num(e.target.value) })} /></label>
+        <b>Free Plus trial (once per person)</b>
+        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <label className="field"><span>Days (0 turns it off)</span><input className="input" type="number" min={0} max={30} value={c.trial?.days ?? 3} onChange={(e) => setC({ ...c, trial: { days: num(e.target.value), credits: c.trial?.credits ?? 20 } })} /></label>
+          <label className="field"><span>AI credits</span><input className="input" type="number" min={0} max={500} value={c.trial?.credits ?? 20} onChange={(e) => setC({ ...c, trial: { days: c.trial?.days ?? 3, credits: num(e.target.value) } })} /></label>
+        </div>
         <button className="btn primary" onClick={save}>Save prices and limits</button>
       </section>
 
@@ -116,6 +121,28 @@ function TeachersTab({ reload }: { reload: () => void }) {
   );
 }
 
+type Rep = { id: number; lesson_id: string; word: string | null; note: string; status: string; created_at: string; username: string };
+function ReportsTab() {
+  const [rows, setRows] = useState<Rep[] | null>(null);
+  const [filter, setFilter] = useState("open");
+  const { toast } = useApp();
+  const load = useCallback(() => { get<{ reports: Rep[] }>(`/api/admin/en-reports?status=${filter}`).then((d) => setRows(d?.reports || [])); }, [filter]);
+  useEffect(load, [load]);
+  async function setStatus(id: number, status: string) { const r = await post("/api/admin/en-reports", { id, status }); toast(r.ok ? "Done" : "Failed"); load(); }
+  return (
+    <div className="stack">
+      <div className="seg" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>{["open", "fixed", "dismissed"].map((s) => <button key={s} className={filter === s ? "on" : ""} onClick={() => setFilter(s)}>{s}</button>)}</div>
+      {!rows ? <div className="skeleton" style={{ height: 120 }} /> : !rows.length ? <div className="lc muted">No {filter} reports.</div> : rows.map((x) => (
+        <div key={x.id} className="lc stack">
+          <div className="row"><b className="grow">{x.lesson_id}{x.word ? ` · ${x.word}` : ""}</b><span className="muted small">@{x.username}</span></div>
+          <div className="small" style={{ whiteSpace: "pre-wrap" }}>{x.note}</div>
+          {x.status === "open" && <div className="row-actions"><button className="btn ok sm" onClick={() => setStatus(x.id, "fixed")}>Fixed</button><button className="btn sm" onClick={() => setStatus(x.id, "dismissed")}>Dismiss</button></div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function UsersTab() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
@@ -150,10 +177,11 @@ export default function Admin() {
   return (
     <div className="stack">
       <h1 style={{ fontSize: 22 }}>Admin</h1>
-      <div className="seg" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>{TABS.map((t) => <button key={t} className={tab === t ? "on" : ""} onClick={() => setTab(t)} style={{ fontSize: 13 }}>{t}{t === "Teachers" && o?.teacher_pending ? ` (${o.teacher_pending})` : ""}</button>)}</div>
+      <div className="seg" style={{ gridTemplateColumns: "repeat(5,1fr)" }}>{TABS.map((t) => <button key={t} className={tab === t ? "on" : ""} onClick={() => setTab(t)} style={{ fontSize: 13 }}>{t}{t === "Teachers" && o?.teacher_pending ? ` (${o.teacher_pending})` : ""}</button>)}</div>
       {tab === "Overview" && <OverviewTab o={o} />}
       {tab === "Plans & AI" && <PlansTab o={o} reload={reload} />}
       {tab === "Teachers" && <TeachersTab reload={reload} />}
+      {tab === "Reports" && <ReportsTab />}
       {tab === "Users" && <UsersTab />}
     </div>
   );

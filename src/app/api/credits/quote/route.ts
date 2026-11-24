@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     const [rate, cat] = await Promise.all([piUsdRate(), getCatalog()]);
     const s = getSession(req);
     const plan = s ? await rpc<string | null>("ln_en_sub_plan", { p_user: s.uid }).catch(() => null) : null;
-    return json({ rate, ...makeQuotes(rate, cat), costs: cat.costs, plan });
+    return json({ rate, ...makeQuotes(rate, cat), costs: cat.costs, trial: cat.trial ?? null, plan });
   } catch {
     return fail("price_unavailable", 503);
   }

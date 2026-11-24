@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useApp } from "./AppProvider";
+import { clearGuest, readGuest, readQueue, writeQueue } from "@/lib/guest";
 
 export type Native = "ar" | "id" | "vi" | "ko";
 export const NATIVES: { code: Native; label: string; short: string; dir: "rtl" | "ltr" }[] = [
@@ -12,11 +13,12 @@ export const NATIVES: { code: Native; label: string; short: string; dir: "rtl" |
 ];
 
 export type EnState = {
-  profile: { native: Native; level: "A1" | "A2" | "B1" | "B2"; xp: number; goal: number; onboarded: boolean };
+  profile: { native: Native; level: "A1" | "A2" | "B1" | "B2"; xp: number; goal: number; onboarded: boolean; reminder_hour: number | null; tz_offset: number; hide_rank: boolean; freezes: number };
   sub: { plan: "plus" | "pro" | null; until: string | null; active: boolean };
   credits: number; streak: number; best: number; today_done: boolean;
   progress: { id: string; best: number; done: boolean }[];
   week: { day: string; xp: number }[]; due: number;
+  xp_today: number; xp_goal: number; freezes: number; trial_available: boolean; mistakes: number; tg_linked: boolean;
 };
 
 type Ctx = {
@@ -48,6 +50,31 @@ export function LearnProvider({ children }: { children: ReactNode }) {
     setLoaded(true);
   }, [user]);
   useEffect(() => { setLoaded(false); refresh(); }, [refresh]);
+
+  // After signing in: add the lessons finished as a guest, and send results that could not be sent while offline.
+  useEffect(() => {
+    if (!user) return;
+    let off = false;
+    const run = async () => {
+      const guest = readGuest();
+      if (Object.keys(guest).length) {
+        const r = await fetch("/api/en/sync", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ done: guest }) }).catch(() => null);
+        if (r?.ok) { clearGuest(); if (!off) refresh(); }
+      }
+      let q = readQueue();
+      while (q.length && navigator.onLine) {
+        const p = q[0];
+        const r = await fetch("/api/en/complete", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) }).catch(() => null);
+        if (!r || (!r.ok && r.status >= 500)) break;
+        q = q.slice(1); writeQueue(q);
+      }
+      if (!off) refresh();
+    };
+    run();
+    const onOnline = () => run();
+    addEventListener("online", onOnline);
+    return () => { off = true; removeEventListener("online", onOnline); };
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const native: Native = st?.profile.native ?? guestNative;
   const setNative = useCallback((n: Native) => {
