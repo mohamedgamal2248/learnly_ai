@@ -1,5 +1,5 @@
 /* Learnly AI service worker: fast repeat visits, lessons you opened stay available offline. */
-const VERSION = "ln-v2";
+const VERSION = "ln-v3";
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
 const DATA = `${VERSION}-data`;
@@ -29,8 +29,8 @@ self.addEventListener("fetch", (e) => {
   }
   if (url.pathname.startsWith("/api/")) return;
 
-  // Hashed build files and icons never change: cache first.
-  if (url.pathname.startsWith("/_next/static/") || /\.(png|svg|ico|woff2?)$/.test(url.pathname)) {
+  // Hashed build files, icons and the pre-made English audio never change: cache first.
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/audio/") || /\.(png|svg|ico|woff2?)$/.test(url.pathname)) {
     e.respondWith(caches.open(STATIC).then(async (c) => {
       const hit = await c.match(req);
       if (hit) return hit;

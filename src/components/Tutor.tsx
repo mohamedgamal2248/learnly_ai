@@ -15,7 +15,23 @@ const MODES: { id: Mode; label: string; ph: string; hint: string }[] = [
 ];
 
 /** The AI tutor: an Ask / Practise / Correct chat. Needs a paid plan; every request uses a few credits. */
-export function Tutor({ lessonId, compact = false }: { lessonId?: string; compact?: boolean }) {
+/** Shows a tutor answer as tidy lines: no markdown symbols, lists with bullets, each line takes its own direction. */
+function Rich({ text }: { text: string }) {
+  const lines = text.replace(/\*+/g, "").replace(/^#{1,6}\s+/gm, "").replace(/`+/g, "").split("\n");
+  return (
+    <>
+      {lines.map((ln, i) => {
+        const t = ln.trim();
+        if (!t) return <div key={i} style={{ height: 8 }} />;
+        const bullet = /^([-•–]|\d+[.)])\s+/.test(t);
+        const body = t.replace(/^([-•–])\s+/, "");
+        return <div key={i} dir="auto" className={`rl${bullet ? " li" : ""}${/:$/.test(t) ? " hd" : ""}`}>{bullet && /^[-•–]/.test(t) ? "• " : ""}{body}</div>;
+      })}
+    </>
+  );
+}
+
+export function Tutor({ lessonId, lessonTitle, compact = false }: { lessonId?: string; lessonTitle?: string; compact?: boolean }) {
   const { user, login, loggingIn, tt } = useApp();
   const { st, plan, setCredits } = useLearn();
   const [mode, setMode] = useState<Mode>("explain");
@@ -37,6 +53,13 @@ export function Tutor({ lessonId, compact = false }: { lessonId?: string; compac
   }
 
   const m = MODES.find((x) => x.id === mode)!;
+  const starters = lessonId
+    ? mode === "explain" ? ["Explain this lesson in simple words", "Give me 3 more examples", "What mistakes do learners make here?"]
+      : mode === "chat" ? ["Let's practise this lesson's words in a short conversation.", "Ask me questions using the lesson words."]
+      : ["Check my sentence using a word from this lesson: "]
+    : mode === "explain" ? ["When do I use \"a\" and \"an\"?", "What is the difference between \"do\" and \"does\"?", "How do I say hello politely?"]
+      : mode === "chat" ? ["Hello! How are you?", "Let's order food in a restaurant.", "Let's talk about my day."]
+      : ["I goed to school yesterday."];
   async function send() {
     const t = text.trim();
     if (t.length < 2 || busy) return;
@@ -72,7 +95,8 @@ export function Tutor({ lessonId, compact = false }: { lessonId?: string; compac
   }
 
   return (
-    <div className="stack" style={compact ? undefined : { minHeight: "60dvh", alignContent: "start" }}>
+    <div className={`stack tutor${compact ? " compact" : ""}`} style={compact ? undefined : { minHeight: "60dvh", alignContent: "start" }}>
+      {lessonId && <div className="note ok" style={{ display: "flex", gap: 8, alignItems: "center" }}><ISparkle width={16} height={16} /><span><b>{tt("Asking about this lesson")}:</b> {lessonTitle || lessonId}</span></div>}
       <div className="seg" role="tablist">
         {MODES.map((x) => <button key={x.id} role="tab" aria-selected={mode === x.id} className={mode === x.id ? "on" : ""} onClick={() => setMode(x.id)}>{tt(x.label)}</button>)}
       </div>
@@ -80,12 +104,12 @@ export function Tutor({ lessonId, compact = false }: { lessonId?: string; compac
       {msgs.length === 0 && (
         <div className="lc" style={{ background: "var(--primary-soft)", boxShadow: "none" }}>
           <b>{tt(mode === "explain" ? "What would you like to understand?" : mode === "chat" ? "Let's talk. Start with a greeting!" : "Paste your English and I will correct it.")}</b>
-          {mode === "explain" && <div className="chips" style={{ marginTop: 8 }}>{["When do I use \"a\" and \"an\"?", "What is the difference between \"do\" and \"does\"?", "How do I say hello politely?"].map((q) => <button key={q} className="chip v" onClick={() => setText(tt(q))} style={{ border: 0, cursor: "pointer" }}>{tt(q)}</button>)}</div>}
+          <div className="chips" style={{ marginTop: 8, flexWrap: "wrap" }}>{starters.map((q) => <button key={q} className="chip v" onClick={() => setText(mode === "explain" ? tt(q) : q)} style={{ border: 0, cursor: "pointer", whiteSpace: "normal", textAlign: "start" }}>{mode === "explain" ? tt(q) : q}</button>)}</div>
         </div>
       )}
       <div className="chat">
         {msgs.map((x, i) => (
-          <div key={i} className={`bubble ${x.role}`} dir={x.role === "assistant" ? "auto" : "ltr"}>{x.content || <span className="dots"><i /><i /><i /></span>}</div>
+          <div key={i} className={`bubble ${x.role}`} dir={x.role === "assistant" ? undefined : "auto"}>{x.content ? (x.role === "assistant" ? <Rich text={x.content} /> : x.content) : <span className="dots"><i /><i /><i /></span>}</div>
         ))}
         <div ref={end} />
       </div>

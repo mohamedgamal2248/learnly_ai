@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { useLearn } from "@/components/LearnProvider";
 import { ISpeaker } from "@/components/Icons";
-import { canSpeak, speak } from "@/lib/learn-client";
+import { playAudio } from "@/lib/audio";
 
-type M = { word: string; missed: number; tr: string; ex: string; exTr: string };
+type M = { word: string; au: string; missed: number; tr: string; ex: string; exTr: string };
 
 /** Words answered wrong in lessons. They come back after two days; practise them any time here. */
 export default function Mistakes() {
@@ -25,7 +25,7 @@ export default function Mistakes() {
       {!w.length && <div className="lc"><b>{tt("No mistakes to practise")}</b><div className="muted small">{tt("Great! Words you miss in lessons will show up here.")}</div></div>}
       {w.map((x) => (
         <div key={x.word} className="lc" style={{ padding: 14 }}>
-          <div className="row"><b className="grow" dir="ltr" style={{ fontSize: 18 }}>{x.word}</b><span className="native" dir={dir} style={{ fontWeight: 700, color: "var(--primary)" }}>{x.tr}</span>{canSpeak() && <button className="icon-btn" onClick={() => speak(x.word)} aria-label={tt("Listen")}><ISpeaker width={18} height={18} /></button>}</div>
+          <div className="row"><b className="grow" dir="ltr" style={{ fontSize: 18 }}>{x.word}</b><span className="native" dir={dir} style={{ fontWeight: 700, color: "var(--primary)" }}>{x.tr}</span><button className="icon-btn" onClick={() => playAudio(x.au, x.word)} aria-label={tt("Listen")}><ISpeaker width={18} height={18} /></button></div>
           <div dir="ltr" className="small" style={{ marginTop: 4 }}>{x.ex}</div>
           <span className="chip bad num" style={{ marginTop: 6 }}>{tt("Missed {n}×", { n: x.missed })}</span>
         </div>

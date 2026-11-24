@@ -1967,5 +1967,29 @@ export const TR: Record<string, [string, string, string, string]> = {
   "Buka Learnly AI dari Pi Browser dan coba lagi. Jika Pi sudah menagih tetapi paket belum aktif, buka ulang aplikasi: pembayaran yang belum selesai diselesaikan otomatis.",
   "Mở Learnly AI từ Pi Browser và thử lại. Nếu Pi đã trừ tiền mà gói chưa bắt đầu, hãy mở lại ứng dụng: thanh toán dang dở sẽ tự hoàn tất.",
   "Pi Browser에서 Learnly AI를 열고 다시 시도하세요. Pi에서 결제됐는데 요금제가 시작되지 않았다면 앱을 다시 열어 주세요. 끝나지 않은 결제는 자동으로 완료돼요."
+ ],
+ "Asking about this lesson": [
+  "السؤال عن هذا الدرس",
+  "Bertanya tentang pelajaran ini",
+  "Đang hỏi về bài học này",
+  "이 레슨에 대한 질문"
+ ],
+ "Explain this lesson in simple words": [
+  "اشرح هذا الدرس بكلمات بسيطة",
+  "Jelaskan pelajaran ini dengan kata-kata sederhana",
+  "Giải thích bài học này bằng từ đơn giản",
+  "이 레슨을 쉬운 말로 설명해 주세요"
+ ],
+ "Give me 3 more examples": [
+  "أعطني ٣ أمثلة أخرى",
+  "Beri saya 3 contoh lagi",
+  "Cho tôi thêm 3 ví dụ",
+  "예문 3개 더 알려 주세요"
+ ],
+ "What mistakes do learners make here?": [
+  "ما الأخطاء الشائعة هنا؟",
+  "Kesalahan apa yang sering dibuat di sini?",
+  "Người học thường mắc lỗi gì ở đây?",
+  "여기서 학습자가 자주 하는 실수는 뭔가요?"
  ]
 };

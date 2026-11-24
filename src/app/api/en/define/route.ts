@@ -2,6 +2,7 @@ import { fail, json } from "@/lib/server/http";
 import { canOpen, LESSONS } from "@/lib/server/learn";
 import { loadState, nativeFrom } from "@/lib/server/learn/api";
 import { getSession } from "@/lib/server/session";
+import { audioId } from "@/lib/server/learn/audio";
 
 export const runtime = "nodejs";
 
@@ -24,5 +25,5 @@ export async function GET(req: Request) {
   const native = nativeFrom(req, st);
   const lesson = LESSONS.find((l) => l.id === hit!.lessonId)!;
   const w = lesson.words[hit.wi];
-  return json({ found: true, word: w.en, tr: w.tr[native], ex: w.ex, exTr: w.exTr[native], lesson: lesson.title });
+  return json({ found: true, word: w.en, au: audioId(w.en), exAu: audioId(w.ex), tr: w.tr[native], ex: w.ex, exTr: w.exTr[native], lesson: lesson.title });
 }

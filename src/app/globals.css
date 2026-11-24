@@ -658,3 +658,12 @@ main.focus { padding-bottom: 32px; }
 .faq summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; } .faq summary::-webkit-details-marker { display: none; }
 .faq summary::after { content: "+"; margin-inline-start: auto; font-weight: 800; color: var(--primary); } .faq[open] summary::after { content: "−"; }
 .cmp { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; } .cmp th, .cmp td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: center; } .cmp td:first-child, .cmp th:first-child { text-align: start; } .cmp th { color: var(--muted); font-weight: 700; }
+
+/* ---- AI tutor layout ---- */
+.bubble .rl { line-height: 1.7; }
+.bubble .rl.hd { font-weight: 700; margin-top: 2px; }
+.bubble .rl.li { padding-inline-start: 4px; }
+.tutor .chat { gap: 12px; }
+.tutor.compact .composer { position: static; background: transparent; padding-top: 4px; }
+.tutor.compact .chat { max-height: 42dvh; overflow-y: auto; padding-inline: 2px; }
+.tutor.compact { gap: 10px; }

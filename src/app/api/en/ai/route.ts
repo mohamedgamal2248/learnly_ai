@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
   const lesson = typeof b?.lessonId === "string" ? getLesson(b.lessonId) : null;
   const native = st.profile.native;
-  const ctx = lesson ? lessonContext(lesson.title, lesson.words.map((w) => ({ en: w.en, tr: w.tr[native] }))) : "";
+  const ctx = lesson ? lessonContext({ title: lesson.title, level: lesson.level, tip: lesson.intro[native], words: lesson.words.map((w) => ({ en: w.en, tr: w.tr[native], ex: w.ex })) }) : "";
   const history = Array.isArray(b?.history)
     ? b.history.filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string").slice(-6)
     : [];
@@ -46,7 +46,11 @@ export async function POST(req: Request) {
     async start(ctrl) {
       try {
         for await (const ev of streamChat({ messages, maxTokens: mode === "correct" ? 700 : 500, cacheKey: `en-${mode}-${native}`, effort: "low", signal: req.signal })) {
-          if (ev.type === "text") { produced = true; ctrl.enqueue(enc.encode(ev.text)); }
+          if (ev.type === "text") {
+            // Plain text only: strip any markdown the model still adds.
+            const t = ev.text.replace(/\*+/g, "").replace(/^#{1,6}\s+/gm, "").replace(/`+/g, "");
+            if (t) { produced = true; ctrl.enqueue(enc.encode(t)); }
+          }
         }
         if (!produced) throw new Error("empty_reply");
         ctrl.close();

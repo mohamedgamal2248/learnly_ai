@@ -5,7 +5,7 @@ import { useApp } from "./AppProvider";
 import { useLearn } from "./LearnProvider";
 import { Portal } from "./Portal";
 import { IClose, ISpeaker } from "./Icons";
-import { canSpeak, speak } from "@/lib/learn-client";
+import { playAudio } from "@/lib/audio";
 import { post } from "@/lib/pi-client";
 
 /** English text where every word can be tapped for its meaning and pronunciation. */
@@ -14,7 +14,7 @@ export function TapText({ text, onWord }: { text: string; onWord: (w: string) =>
   return <>{parts.map((p, i) => (/^[A-Za-z]/.test(p) ? <button key={i} type="button" className="tapw" onClick={() => onWord(p)}>{p}</button> : <span key={i}>{p}</span>))}</>;
 }
 
-type Def = { found: boolean; locked?: boolean; word: string; tr?: string; ex?: string; exTr?: string; lesson?: string };
+type Def = { found: boolean; locked?: boolean; au?: string; exAu?: string; word: string; tr?: string; ex?: string; exTr?: string; lesson?: string };
 
 /** The quick dictionary: meaning (in the learner's language), example and sound for a tapped word. */
 export function WordSheet({ word, onClose }: { word: string; onClose: () => void }) {
@@ -30,7 +30,7 @@ export function WordSheet({ word, onClose }: { word: string; onClose: () => void
       <div className="modal-wrap" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
         <div className="modal" role="dialog" aria-modal="true">
           <div className="row"><b className="grow" dir="ltr" style={{ fontSize: 24 }}>{word}</b>
-            {canSpeak() && <button className="icon-btn" onClick={() => speak(word)} aria-label={tt("Listen")}><ISpeaker width={18} height={18} /></button>}
+            <button className="icon-btn" onClick={() => playAudio(d?.au, word)} aria-label={tt("Listen")}><ISpeaker width={18} height={18} /></button>
             <button className="icon-btn" onClick={onClose} aria-label={tt("Close")}><IClose width={18} height={18} /></button></div>
           {!d ? <div className="skeleton" style={{ height: 60 }} /> : d.found && !d.locked ? (
             <div className="stack">

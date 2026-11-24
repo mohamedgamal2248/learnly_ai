@@ -1,8 +1,9 @@
 import type { Lesson, Native, Word } from "./types";
+import { audioId } from "./audio";
 
 /** `w` is the lesson word the question is about, so wrong answers can be tracked per word. */
 export type Exercise =
-  | { t: "pick"; w: string; q: string; speak?: string; options: string[]; answer: number; dir?: "rtl" }
+  | { t: "pick"; w: string; q: string; speak?: string; au?: string; options: string[]; answer: number; dir?: "rtl" }
   | { t: "fill"; w: string; q: string; hint: string; options: string[]; answer: number }
   | { t: "order"; w: string; hint: string; words: string[]; answer: string };
 
@@ -30,8 +31,8 @@ export function buildExercises(lesson: Lesson, native: Native, pool: Word[]): Ex
   const order = shuffle(words);
 
   // English → meaning (read), then listen → meaning
-  order.slice(0, 3).forEach((w) => out.push({ t: "pick", w: w.en, q: w.en, ...choices(w.tr[native], trPool) }));
-  order.slice(3, 5).forEach((w) => out.push({ t: "pick", w: w.en, q: "listen", speak: w.en, ...choices(w.tr[native], trPool) }));
+  order.slice(0, 3).forEach((w) => out.push({ t: "pick", w: w.en, q: w.en, au: audioId(w.en), ...choices(w.tr[native], trPool) }));
+  order.slice(3, 5).forEach((w) => out.push({ t: "pick", w: w.en, q: "listen", speak: w.en, au: audioId(w.en), ...choices(w.tr[native], trPool) }));
   // Meaning → English
   sample(words, 2).forEach((w) => out.push({ t: "pick", w: w.en, q: w.tr[native], dir: native === "ar" ? "rtl" : undefined, ...choices(w.en, enPool) }));
   // Fill the blank in the example sentence

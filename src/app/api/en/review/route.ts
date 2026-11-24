@@ -2,6 +2,7 @@ import { fail, json, requireSession } from "@/lib/server/http";
 import { rpc } from "@/lib/server/db";
 import { allWords, findWord } from "@/lib/server/learn";
 import { loadState } from "@/lib/server/learn/api";
+import { audioId } from "@/lib/server/learn/audio";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
     if (!w) return [];
     const others = shuffle(pool.filter((x) => x.en !== w.en)).slice(0, 3).map((x) => x.tr[native]);
     const options = shuffle([w.tr[native], ...others]);
-    return [{ word: w.en, ex: w.ex, exTr: w.exTr[native], options, answer: options.indexOf(w.tr[native]), tr: w.tr[native] }];
+    return [{ word: w.en, au: audioId(w.en), ex: w.ex, exTr: w.exTr[native], options, answer: options.indexOf(w.tr[native]), tr: w.tr[native] }];
   });
   return json({ cards, native });
 }

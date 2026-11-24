@@ -3,6 +3,7 @@ import { loadState, nativeFrom } from "@/lib/server/learn/api";
 import { allWords, canOpen, getLesson, nextLesson } from "@/lib/server/learn";
 import { buildExercises } from "@/lib/server/learn/exercises";
 import { getSession } from "@/lib/server/session";
+import { audioId } from "@/lib/server/learn/audio";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
   return json({
     id: lesson.id, level: lesson.level, tier: lesson.tier, title: lesson.title, titleTr: lesson.titleTr[native],
     intro: lesson.intro[native], native,
-    words: lesson.words.map((w) => ({ en: w.en, tr: w.tr[native], ex: w.ex, exTr: w.exTr[native], tatoeba: w.src?.en?.startsWith("tatoeba:") ? Number(w.src.en.slice(8)) : null })),
+    words: lesson.words.map((w) => ({ en: w.en, tr: w.tr[native], ex: w.ex, exTr: w.exTr[native], au: audioId(w.en), exAu: audioId(w.ex), tatoeba: w.src?.en?.startsWith("tatoeba:") ? Number(w.src.en.slice(8)) : null })),
     exercises: buildExercises(lesson, native, pool),
     next: nextLesson(id),
     canAi: !!st?.sub.plan,

@@ -6,10 +6,10 @@ import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
 import { useLearn } from "@/components/LearnProvider";
 import { ICheck, IClose, ISpeaker } from "@/components/Icons";
-import { canSpeak, speak } from "@/lib/learn-client";
+import { playAudio } from "@/lib/audio";
 import { post } from "@/lib/pi-client";
 
-type Card = { word: string; ex: string; exTr: string; options: string[]; answer: number; tr: string };
+type Card = { word: string; au: string; ex: string; exTr: string; options: string[]; answer: number; tr: string };
 
 /** Flash cards for the words that are due today (spaced repetition: right answers come back later, wrong ones tomorrow). */
 function ReviewInner() {
@@ -60,7 +60,7 @@ function ReviewInner() {
       <section className="lc" style={{ textAlign: "center", display: "grid", gap: 8, justifyItems: "center" }}>
         <span className="eyebrow">{tt("What does it mean?")}</span>
         <div className="big" dir="ltr" style={{ fontSize: 30 }}>{c.word}</div>
-        {canSpeak() && <button className="icon-btn" onClick={() => speak(c.word)} aria-label={tt("Listen")}><ISpeaker width={18} height={18} /></button>}
+        <button className="icon-btn" onClick={() => playAudio(c.au, c.word)} aria-label={tt("Listen")}><ISpeaker width={18} height={18} /></button>
         <div className="muted small" dir="ltr">{c.ex}</div>
       </section>
       <div className="grid" style={{ gap: 8 }}>

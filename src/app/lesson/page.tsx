@@ -8,22 +8,21 @@ import { Portal } from "@/components/Portal";
 import { useLearn } from "@/components/LearnProvider";
 import { Tutor } from "@/components/Tutor";
 import { ICheck, IClose, ILock, ISparkle, ISpeaker } from "@/components/Icons";
-import { canSpeak, speak } from "@/lib/learn-client";
+import { playAudio } from "@/lib/audio";
 import { Confetti, GoalRing, ReportSheet, TapText, WordSheet } from "@/components/LessonBits";
 import { readQueue, saveGuestLesson, starsFor, writeQueue } from "@/lib/guest";
 import { post } from "@/lib/pi-client";
 
-type Word = { en: string; tr: string; ex: string; exTr: string; tatoeba: number | null };
+type Word = { en: string; tr: string; ex: string; exTr: string; au: string; exAu: string; tatoeba: number | null };
 type Ex =
-  | { t: "pick"; w: string; q: string; speak?: string; options: string[]; answer: number; dir?: "rtl" }
+  | { t: "pick"; w: string; q: string; speak?: string; au?: string; options: string[]; answer: number; dir?: "rtl" }
   | { t: "fill"; w: string; q: string; hint: string; options: string[]; answer: number }
   | { t: "order"; w: string; hint: string; words: string[]; answer: string };
 type Lesson = { id: string; level: string; title: string; titleTr: string; intro: string; native: string; words: Word[]; exercises: Ex[]; next: string | null; canAi: boolean };
 
-function Speak({ text, big = false }: { text: string; big?: boolean }) {
+function Speak({ text, id, big = false }: { text: string; id?: string; big?: boolean }) {
   const { tt } = useApp();
-  if (!canSpeak()) return null;
-  return <button className={big ? "speak-big" : "icon-btn"} onClick={() => speak(text)} aria-label={`${tt("Listen")}: ${text}`}><ISpeaker width={big ? 34 : 18} height={big ? 34 : 18} /></button>;
+  return <button className={big ? "speak-big" : "icon-btn"} onClick={() => playAudio(id, text)} aria-label={`${tt("Listen")}: ${text}`}><ISpeaker width={big ? 34 : 18} height={big ? 34 : 18} /></button>;
 }
 
 function Question({ ex, onDone }: { ex: Ex; onDone: (ok: boolean) => void }) {
@@ -32,7 +31,7 @@ function Question({ ex, onDone }: { ex: Ex; onDone: (ok: boolean) => void }) {
   const [built, setBuilt] = useState<number[]>([]);
   const [checked, setChecked] = useState<null | boolean>(null);
   const spoken = useRef(false);
-  useEffect(() => { if (ex.t === "pick" && ex.speak && !spoken.current) { spoken.current = true; speak(ex.speak); } }, [ex]);
+  useEffect(() => { if (ex.t === "pick" && ex.speak && !spoken.current) { spoken.current = true; playAudio(ex.au, ex.speak); } }, [ex]);
 
   if (ex.t === "order") {
     const sentence = built.map((i) => ex.words[i]).join(" ");
@@ -70,12 +69,12 @@ function Question({ ex, onDone }: { ex: Ex; onDone: (ok: boolean) => void }) {
       ) : pick.q === "listen" ? (
         <>
           <b>{tt("Listen and choose the meaning")}</b>
-          <div style={{ display: "grid", placeItems: "center", padding: 10 }}><Speak text={pick.speak!} big /></div>
+          <div style={{ display: "grid", placeItems: "center", padding: 10 }}><Speak text={pick.speak!} id={pick.au} big /></div>
         </>
       ) : (
         <>
           <b>{pick.dir === "rtl" || /[^\x00-\x7F]/.test(pick.q) ? tt("Choose the English word") : tt("What does this mean?")}</b>
-          <div className="lc native" dir="auto" style={{ fontSize: 24, fontWeight: 800, textAlign: "center" }}>{pick.q}{!/[^\x00-\x7F]/.test(pick.q) && <Speak text={pick.q} />}</div>
+          <div className="lc native" dir="auto" style={{ fontSize: 24, fontWeight: 800, textAlign: "center" }}>{pick.q}{!/[^\x00-\x7F]/.test(pick.q) && <Speak text={pick.q} id={pick.au} />}</div>
         </>
       )}
       <div className="grid" style={{ gap: 8 }}>
@@ -168,8 +167,8 @@ function LessonInner() {
           <div className="stack">
             {lesson.words.map((w) => (
               <div key={w.en} className="lc" style={{ padding: 14 }}>
-                <div className="row"><b style={{ fontSize: 18 }} dir="ltr" className="grow">{w.en}</b><span className="native" dir="auto" style={{ fontWeight: 700, color: "var(--primary)" }}>{w.tr}</span><Speak text={w.en} /></div>
-                <div dir="ltr" className="small row" style={{ marginTop: 6, gap: 6 }}><span className="grow"><TapText text={w.ex} onWord={setWordSheet} /></span><button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => speak(w.ex)} aria-label={tt("Listen")}><ISpeaker width={14} height={14} /></button></div>
+                <div className="row"><b style={{ fontSize: 18 }} dir="ltr" className="grow">{w.en}</b><span className="native" dir="auto" style={{ fontWeight: 700, color: "var(--primary)" }}>{w.tr}</span><Speak text={w.en} id={w.au} /></div>
+                <div dir="ltr" className="small row" style={{ marginTop: 6, gap: 6 }}><span className="grow"><TapText text={w.ex} onWord={setWordSheet} /></span><button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => playAudio(w.exAu, w.ex)} aria-label={tt("Listen")}><ISpeaker width={14} height={14} /></button></div>
                 <div className="muted small native" dir={dirN}>{w.exTr}</div>
                 <button type="button" className="hint md-link" style={{ border: 0, background: "none", cursor: "pointer", padding: 0 }} onClick={() => setReport({ word: w.en })}>⚑ {tt("Report a mistake")}</button>
                 {w.tatoeba && <a className="hint md-link" style={{ marginInlineStart: 10 }} href={`https://tatoeba.org/sentences/show/${w.tatoeba}`} target="_blank" rel="noreferrer">Tatoeba #{w.tatoeba}</a>}
@@ -220,7 +219,7 @@ function LessonInner() {
         <div className="modal-wrap" onClick={(e) => { if (e.target === e.currentTarget) setHelp(false); }}>
           <div className="modal" role="dialog" aria-modal="true" aria-label={tt("Ask AI")} style={{ maxHeight: "88dvh", overflow: "auto" }}>
             <div className="row"><h2 style={{ flex: 1, fontSize: 18 }}>{tt("Ask the AI about this lesson")}</h2><button className="icon-btn" aria-label={tt("Close")} onClick={() => setHelp(false)}><IClose width={18} height={18} /></button></div>
-            <Tutor lessonId={lesson.id} compact />
+            <Tutor lessonId={lesson.id} lessonTitle={lesson.title} compact />
           </div>
         </div>
         </Portal>
