@@ -1,20 +1,22 @@
 import "server-only";
+import raw from "./data/lessons.json";
 import type { Lesson, Native, Tier, Unit, Word } from "./types";
-import { UNITS as U1, LESSONS as L1 } from "./content/a1";
-import { UNITS as U2, LESSONS as L2 } from "./content/a2";
-import { UNITS as U3, LESSONS as L3 } from "./content/b1";
 
-export const UNITS: Unit[] = [...U1, ...U2, ...U3];
-export const LESSONS: Lesson[] = [...L1, ...L2, ...L3];
+type RawLesson = Omit<Lesson, "tier">;
+const data = raw as unknown as { units: (Unit & { lessons: string[] })[]; lessons: RawLesson[] };
+
+/** The first six lessons are free, the rest of A1 and A2 need Plus, B1 needs Pro. */
+const FREE_LESSONS = 6;
+const tierOf = (l: RawLesson): Tier => (l.n <= FREE_LESSONS ? "free" : l.level === "B1" ? "pro" : "plus");
+
+export const UNITS: Unit[] = data.units.map(({ lessons: _l, ...u }) => u);
+export const LESSONS: Lesson[] = data.lessons.map((l) => ({ ...l, tier: tierOf(l) }));
 const byId = new Map(LESSONS.map((l) => [l.id, l]));
 export const getLesson = (id: string) => byId.get(id) || null;
 export const nextLesson = (id: string) => { const i = LESSONS.findIndex((l) => l.id === id); return i >= 0 ? LESSONS[i + 1]?.id || null : null; };
 export const allWords = (): Word[] => LESSONS.flatMap((l) => l.words);
-export function findWord(en: string): Word | null {
-  const q = en.toLowerCase();
-  for (const l of LESSONS) { const w = l.words.find((x) => x.en.toLowerCase() === q); if (w) return w; }
-  return null;
-}
+const wordIndex = new Map(allWords().map((w) => [w.en.toLowerCase(), w]));
+export const findWord = (en: string): Word | null => wordIndex.get(en.toLowerCase()) || null;
 
 /** Which plans can open a lesson. Free lessons are open to everyone (even without an account). */
 const RANK: Record<Tier, number> = { free: 0, plus: 1, pro: 2 };

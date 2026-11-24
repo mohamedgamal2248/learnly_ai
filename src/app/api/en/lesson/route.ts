@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   return json({
     id: lesson.id, level: lesson.level, tier: lesson.tier, title: lesson.title, titleTr: lesson.titleTr[native],
     intro: lesson.intro[native], native,
-    words: lesson.words.map((w) => ({ en: w.en, tr: w.tr[native], ex: w.ex, exTr: w.exTr[native] })),
+    words: lesson.words.map((w) => ({ en: w.en, tr: w.tr[native], ex: w.ex, exTr: w.exTr[native], tatoeba: w.src?.en?.startsWith("tatoeba:") ? Number(w.src.en.slice(8)) : null })),
     exercises: buildExercises(lesson, native, pool),
     next: nextLesson(id),
     canAi: !!st?.sub.plan,

@@ -48,7 +48,7 @@ function Welcome() {
         <span className="eyebrow">Learnly AI</span>
         <h1 style={{ fontSize: 26 }}>Learn English in your own language</h1>
         <p className="muted">Short lessons explained in Arabic, Indonesian, Vietnamese or Korean, with an AI tutor that corrects you and answers your questions. Pay with Pi.</p>
-        <Link className="btn primary lg" href="/lesson?id=a1-1">Try a free lesson</Link>
+        <Link className="btn primary lg" href="/lesson?id=a1-01">Try a free lesson</Link>
         <button className="btn lg" onClick={login} disabled={loggingIn || !ready}>{loggingIn ? "Signing in…" : "Sign in with Pi to save progress"}</button>
       </section>
       <section className="stack">

@@ -10,7 +10,7 @@ import { ICheck, IClose, ILock, ISparkle, ISpeaker } from "@/components/Icons";
 import { canSpeak, speak } from "@/lib/learn-client";
 import { post } from "@/lib/pi-client";
 
-type Word = { en: string; tr: string; ex: string; exTr: string };
+type Word = { en: string; tr: string; ex: string; exTr: string; tatoeba: number | null };
 type Ex =
   | { t: "pick"; q: string; speak?: string; options: string[]; answer: number; dir?: "rtl" }
   | { t: "fill"; q: string; hint: string; options: string[]; answer: number }
@@ -86,7 +86,7 @@ function Question({ ex, onDone }: { ex: Ex; onDone: (ok: boolean) => void }) {
 }
 
 function LessonInner() {
-  const id = useSearchParams().get("id") || "a1-1";
+  const id = useSearchParams().get("id") || "a1-01";
   const router = useRouter();
   const { user, login } = useApp();
   const { native, refresh, plan } = useLearn();
@@ -153,9 +153,11 @@ function LessonInner() {
                 <div className="row"><b style={{ fontSize: 18 }} dir="ltr" className="grow">{w.en}</b><span className="native" dir="auto" style={{ fontWeight: 700, color: "var(--primary)" }}>{w.tr}</span><Speak text={w.en} /></div>
                 <div dir="ltr" className="small row" style={{ marginTop: 6, gap: 6 }}><span className="grow">{w.ex}</span><button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => speak(w.ex)} aria-label="Listen to the sentence"><ISpeaker width={14} height={14} /></button></div>
                 <div className="muted small native" dir={dirN}>{w.exTr}</div>
+                {w.tatoeba && <a className="hint md-link" href={`https://tatoeba.org/sentences/show/${w.tatoeba}`} target="_blank" rel="noreferrer">Tatoeba #{w.tatoeba}</a>}
               </div>
             ))}
           </div>
+          <p className="hint" style={{ textAlign: "center" }}>Words from the CEFR-J list. Some sentences from Tatoeba (CC BY 2.0 FR). <Link className="md-link" href="/credits">Credits</Link></p>
           <button className="btn primary lg" onClick={() => setStage("practice")}>Start practice</button>
         </>
       )}

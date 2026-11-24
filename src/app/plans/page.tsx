@@ -10,9 +10,9 @@ type Q = { kind: "plan" | "pack"; id: string; credits: number; usd: number; pi: 
 type Quotes = { rate: number; plans: Q[]; packs: Q[]; costs: Record<string, number>; plan: string | null };
 
 const FEATURES: Record<string, string[]> = {
-  free: ["First lessons of the course", "Flash-card review with spaced repetition", "Daily streak and progress", "Pronunciation with your phone's voice"],
-  plus: ["Every A1 and A2 lesson", "AI tutor in every lesson: ask, practise, get corrected", "Monthly AI credits"],
-  pro: ["Everything in Plus", "B1 lessons and new content first", "More monthly AI credits"],
+  free: ["The first 6 lessons of the course", "Flash-card review with spaced repetition", "Daily streak and progress", "Pronunciation with your phone's voice"],
+  plus: ["All 40 A1 and A2 lessons", "AI tutor in every lesson: ask, practise, get corrected", "Monthly AI credits"],
+  pro: ["Everything in Plus", "The 12 B1 lessons and new content first", "More monthly AI credits"],
 };
 
 export default function Plans() {

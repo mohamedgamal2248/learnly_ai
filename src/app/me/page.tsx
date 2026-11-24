@@ -61,5 +61,5 @@ export default function Me() {
 }
 
 function Links() {
-  return <div className="muted small" style={{ textAlign: "center" }}><Link href="/privacy" className="md-link">Privacy</Link> · <Link href="/terms" className="md-link">Terms</Link></div>;
+  return <div className="muted small" style={{ textAlign: "center" }}><Link href="/privacy" className="md-link">Privacy</Link> · <Link href="/terms" className="md-link">Terms</Link> · <Link href="/credits" className="md-link">Credits</Link></div>;
 }
